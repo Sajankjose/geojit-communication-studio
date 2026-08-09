@@ -138,8 +138,8 @@ export async function updateCommunication(
 /**
  * Get one communication by ID.
  *
- * We will use this shortly when reopening
- * drafts from the Dashboard.
+ * Used when reopening an existing draft
+ * from the Dashboard.
  */
 export async function getCommunicationById(
   communicationId: string
