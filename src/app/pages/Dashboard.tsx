@@ -404,11 +404,22 @@ export function Dashboard() {
                     >
 
                       <button
-                        onClick={() =>
-                          navigate(
-                            `/create/category?communicationId=${comm.id}`
-                          )
-                        }
+                        onClick={() => {
+                          if (comm.category) {
+                            const uiCategory =
+                              mapDatabaseCategory(
+                                comm.category
+                              );
+
+                            navigate(
+                              `/create/form?communicationId=${comm.id}&category=${uiCategory}`
+                            );
+                          } else {
+                            navigate(
+                              `/create/category?communicationId=${comm.id}`
+                            );
+                          }
+                        }}
                         className="flex-1 text-left"
                       >
 
