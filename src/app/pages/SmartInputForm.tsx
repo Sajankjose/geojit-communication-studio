@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useNavigate,
   useSearchParams,
@@ -18,6 +18,7 @@ import { CommunicationStateBar } from "../components/CommunicationStateBar";
 import { ProgressStepper } from "../components/ProgressStepper";
 
 import {
+  getCommunicationById,
   updateCommunication,
 } from "../services/communications";
 
@@ -55,9 +56,11 @@ export function SmartInputForm() {
       "communicationId"
     );
 
-  const category =
-    (searchParams.get("category") ||
-      "research") as Category;
+  const [category, setCategory] =
+    useState<Category>(
+      (searchParams.get("category") ||
+        "research") as Category
+    );
 
   const [
     inputMethod,
@@ -76,6 +79,9 @@ export function SmartInputForm() {
   const [savedMessage, setSavedMessage] =
     useState("");
 
+  const [loadingDraft, setLoadingDraft] =
+    useState(true);
+
   const [formData, setFormData] =
     useState<FormData>({
       title: "",
@@ -88,6 +94,111 @@ export function SmartInputForm() {
       ctaUrl: "",
       details: {},
     });
+
+  useEffect(() => {
+    async function loadDraft() {
+      if (!communicationId) {
+        setLoadingDraft(false);
+        return;
+      }
+
+      try {
+        setLoadingDraft(true);
+        setError("");
+
+        const communication =
+          await getCommunicationById(
+            communicationId
+          );
+
+        const savedInput =
+          communication.input_data || {};
+
+        const savedDetails =
+          (
+            savedInput.categorySpecificDetails ||
+            {}
+          ) as Record<string, string>;
+
+        const savedCategory =
+          mapDatabaseCategoryToUi(
+            communication.category
+          );
+
+        if (savedCategory) {
+          setCategory(savedCategory);
+        }
+
+        setInputMethod(
+          typeof savedInput.inputMethod ===
+            "string"
+            ? savedInput.inputMethod
+            : "manual"
+        );
+
+        setFormData({
+          title:
+            communication.title ===
+            "New Communication"
+              ? ""
+              : communication.title || "",
+
+          subcategory:
+            communication.subcategory || "",
+
+          audience:
+            communication.audience || "",
+
+          topic:
+            typeof savedInput.topic ===
+            "string"
+              ? savedInput.topic
+              : "",
+
+          keyMessage:
+            typeof savedInput.keyMessage ===
+            "string"
+              ? savedInput.keyMessage
+              : "",
+
+          supportingPoints:
+            typeof savedInput.supportingPoints ===
+            "string"
+              ? savedInput.supportingPoints
+              : "",
+
+          ctaText:
+            typeof savedInput.ctaText ===
+            "string"
+              ? savedInput.ctaText
+              : "",
+
+          ctaUrl:
+            typeof savedInput.ctaUrl ===
+            "string"
+              ? savedInput.ctaUrl
+              : "",
+
+          details: savedDetails,
+        });
+      } catch (err) {
+        console.error(
+          "Unable to load draft:",
+          err
+        );
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load the saved communication."
+        );
+      } finally {
+        setLoadingDraft(false);
+      }
+    }
+
+    loadDraft();
+  }, [communicationId]);
 
   const subcategories: Record<
     Category,
@@ -250,6 +361,33 @@ export function SmartInputForm() {
     }
   }
 
+  function mapDatabaseCategoryToUi(
+    value: string | null
+  ): Category | null {
+    switch (value) {
+      case "Research & Advisory":
+        return "research";
+
+      case "Investor Education":
+        return "education";
+
+      case "Product & Sales":
+        return "product";
+
+      case "Service & Transactional":
+        return "service";
+
+      case "Regulatory & Compliance":
+        return "regulatory";
+
+      case "Onboarding & Journey":
+        return "onboarding";
+
+      default:
+        return null;
+    }
+  }
+
   async function saveToSupabase(
     nextStatus = "draft"
   ) {
@@ -391,6 +529,24 @@ export function SmartInputForm() {
   function handleBack() {
     navigate(
       `/create/category?communicationId=${communicationId}`
+    );
+  }
+
+  if (loadingDraft) {
+    return (
+      <div className="min-h-screen bg-background">
+        <TopNavBar />
+
+        <div className="flex min-h-[70vh] items-center justify-center">
+          <div className="text-center">
+            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#07877B]" />
+
+            <p className="text-sm text-gray-600">
+              Loading communication...
+            </p>
+          </div>
+        </div>
+      </div>
     );
   }
 
