@@ -8,10 +8,14 @@ export interface CommunicationRecord {
   objective: string | null;
   audience: string | null;
   status: string;
+
   created_by: string;
+
   input_data: Record<string, unknown>;
   classification_data: Record<string, unknown>;
+
   selected_variant_id: string | null;
+
   created_at: string;
   updated_at: string;
 }
@@ -29,7 +33,7 @@ export async function createCommunication(
       title: "New Communication",
       status: "draft",
     })
-    .select()
+    .select("*")
     .single();
 
   if (error) {
@@ -38,17 +42,29 @@ export async function createCommunication(
       error
     );
 
-    throw error;
+    throw new Error(error.message);
   }
+
+  if (!data) {
+    throw new Error(
+      "Communication could not be created."
+    );
+  }
+
+  console.log(
+    "Communication created successfully:",
+    data
+  );
 
   return data as CommunicationRecord;
 }
 
 /**
- * Get all communications created by the
- * currently logged-in user.
+ * Get communications available to the
+ * currently authenticated user.
  *
- * RLS in Supabase also protects this query.
+ * Supabase RLS controls which rows
+ * this user is allowed to receive.
  */
 export async function getMyCommunications(): Promise<
   CommunicationRecord[]
@@ -66,25 +82,87 @@ export async function getMyCommunications(): Promise<
       error
     );
 
-    throw error;
+    throw new Error(error.message);
   }
 
   return (data ?? []) as CommunicationRecord[];
 }
+
+/**
+ * Update an existing communication.
+ */
 export async function updateCommunication(
   communicationId: string,
   updates: Partial<CommunicationRecord>
-) {
+): Promise<CommunicationRecord> {
+  console.log(
+    "Updating communication:",
+    communicationId
+  );
+
+  console.log(
+    "Update payload:",
+    updates
+  );
+
   const { data, error } = await supabase
     .from("communications")
     .update(updates)
     .eq("id", communicationId)
-    .select()
+    .select("*")
     .single();
 
   if (error) {
-    console.error("Update communication error:", error);
-    throw error;
+    console.error(
+      "Supabase update communication error:",
+      error
+    );
+
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error(
+      "Communication was not updated."
+    );
+  }
+
+  console.log(
+    "Communication updated successfully:",
+    data
+  );
+
+  return data as CommunicationRecord;
+}
+
+/**
+ * Get one communication by ID.
+ *
+ * We will use this shortly when reopening
+ * drafts from the Dashboard.
+ */
+export async function getCommunicationById(
+  communicationId: string
+): Promise<CommunicationRecord> {
+  const { data, error } = await supabase
+    .from("communications")
+    .select("*")
+    .eq("id", communicationId)
+    .single();
+
+  if (error) {
+    console.error(
+      "Load communication error:",
+      error
+    );
+
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error(
+      "Communication not found."
+    );
   }
 
   return data as CommunicationRecord;
