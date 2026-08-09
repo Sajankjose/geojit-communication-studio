@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useAuth } from "../auth/useAuth";
 import { useNavigate } from "react-router";
 import { Bell, Settings, User, LogOut, ChevronDown } from "lucide-react";
 
