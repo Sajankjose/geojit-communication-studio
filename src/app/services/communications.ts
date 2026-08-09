@@ -71,3 +71,21 @@ export async function getMyCommunications(): Promise<
 
   return (data ?? []) as CommunicationRecord[];
 }
+export async function updateCommunication(
+  communicationId: string,
+  updates: Partial<CommunicationRecord>
+) {
+  const { data, error } = await supabase
+    .from("communications")
+    .update(updates)
+    .eq("id", communicationId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Update communication error:", error);
+    throw error;
+  }
+
+  return data as CommunicationRecord;
+}
