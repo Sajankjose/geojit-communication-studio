@@ -1,4 +1,5 @@
 import { createBrowserRouter } from "react-router";
+
 import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
 import { CategorySelection } from "./pages/CategorySelection";
@@ -8,7 +9,9 @@ import { VariantSelection } from "./pages/VariantSelection";
 import { FullPreview } from "./pages/FullPreview";
 import { ApprovalSubmission } from "./pages/ApprovalSubmission";
 import { RulesSettings } from "./pages/RulesSettings";
+
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { RoleGuard } from "./auth/RoleGuard";
 
 export const router = createBrowserRouter([
   {
@@ -75,7 +78,9 @@ export const router = createBrowserRouter([
     path: "/settings/rules",
     element: (
       <ProtectedRoute>
-        <RulesSettings />
+        <RoleGuard allowedRoles={["admin"]}>
+          <RulesSettings />
+        </RoleGuard>
       </ProtectedRoute>
     ),
   },
