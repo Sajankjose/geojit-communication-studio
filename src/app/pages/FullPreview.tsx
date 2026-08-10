@@ -26,6 +26,8 @@ import {
 
 import { supabase } from "../../lib/supabase";
 
+import { renderEmailHtml } from "../email/renderEmailHtml";
+
 type Category =
   | "research"
   | "education"
@@ -303,6 +305,116 @@ export function FullPreview() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  function buildCurrentEmailHtml() {
+    return renderEmailHtml({
+      category,
+      subject,
+      preheader,
+
+      contentData: {
+        ...(variant?.content_data || {}),
+        cta: {
+          enabled: ctaEnabled,
+          label: ctaText,
+          url: ctaUrl,
+        },
+      },
+
+      cta: {
+        enabled: ctaEnabled,
+        label: ctaText,
+        url: ctaUrl,
+      },
+    });
+  }
+
+  async function handleCopyHtml() {
+    try {
+      setError("");
+      setSavedMessage("");
+
+      const html =
+        buildCurrentEmailHtml();
+
+      await navigator.clipboard.writeText(
+        html
+      );
+
+      setSavedMessage(
+        "Email HTML copied to clipboard."
+      );
+    } catch (err) {
+      console.error(
+        "Unable to copy HTML:",
+        err
+      );
+
+      setError(
+        "Unable to copy HTML. Please try again."
+      );
+    }
+  }
+
+  function handleDownloadHtml() {
+    try {
+      setError("");
+      setSavedMessage("");
+
+      const html =
+        buildCurrentEmailHtml();
+
+      const blob =
+        new Blob(
+          [html],
+          {
+            type:
+              "text/html;charset=utf-8",
+          }
+        );
+
+      const url =
+        URL.createObjectURL(
+          blob
+        );
+
+      const anchor =
+        document.createElement(
+          "a"
+        );
+
+      anchor.href = url;
+      anchor.download =
+        `${slugify(
+          communicationTitle ||
+            "geojit-communication"
+        )}.html`;
+
+      document.body.appendChild(
+        anchor
+      );
+
+      anchor.click();
+      anchor.remove();
+
+      URL.revokeObjectURL(
+        url
+      );
+
+      setSavedMessage(
+        "Email HTML downloaded."
+      );
+    } catch (err) {
+      console.error(
+        "Unable to download HTML:",
+        err
+      );
+
+      setError(
+        "Unable to download HTML. Please try again."
+      );
     }
   }
 
@@ -610,9 +722,8 @@ export function FullPreview() {
             <div className="space-y-3">
               <button
                 type="button"
-                disabled
-                title="HTML renderer will be connected in the next implementation step."
-                className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-400 opacity-70"
+                onClick={handleCopyHtml}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 transition-all hover:bg-gray-50"
               >
                 <Copy className="h-4 w-4" />
                 Copy HTML
@@ -620,9 +731,8 @@ export function FullPreview() {
 
               <button
                 type="button"
-                disabled
-                title="HTML renderer will be connected in the next implementation step."
-                className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-400 opacity-70"
+                onClick={handleDownloadHtml}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 transition-all hover:bg-gray-50"
               >
                 <Download className="h-4 w-4" />
                 Download HTML
@@ -723,6 +833,17 @@ function ControlledRow({
       <span className="text-right text-gray-700">{value}</span>
     </div>
   );
+}
+
+function slugify(
+  value: string
+) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") ||
+    "geojit-communication";
 }
 
 function getCategoryLabel(category: Category) {
