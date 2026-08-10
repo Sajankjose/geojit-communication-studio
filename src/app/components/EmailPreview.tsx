@@ -1,146 +1,302 @@
-interface EmailPreviewProps {
-  variant?: "clarity" | "balanced" | "impact";
-  category?: string;
+interface SnapshotItem {
+  label: string;
+  value: string;
 }
 
-export function EmailPreview({ variant = "balanced", category }: EmailPreviewProps) {
+interface EmailSection {
+  type:
+    | "text"
+    | "bullets"
+    | "snapshot"
+    | "highlight"
+    | "steps"
+    | "timeline"
+    | "note";
+  title?: string;
+  content?: string;
+  items?: Array<string | SnapshotItem>;
+}
+
+interface EmailContentData {
+  variant_name?: string;
+  strategy?: string;
+  hero?: {
+    eyebrow?: string;
+    title?: string;
+    subtitle?: string;
+  };
+  body?: {
+    intro?: string;
+    sections?: EmailSection[];
+    closing?: string;
+  };
+  disclaimer?: {
+    required?: boolean;
+    type?: string;
+    text?: string;
+  };
+  compliance?: {
+    status?: string;
+    flags?: string[];
+    notes?: string[];
+  };
+}
+
+interface EmailPreviewProps {
+  category?: string;
+  subject: string;
+  preheader: string;
+  contentData: EmailContentData | null;
+  cta: {
+    enabled: boolean;
+    label: string;
+    url: string;
+  };
+}
+
+export function EmailPreview({
+  category = "research",
+  subject,
+  preheader,
+  contentData,
+  cta,
+}: EmailPreviewProps) {
+  const hero = contentData?.hero;
+  const body = contentData?.body;
+  const disclaimer = contentData?.disclaimer;
+
   return (
-    <div className="overflow-hidden rounded-xl border border-gray-300 bg-gray-100 p-8 shadow-lg">
-      {/* Email Container */}
-      <div className="mx-auto w-full max-w-[600px] overflow-hidden rounded-lg bg-white shadow-md">
-        {/* Email Header */}
-        <div className="border-b border-gray-200 bg-[#07877B] px-8 py-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-[#07877B]">
-              <span className="text-lg">G</span>
-            </div>
-            <div>
-              <h2 className="text-lg text-white">Geojit Financial Services</h2>
-              <p className="text-xs text-white/80">Research & Advisory</p>
-            </div>
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="bg-[#07877B] px-8 py-6 text-white">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-lg font-semibold text-[#07877B]">
+            G
+          </div>
+          <div>
+            <p className="font-medium">Geojit Financial Services</p>
+            <p className="text-sm text-white/80">{getCategoryLabel(category)}</p>
           </div>
         </div>
+      </div>
 
-        {/* Email Body */}
-        <div className="px-8 py-8">
-          {/* Subject Area */}
-          <div className="mb-6">
-            <h1 className="mb-2 text-2xl text-gray-900">
-              Reliance Industries - BUY Recommendation
-            </h1>
-            <p className="text-sm text-gray-600">
-              Target ₹2,850 | Strong fundamentals and growth outlook
-            </p>
+      <div className="px-8 py-8">
+        <div className="mb-7 border-b border-gray-100 pb-6">
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#07877B]">
+            Email Subject
+          </p>
+          <h1 className="mb-2 text-2xl leading-tight text-gray-900">
+            {subject || "Untitled communication"}
+          </h1>
+          {preheader && (
+            <p className="text-sm leading-6 text-gray-600">{preheader}</p>
+          )}
+        </div>
+
+        {(hero?.eyebrow || hero?.title || hero?.subtitle) && (
+          <div className="mb-7 rounded-xl bg-[#f3fbfa] p-6">
+            {hero.eyebrow && (
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-[#07877B]">
+                {hero.eyebrow}
+              </p>
+            )}
+            {hero.title && (
+              <h2 className="mb-2 text-xl text-gray-900">{hero.title}</h2>
+            )}
+            {hero.subtitle && (
+              <p className="text-sm leading-6 text-gray-600">{hero.subtitle}</p>
+            )}
           </div>
+        )}
 
-          {/* Greeting */}
-          <p className="mb-6 text-gray-700">Dear Valued Investor,</p>
+        {body?.intro && (
+          <p className="mb-6 leading-7 text-gray-700">{body.intro}</p>
+        )}
 
-          {/* Main Content */}
-          <div className="mb-6 space-y-4">
-            <p className="text-gray-700">
-              We are pleased to share our latest research recommendation on
-              Reliance Industries Limited (RIL). Based on our comprehensive
-              analysis, we recommend a <strong className="text-[#07877B]">BUY</strong> rating with a
-              target price of <strong>₹2,850</strong>.
-            </p>
+        <div className="space-y-6">
+          {(body?.sections || []).map((section, index) => (
+            <SectionRenderer
+              key={`${section.type}-${index}`}
+              section={section}
+            />
+          ))}
+        </div>
 
-            {/* Info Card */}
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
-              <div className="mb-4 grid grid-cols-2 gap-4">
-                <div>
-                  <p className="mb-1 text-xs text-muted-foreground">
-                    Current Price
-                  </p>
-                  <p className="text-lg">₹2,450</p>
-                </div>
-                <div>
-                  <p className="mb-1 text-xs text-muted-foreground">
-                    Target Price
-                  </p>
-                  <p className="text-lg text-[#07877B]">₹2,850</p>
-                </div>
-                <div>
-                  <p className="mb-1 text-xs text-muted-foreground">
-                    Upside Potential
-                  </p>
-                  <p className="text-lg text-green-600">16.3%</p>
-                </div>
-                <div>
-                  <p className="mb-1 text-xs text-muted-foreground">
-                    Time Horizon
-                  </p>
-                  <p className="text-lg">12 months</p>
-                </div>
-              </div>
+        {body?.closing && (
+          <p className="mt-7 leading-7 text-gray-700">{body.closing}</p>
+        )}
 
-              <div className="inline-flex items-center rounded-full bg-[#07877B] px-4 py-2 text-sm text-white">
-                Recommendation: BUY
-              </div>
-            </div>
-
-            {/* Key Points */}
-            <div className="space-y-2">
-              <h3 className="mb-2 text-sm text-gray-900">Key Investment Rationale:</h3>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li className="flex gap-2">
-                  <span className="text-[#07877B]">•</span>
-                  <span>
-                    Strong revenue growth across telecom and retail segments
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-[#07877B]">•</span>
-                  <span>
-                    Successful commissioning of new energy projects
-                  </span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-[#07877B]">•</span>
-                  <span>Robust cash flow generation and deleveraging</span>
-                </li>
-                <li className="flex gap-2">
-                  <span className="text-[#07877B]">•</span>
-                  <span>Favorable valuation compared to sector peers</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* CTA Button */}
-          <div className="mb-6">
+        {cta.enabled && cta.label && (
+          <div className="mt-8">
             <a
-              href="#"
-              className="inline-block rounded-lg bg-[#FBB041] px-6 py-3 text-center text-white transition-all hover:bg-[#e9a030]"
+              href={cta.url || "#"}
+              onClick={(event) => {
+                if (!cta.url) event.preventDefault();
+              }}
+              target={cta.url ? "_blank" : undefined}
+              rel="noreferrer"
+              className="inline-block rounded-lg bg-[#FBB041] px-6 py-3 text-center font-medium text-white transition-all hover:opacity-90"
             >
-              Read Full Research Report →
+              {cta.label}
             </a>
           </div>
+        )}
 
-          {/* Disclaimer */}
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-            <p className="text-xs text-amber-900">
-              <strong>Disclaimer:</strong> This communication is for
-              informational purposes only. Please read the detailed research
-              report and risk factors before making investment decisions.
-              Investments in securities are subject to market risks.
+        {disclaimer?.required && (
+          <div className="mt-8 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-xs leading-5 text-amber-900">
+              <strong>Disclaimer:</strong>{" "}
+              {disclaimer.text ||
+                getDisclaimerPlaceholder(disclaimer.type)}
             </p>
           </div>
+        )}
+      </div>
+
+      <div className="border-t border-gray-200 bg-gray-50 px-8 py-6">
+        <div className="mb-3 text-center text-xs leading-5 text-gray-600">
+          <p className="mb-1">Geojit Financial Services Ltd.</p>
+          <p>34/659-P, Civil Line Road, Padivattom, Kochi - 682024</p>
         </div>
-
-        {/* Email Footer */}
-        <div className="border-t border-gray-200 bg-gray-50 px-8 py-6">
-          <div className="mb-3 text-center text-xs text-gray-600">
-            <p className="mb-1">Geojit Financial Services Ltd.</p>
-            <p>34/659-P, Civil Line Road, Padivattom, Kochi - 682024</p>
-          </div>
-          <div className="text-center text-xs text-muted-foreground">
-            <p>
-              © 2026 Geojit Financial Services. All rights reserved.
-            </p>
-          </div>
+        <div className="text-center text-xs text-muted-foreground">
+          © 2026 Geojit Financial Services. All rights reserved.
         </div>
       </div>
     </div>
   );
+}
+
+function SectionRenderer({ section }: { section: EmailSection }) {
+  if (section.type === "snapshot") {
+    const snapshotItems = (section.items || []).filter(
+      (item): item is SnapshotItem =>
+        typeof item === "object" &&
+        item !== null &&
+        "label" in item &&
+        "value" in item
+    );
+
+    return (
+      <section>
+        {section.title && (
+          <h3 className="mb-3 text-sm font-medium text-gray-900">
+            {section.title}
+          </h3>
+        )}
+        <div className="grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-5 sm:grid-cols-2">
+          {snapshotItems.map((item, index) => (
+            <div key={`${item.label}-${index}`}>
+              <p className="mb-1 text-xs text-muted-foreground">{item.label}</p>
+              <p className="text-base text-gray-900">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (
+    section.type === "bullets" ||
+    section.type === "steps" ||
+    section.type === "timeline"
+  ) {
+    const textItems = (section.items || []).filter(
+      (item): item is string => typeof item === "string"
+    );
+
+    return (
+      <section>
+        {section.title && (
+          <h3 className="mb-3 text-sm font-medium text-gray-900">
+            {section.title}
+          </h3>
+        )}
+        <div className="space-y-2">
+          {textItems.map((item, index) => (
+            <div
+              key={`${item}-${index}`}
+              className="flex gap-3 text-sm leading-6 text-gray-700"
+            >
+              <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#07877B]" />
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  if (section.type === "highlight") {
+    return (
+      <section className="rounded-lg border border-[#bfe4df] bg-[#f3fbfa] p-5">
+        {section.title && (
+          <h3 className="mb-2 text-sm font-medium text-[#06766a]">
+            {section.title}
+          </h3>
+        )}
+        {section.content && (
+          <p className="text-sm leading-6 text-gray-700">{section.content}</p>
+        )}
+      </section>
+    );
+  }
+
+  if (section.type === "note") {
+    return (
+      <section className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+        {section.title && (
+          <h3 className="mb-2 text-sm font-medium text-gray-900">
+            {section.title}
+          </h3>
+        )}
+        {section.content && (
+          <p className="text-sm leading-6 text-gray-600">{section.content}</p>
+        )}
+      </section>
+    );
+  }
+
+  return (
+    <section>
+      {section.title && (
+        <h3 className="mb-2 text-sm font-medium text-gray-900">
+          {section.title}
+        </h3>
+      )}
+      {section.content && (
+        <p className="text-sm leading-6 text-gray-700">{section.content}</p>
+      )}
+    </section>
+  );
+}
+
+function getCategoryLabel(category: string) {
+  switch (category) {
+    case "research":
+      return "Research & Advisory";
+    case "education":
+      return "Investor Education";
+    case "product":
+      return "Product & Sales";
+    case "service":
+      return "Service & Transactional";
+    case "regulatory":
+      return "Regulatory & Compliance";
+    case "onboarding":
+      return "Onboarding & Journey";
+    default:
+      return "Communication";
+  }
+}
+
+function getDisclaimerPlaceholder(type?: string) {
+  switch (type) {
+    case "research":
+      return "Approved research disclaimer text will be inserted by the Communication Studio rules engine.";
+    case "regulatory":
+      return "Approved regulatory disclaimer text will be inserted by the Communication Studio rules engine.";
+    case "promotional":
+      return "Approved promotional disclaimer text will be inserted by the Communication Studio rules engine.";
+    default:
+      return "Approved disclaimer text will be inserted by the Communication Studio rules engine.";
+  }
 }
