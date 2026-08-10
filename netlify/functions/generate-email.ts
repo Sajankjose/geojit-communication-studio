@@ -1,40 +1,14 @@
-import OpenAI from "openai";
-
-import {
-  MASTER_PROMPT,
-} from "./ai/masterPrompt";
-
-import {
-  CommunicationCategory,
-  getCategoryRules,
-} from "./ai/categoryRules";
-
-import {
-  EMAIL_GENERATION_JSON_SCHEMA,
-} from "./ai/outputSchema";
-
-import {
-  aiGenerationSchema,
-} from "./ai/validationSchema";
-
 import {
   createUserSupabaseClient,
 } from "./ai/supabaseServer";
 
-import {
-  createAiRun,
-  saveVariants,
-  completeAiRun,
-  failAiRun,
-} from "./ai/persistence";
-
-
-const MODEL_NAME = "gpt-5-mini";
-
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
+type CommunicationCategory =
+  | "research"
+  | "education"
+  | "product"
+  | "service"
+  | "regulatory"
+  | "onboarding";
 
 interface GenerateEmailRequest {
   communicationId: string;
@@ -55,7 +29,6 @@ interface GenerateEmailRequest {
   >;
 }
 
-
 const VALID_CATEGORIES:
   CommunicationCategory[] = [
     "research",
@@ -65,7 +38,6 @@ const VALID_CATEGORIES:
     "regulatory",
     "onboarding",
   ];
-
 
 function jsonResponse(
   body: unknown,
@@ -84,71 +56,10 @@ function jsonResponse(
   );
 }
 
-
-function buildSourcePrompt(
-  body: GenerateEmailRequest
-) {
-  return `
-============================================================
-COMMUNICATION SOURCE INFORMATION
-============================================================
-
-Communication ID:
-${body.communicationId}
-
-Category:
-${body.category}
-
-Communication Title:
-${body.title || ""}
-
-Subcategory:
-${body.subcategory || ""}
-
-Audience:
-${body.audience || ""}
-
-Primary Objective / Key Message:
-${body.objective || ""}
-
-Source Input:
-${JSON.stringify(
-  body.inputData || {},
-  null,
-  2
-)}
-
-============================================================
-GENERATION TASK
-============================================================
-
-Using ONLY the supplied source information:
-
-1. identify and preserve all important factual inputs;
-2. create the locked facts list;
-3. apply the Geojit master communication principles;
-4. apply the category-specific rules;
-5. generate the required communication variants;
-6. perform a compliance self-check for each variant;
-7. return only the structured result required by the supplied schema.
-
-Do not invent missing information.
-
-If information is incomplete but safe generation is still possible:
-generate cautiously and add appropriate compliance flags.
-
-For category "${body.category}", follow the exact variant-count requirement.
-`;
-}
-
-
 export default async (
   request: Request
 ) => {
-  if (
-    request.method !==
-    "POST"
-  ) {
+  if (request.method !== "POST") {
     return jsonResponse(
       {
         success: false,
@@ -159,29 +70,9 @@ export default async (
     );
   }
 
-
-  if (
-    !process.env
-      .OPENAI_API_KEY
-  ) {
-    console.error(
-      "OPENAI_API_KEY missing."
-    );
-
-    return jsonResponse(
-      {
-        success: false,
-        error:
-          "AI service is not configured.",
-      },
-      500
-    );
-  }
-
-
   /**
    * ------------------------------------------------------
-   * Authentication
+   * Authentication header
    * ------------------------------------------------------
    */
 
@@ -192,10 +83,9 @@ export default async (
 
   if (
     !authorizationHeader ||
-    !authorizationHeader
-      .startsWith(
-        "Bearer "
-      )
+    !authorizationHeader.startsWith(
+      "Bearer "
+    )
   ) {
     return jsonResponse(
       {
@@ -207,52 +97,27 @@ export default async (
     );
   }
 
-
-  let aiRunId:
-    string | null = null;
-
-  let supabase:
-    ReturnType<
-      typeof createUserSupabaseClient
-    > | null = null;
-
-
   try {
     /**
-     * Create Supabase client operating
-     * under the logged-in user's JWT.
+     * ------------------------------------------------------
+     * Supabase client using logged-in user's JWT
+     * ------------------------------------------------------
      */
-    supabase =
+
+    const supabase =
       createUserSupabaseClient(
         authorizationHeader
       );
 
-
-    /**
-     * Verify authenticated user.
-     *
-     * This is a server-side client, so there is
-     * no browser session stored inside it.
-     * Explicitly validate the JWT received from
-     * the frontend Authorization header.
-     */
     const accessToken =
       authorizationHeader.replace(
         /^Bearer\s+/i,
         ""
       );
 
-    if (!accessToken) {
-      return jsonResponse(
-        {
-          success: false,
-          error:
-            "Authentication token is missing.",
-        },
-        401
-      );
-    }
-
+    /**
+     * Verify user.
+     */
     const {
       data: userData,
       error: userError,
@@ -266,20 +131,8 @@ export default async (
       !userData.user
     ) {
       console.error(
-        "Supabase user verification failed:",
-        {
-          message:
-            userError?.message ||
-            "User not returned",
-          status:
-            userError?.status,
-          tokenPresent:
-            Boolean(accessToken),
-          tokenPrefix:
-            accessToken
-              ? accessToken.slice(0, 8)
-              : "",
-        }
+        "Starter authentication failed:",
+        userError
       );
 
       return jsonResponse(
@@ -295,18 +148,9 @@ export default async (
     const user =
       userData.user;
 
-    console.log(
-      "Authenticated AI request:",
-      {
-        userId: user.id,
-        email: user.email,
-      }
-    );
-
-
     /**
      * ------------------------------------------------------
-     * Request validation
+     * Read request body
      * ------------------------------------------------------
      */
 
@@ -314,14 +158,11 @@ export default async (
       await request.json();
 
     const body =
-      rawBody as
-        GenerateEmailRequest;
-
+      rawBody as GenerateEmailRequest;
 
     if (
       !body.communicationId ||
-      typeof body
-        .communicationId !==
+      typeof body.communicationId !==
         "string"
     ) {
       return jsonResponse(
@@ -333,7 +174,6 @@ export default async (
         400
       );
     }
-
 
     if (
       !body.category ||
@@ -351,26 +191,20 @@ export default async (
       );
     }
 
-
     /**
      * ------------------------------------------------------
-     * Verify communication exists
+     * Verify communication belongs to user
      * ------------------------------------------------------
      *
-     * RLS ensures a user cannot fetch
-     * somebody else's communication.
+     * RLS provides the actual ownership protection.
      */
 
     const {
-      data:
-        communication,
-      error:
-        communicationError,
+      data: communication,
+      error: communicationError,
     } =
       await supabase
-        .from(
-          "communications"
-        )
+        .from("communications")
         .select(
           `
           id,
@@ -390,13 +224,12 @@ export default async (
         )
         .single();
 
-
     if (
       communicationError ||
       !communication
     ) {
       console.error(
-        "Communication lookup failed:",
+        "Starter communication lookup failed:",
         communicationError
       );
 
@@ -410,14 +243,87 @@ export default async (
       );
     }
 
-
     /**
      * ------------------------------------------------------
-     * Create AI run
+     * Prevent duplicate AI jobs
      * ------------------------------------------------------
      */
 
-    const inputSnapshot = {
+    const {
+      data: activeRuns,
+      error: activeRunsError,
+    } =
+      await supabase
+        .from("ai_runs")
+        .select(
+          "id,status,created_at"
+        )
+        .eq(
+          "communication_id",
+          body.communicationId
+        )
+        .in(
+          "status",
+          [
+            "queued",
+            "running",
+          ]
+        )
+        .order(
+          "created_at",
+          {
+            ascending: false,
+          }
+        )
+        .limit(1);
+
+    if (activeRunsError) {
+      console.error(
+        "Unable to check active AI runs:",
+        activeRunsError
+      );
+
+      return jsonResponse(
+        {
+          success: false,
+          error:
+            "Unable to check generation status.",
+        },
+        500
+      );
+    }
+
+    if (
+      activeRuns &&
+      activeRuns.length > 0
+    ) {
+      return jsonResponse(
+        {
+          success: true,
+
+          status:
+            activeRuns[0].status,
+
+          communicationId:
+            body.communicationId,
+
+          aiRunId:
+            activeRuns[0].id,
+
+          message:
+            "Generation is already in progress.",
+        },
+        202
+      );
+    }
+
+    /**
+     * ------------------------------------------------------
+     * Build payload for background worker
+     * ------------------------------------------------------
+     */
+
+    const workerPayload = {
       communicationId:
         body.communicationId,
 
@@ -445,345 +351,152 @@ export default async (
         communication.input_data,
     };
 
-
-    const aiRun =
-      await createAiRun(
-        supabase,
-        body.communicationId,
-        user.id,
-        inputSnapshot
-      );
-
-
-    aiRunId =
-      aiRun.id;
-
-
     /**
      * ------------------------------------------------------
-     * Build prompt
+     * Trigger background worker
      * ------------------------------------------------------
+     *
+     * Forward the same Authorization header.
+     * The background worker will independently
+     * authenticate the employee and create ai_runs.
      */
 
-    const categoryRules =
-      getCategoryRules(
-        body.category
+    const workerUrl =
+      new URL(
+        "/.netlify/functions/generate-email-background",
+        request.url
       );
 
+    const workerResponse =
+      await fetch(
+        workerUrl.toString(),
+        {
+          method: "POST",
 
-    const systemPrompt = `
-${MASTER_PROMPT}
+          headers: {
+            "Content-Type":
+              "application/json",
 
-============================================================
-CATEGORY-SPECIFIC RULES
-============================================================
-
-${categoryRules}
-`;
-
-
-    const sourcePrompt =
-      buildSourcePrompt({
-        communicationId:
-          body.communicationId,
-
-        category:
-          body.category,
-
-        title:
-          body.title ||
-          communication.title,
-
-        subcategory:
-          body.subcategory ??
-          communication.subcategory,
-
-        audience:
-          body.audience ??
-          communication.audience,
-
-        objective:
-          body.objective ??
-          communication.objective,
-
-        inputData:
-          body.inputData ||
-          communication.input_data,
-      });
-
-
-    console.log(
-      "Starting AI run:",
-      {
-        aiRunId,
-        communicationId:
-          body.communicationId,
-        userId:
-          user.id,
-        category:
-          body.category,
-      }
-    );
-
-
-    /**
-     * ------------------------------------------------------
-     * OpenAI structured generation
-     * ------------------------------------------------------
-     */
-
-    const response =
-      await client.responses
-        .create({
-          model:
-            MODEL_NAME,
-
-          input: [
-            {
-              role:
-                "system",
-
-              content:
-                systemPrompt,
-            },
-
-            {
-              role:
-                "user",
-
-              content:
-                sourcePrompt,
-            },
-          ],
-
-          text: {
-            format: {
-              type:
-                "json_schema",
-
-              name:
-                EMAIL_GENERATION_JSON_SCHEMA
-                  .name,
-
-              strict:
-                EMAIL_GENERATION_JSON_SCHEMA
-                  .strict,
-
-              schema:
-                EMAIL_GENERATION_JSON_SCHEMA
-                  .schema,
-            },
+            Authorization:
+              authorizationHeader,
           },
-        });
 
+          body:
+            JSON.stringify(
+              workerPayload
+            ),
+        }
+      );
 
-    const outputText =
-      response.output_text;
-
-
+    /**
+     * A Netlify background function should
+     * acknowledge successful invocation with 202.
+     */
     if (
-      !outputText
+      workerResponse.status !==
+      202
     ) {
-      throw new Error(
-        "OpenAI returned an empty response."
-      );
-    }
+      const responseText =
+        await workerResponse.text();
 
-
-    /**
-     * ------------------------------------------------------
-     * Parse JSON
-     * ------------------------------------------------------
-     */
-
-    let parsedOutput:
-      unknown;
-
-    try {
-      parsedOutput =
-        JSON.parse(
-          outputText
-        );
-    } catch (
-      parseError
-    ) {
       console.error(
-        "AI JSON parse failed:",
-        parseError
+        "Background worker invocation failed:",
+        {
+          status:
+            workerResponse.status,
+
+          response:
+            responseText,
+        }
       );
 
-      throw new Error(
-        "AI returned unreadable structured data."
-      );
-    }
-
-
-    /**
-     * ------------------------------------------------------
-     * Server-side validation
-     * ------------------------------------------------------
-     */
-
-    const validation =
-      aiGenerationSchema
-        .safeParse(
-          parsedOutput
-        );
-
-
-    if (
-      !validation.success
-    ) {
-      console.error(
-        "AI validation failed:",
-        validation.error
-          .flatten()
-      );
-
-      throw new Error(
-        "AI returned an invalid communication structure."
+      return jsonResponse(
+        {
+          success: false,
+          error:
+            "Unable to start AI generation.",
+        },
+        500
       );
     }
 
-
-    const generation =
-      validation.data;
-
-
     /**
      * ------------------------------------------------------
-     * Save variants
-     * ------------------------------------------------------
-     */
-
-    const savedVariants =
-      await saveVariants(
-        supabase,
-        body.communicationId,
-        aiRunId,
-        generation
-      );
-
-
-    /**
-     * ------------------------------------------------------
-     * Complete AI run
-     * ------------------------------------------------------
-     */
-
-    await completeAiRun(
-      supabase,
-      aiRunId,
-      MODEL_NAME,
-      generation
-    );
-
-
-    /**
-     * ------------------------------------------------------
-     * Update main communication status
+     * Mark communication as generating
      * ------------------------------------------------------
      */
 
     const {
-      error:
-        statusError,
+      error: statusError,
     } =
       await supabase
-        .from(
-          "communications"
-        )
+        .from("communications")
         .update({
           status:
-            "variants_ready",
+            "generating",
         })
         .eq(
           "id",
           body.communicationId
         );
 
-
-    if (
-      statusError
-    ) {
+    if (statusError) {
       console.error(
-        "Communication status update failed:",
+        "Unable to set generating status:",
         statusError
       );
     }
 
-
     console.log(
-      "AI run completed:",
+      "Background generation queued:",
       {
-        aiRunId,
         communicationId:
           body.communicationId,
-        variantCount:
-          generation
-            .variants
-            .length,
+
+        userId:
+          user.id,
+
+        category:
+          body.category,
       }
     );
 
-
     /**
      * ------------------------------------------------------
-     * Successful response
+     * Return immediately to React
      * ------------------------------------------------------
      */
 
-    return jsonResponse({
-      success: true,
+    return jsonResponse(
+      {
+        success: true,
 
-      communicationId:
-        body.communicationId,
+        status:
+          "queued",
 
-      aiRunId,
+        communicationId:
+          body.communicationId,
 
-      generation,
-
-      variants:
-        savedVariants,
-    });
-
-  } catch (
-    error
-  ) {
-    console.error(
-      "Generate email error:",
-      error
+        message:
+          "AI generation started.",
+      },
+      202
     );
 
-
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Unknown AI generation error.";
-
-
-    /**
-     * Mark the AI run as failed
-     * if one was already created.
-     */
-    if (
-      supabase &&
-      aiRunId
-    ) {
-      await failAiRun(
-        supabase,
-        aiRunId,
-        errorMessage
-      );
-    }
-
+  } catch (error) {
+    console.error(
+      "Generate starter error:",
+      error
+    );
 
     return jsonResponse(
       {
         success: false,
-        aiRunId,
+
         error:
-          errorMessage,
+          error instanceof Error
+            ? error.message
+            : "Unable to start AI generation.",
       },
       500
     );
