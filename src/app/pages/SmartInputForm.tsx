@@ -493,35 +493,76 @@ export function SmartInputForm() {
   }
 
   async function handleGenerate() {
+    if (generating) {
+      return;
+    }
+
+    if (!communicationId) {
+      setError(
+        "Communication ID is missing. Please return to the dashboard and start again."
+      );
+      return;
+    }
+
     try {
       setGenerating(true);
       setError("");
       setSavedMessage("");
 
-      /*
-       * For Day 1 we save the form first.
-       *
-       * Day 2 will replace the generating
-       * screen with our real AI engine.
-       */
-      await saveToSupabase(
-        "generating"
+      const savedCommunication =
+        await saveToSupabase(
+          "generating"
+        );
+
+      const result =
+        await generateCommunication({
+          communicationId,
+          category,
+          title:
+            savedCommunication.title,
+          subcategory:
+            savedCommunication.subcategory,
+          audience:
+            savedCommunication.audience,
+          objective:
+            savedCommunication.objective,
+          inputData:
+            savedCommunication.input_data,
+        });
+
+      console.log(
+        "AI generation successful:",
+        result
       );
 
       navigate(
-        `/create/generating?communicationId=${communicationId}&category=${category}`
+        `/create/variants?communicationId=${communicationId}&category=${category}`
       );
     } catch (err) {
       console.error(
-        "Generate preparation failed:",
+        "Generate communication failed:",
         err
       );
 
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to save communication before generation."
+          : "Unable to generate communication. Please try again."
       );
+
+      try {
+        await updateCommunication(
+          communicationId,
+          {
+            status: "draft",
+          }
+        );
+      } catch (statusError) {
+        console.error(
+          "Unable to restore draft status:",
+          statusError
+        );
+      }
     } finally {
       setGenerating(false);
     }
@@ -1066,8 +1107,10 @@ export function SmartInputForm() {
               <Sparkles className="h-4 w-4" />
 
               {generating
-                ? "Saving..."
-                : "Generate 3 Options"}
+                ? "Generating..."
+                : category === "regulatory"
+                  ? "Generate 2 Options"
+                  : "Generate 3 Options"}
 
             </button>
 
