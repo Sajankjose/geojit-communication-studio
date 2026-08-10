@@ -536,7 +536,11 @@ export function SmartInputForm() {
       );
 
       navigate(
-        `/create/variants?communicationId=${communicationId}&category=${category}`
+        `/create/generating?communicationId=${encodeURIComponent(
+          communicationId
+        )}&category=${encodeURIComponent(
+          category
+        )}`
       );
     } catch (err) {
       console.error(
