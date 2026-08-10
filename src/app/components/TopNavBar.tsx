@@ -13,7 +13,8 @@ import { useAuth } from "../auth/useAuth";
 export function TopNavBar() {
   const navigate = useNavigate();
 
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] =
+    useState(false);
 
   const {
     profile,
@@ -32,6 +33,9 @@ export function TopNavBar() {
     user?.email ||
     "";
 
+  const isAdmin =
+    profile?.role === "admin";
+
   const handleLogout = async () => {
     try {
       await signOut();
@@ -40,7 +44,10 @@ export function TopNavBar() {
         replace: true,
       });
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error(
+        "Logout error:",
+        error
+      );
     }
   };
 
@@ -51,6 +58,7 @@ export function TopNavBar() {
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center px-6">
+
         {/* Logo and Product Name */}
         <button
           onClick={() => navigate("/")}
@@ -69,6 +77,7 @@ export function TopNavBar() {
 
         {/* Right side actions */}
         <div className="ml-auto flex items-center gap-4">
+
           {/* Notifications */}
           <button
             type="button"
@@ -78,22 +87,26 @@ export function TopNavBar() {
             <Bell className="h-5 w-5" />
           </button>
 
-          {/* Settings */}
-          <button
-            type="button"
-            aria-label="Settings"
-            onClick={handleSettings}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
-          >
-            <Settings className="h-5 w-5" />
-          </button>
+          {/* Settings - Admin only */}
+          {isAdmin && (
+            <button
+              type="button"
+              aria-label="Settings"
+              onClick={handleSettings}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
+            >
+              <Settings className="h-5 w-5" />
+            </button>
+          )}
 
           {/* User Menu */}
           <div className="relative">
             <button
               type="button"
               onClick={() =>
-                setIsUserMenuOpen((current) => !current)
+                setIsUserMenuOpen(
+                  (current) => !current
+                )
               }
               className="flex items-center gap-2 rounded-lg px-3 py-2 text-gray-700 transition-colors hover:bg-gray-100"
             >
@@ -119,11 +132,15 @@ export function TopNavBar() {
               <>
                 <div
                   className="fixed inset-0 z-10"
-                  onClick={() => setIsUserMenuOpen(false)}
+                  onClick={() =>
+                    setIsUserMenuOpen(false)
+                  }
                 />
 
                 <div className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-gray-200 bg-white shadow-lg">
+
                   <div className="border-b border-gray-100 p-4">
+
                     <p className="text-sm font-medium text-gray-900">
                       {employeeName}
                     </p>
@@ -131,6 +148,12 @@ export function TopNavBar() {
                     <p className="mt-1 text-xs text-gray-500">
                       {user?.email}
                     </p>
+
+                    {profile?.designation && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        {profile.designation}
+                      </p>
+                    )}
 
                     {profile?.department && (
                       <p className="mt-1 text-xs text-gray-500">
@@ -141,10 +164,13 @@ export function TopNavBar() {
                     {profile?.role && (
                       <div className="mt-3">
                         <span className="inline-flex rounded-full bg-[#e8f5f4] px-2.5 py-1 text-xs font-medium text-[#07877B]">
-                          {formatRole(profile.role)}
+                          {formatRole(
+                            profile.role
+                          )}
                         </span>
                       </div>
                     )}
+
                   </div>
 
                   <div className="p-2">
@@ -157,17 +183,21 @@ export function TopNavBar() {
                       <span>Sign Out</span>
                     </button>
                   </div>
+
                 </div>
               </>
             )}
           </div>
+
         </div>
       </div>
     </header>
   );
 }
 
-function formatRole(role: string) {
+function formatRole(
+  role: string
+) {
   switch (role) {
     case "creator":
       return "Creator";
