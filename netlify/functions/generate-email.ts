@@ -238,7 +238,7 @@ export default async (
      */
     const accessToken =
       authorizationHeader.replace(
-        /^Bearer\\s+/i,
+        /^Bearer\s+/i,
         ""
       );
 
@@ -273,6 +273,12 @@ export default async (
             "User not returned",
           status:
             userError?.status,
+          tokenPresent:
+            Boolean(accessToken),
+          tokenPrefix:
+            accessToken
+              ? accessToken.slice(0, 8)
+              : "",
         }
       );
 
