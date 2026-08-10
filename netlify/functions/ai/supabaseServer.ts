@@ -6,7 +6,7 @@ export function createUserSupabaseClient(
   authorizationHeader: string
 ) {
   const supabaseUrl =
-    process.env.SUPABASE_URL;
+  process.env.VITE_SUPABASE_URL;
 
   const supabaseKey =
     process.env
