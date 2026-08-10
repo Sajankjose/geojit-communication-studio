@@ -30,8 +30,9 @@ export function Dashboard() {
   const navigate = useNavigate();
 
   const {
-    user,
-  } = useAuth();
+  user,
+  profile,
+} = useAuth();
 
   const [
     communications,
@@ -243,20 +244,24 @@ export function Dashboard() {
                 View Recent Communications
               </button>
 
-              <span className="text-gray-300">
-                •
-              </span>
+             {profile?.role === "admin" && (
+  <>
+    <span className="text-gray-300">
+      •
+    </span>
 
-              <button
-                onClick={() =>
-                  navigate(
-                    "/settings/rules"
-                  )
-                }
-                className="text-sm text-gray-600 transition-colors hover:text-[#07877B]"
-              >
-                Templates / Rules
-              </button>
+    <button
+      onClick={() =>
+        navigate(
+          "/settings/rules"
+        )
+      }
+      className="text-sm text-gray-600 transition-colors hover:text-[#07877B]"
+    >
+      Templates / Rules
+    </button>
+  </>
+)}
 
             </div>
           </div>
