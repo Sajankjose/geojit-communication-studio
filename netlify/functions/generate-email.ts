@@ -230,23 +230,57 @@ export default async (
 
     /**
      * Verify authenticated user.
+     *
+     * This is a server-side client, so there is
+     * no browser session stored inside it.
+     * Explicitly validate the JWT received from
+     * the frontend Authorization header.
      */
+    const accessToken =
+      authorizationHeader.replace(
+        /^Bearer\\s+/i,
+        ""
+      );
+
+    if (!accessToken) {
+      return jsonResponse(
+        {
+          success: false,
+          error:
+            "Authentication token is missing.",
+        },
+        401
+      );
+    }
+
     const {
       data: userData,
       error: userError,
     } =
-      await supabase.auth
-        .getUser();
+      await supabase.auth.getUser(
+        accessToken
+      );
 
     if (
       userError ||
       !userData.user
     ) {
+      console.error(
+        "Supabase user verification failed:",
+        {
+          message:
+            userError?.message ||
+            "User not returned",
+          status:
+            userError?.status,
+        }
+      );
+
       return jsonResponse(
         {
           success: false,
           error:
-            "Invalid or expired session.",
+            "Invalid or expired session. Please sign in again.",
         },
         401
       );
@@ -254,6 +288,14 @@ export default async (
 
     const user =
       userData.user;
+
+    console.log(
+      "Authenticated AI request:",
+      {
+        userId: user.id,
+        email: user.email,
+      }
+    );
 
 
     /**
