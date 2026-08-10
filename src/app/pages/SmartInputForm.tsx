@@ -1,3 +1,4 @@
+import { generateCommunication } from "../services/aiGeneration";
 import { useEffect, useState } from "react";
 import {
   useNavigate,
