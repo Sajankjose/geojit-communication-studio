@@ -13,6 +13,23 @@ import {
   EMAIL_GENERATION_JSON_SCHEMA,
 } from "./ai/outputSchema";
 
+import {
+  aiGenerationSchema,
+} from "./ai/validationSchema";
+
+import {
+  createUserSupabaseClient,
+} from "./ai/supabaseServer";
+
+import {
+  createAiRun,
+  saveVariants,
+  completeAiRun,
+  failAiRun,
+} from "./ai/persistence";
+
+
+const MODEL_NAME = "gpt-5-mini";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -39,9 +56,6 @@ interface GenerateEmailRequest {
 }
 
 
-/**
- * Allowed communication categories.
- */
 const VALID_CATEGORIES:
   CommunicationCategory[] = [
     "research",
@@ -53,81 +67,6 @@ const VALID_CATEGORIES:
   ];
 
 
-/**
- * Build the user/source prompt.
- *
- * The master rules remain separate from
- * the actual source information.
- */
-function buildSourcePrompt(
-  body: GenerateEmailRequest
-) {
-  const {
-    communicationId,
-    category,
-    title,
-    subcategory,
-    audience,
-    objective,
-    inputData,
-  } = body;
-
-  return `
-============================================================
-COMMUNICATION SOURCE INFORMATION
-============================================================
-
-Communication ID:
-${communicationId}
-
-Category:
-${category}
-
-Communication Title:
-${title || ""}
-
-Subcategory:
-${subcategory || ""}
-
-Audience:
-${audience || ""}
-
-Primary Objective / Key Message:
-${objective || ""}
-
-Source Input:
-${JSON.stringify(
-  inputData || {},
-  null,
-  2
-)}
-
-============================================================
-GENERATION TASK
-============================================================
-
-Using ONLY the supplied source information:
-
-1. identify and preserve all important factual inputs;
-2. create the correct locked facts list;
-3. apply the Geojit master communication principles;
-4. apply the category-specific rules;
-5. create the required communication variants;
-6. perform a compliance self-check for every variant;
-7. return the result using the supplied structured output schema.
-
-Do not invent missing facts.
-
-If important information is missing, generate safely where possible and record the issue using compliance flags and notes.
-
-For category "${category}", follow the exact variant-count requirements defined in the category rules.
-`;
-}
-
-
-/**
- * Helper for consistent JSON responses.
- */
 function jsonResponse(
   body: unknown,
   status = 200
@@ -146,13 +85,70 @@ function jsonResponse(
 }
 
 
+function buildSourcePrompt(
+  body: GenerateEmailRequest
+) {
+  return `
+============================================================
+COMMUNICATION SOURCE INFORMATION
+============================================================
+
+Communication ID:
+${body.communicationId}
+
+Category:
+${body.category}
+
+Communication Title:
+${body.title || ""}
+
+Subcategory:
+${body.subcategory || ""}
+
+Audience:
+${body.audience || ""}
+
+Primary Objective / Key Message:
+${body.objective || ""}
+
+Source Input:
+${JSON.stringify(
+  body.inputData || {},
+  null,
+  2
+)}
+
+============================================================
+GENERATION TASK
+============================================================
+
+Using ONLY the supplied source information:
+
+1. identify and preserve all important factual inputs;
+2. create the locked facts list;
+3. apply the Geojit master communication principles;
+4. apply the category-specific rules;
+5. generate the required communication variants;
+6. perform a compliance self-check for each variant;
+7. return only the structured result required by the supplied schema.
+
+Do not invent missing information.
+
+If information is incomplete but safe generation is still possible:
+generate cautiously and add appropriate compliance flags.
+
+For category "${body.category}", follow the exact variant-count requirement.
+`;
+}
+
+
 export default async (
   request: Request
 ) => {
-  /**
-   * Only POST is allowed.
-   */
-  if (request.method !== "POST") {
+  if (
+    request.method !==
+    "POST"
+  ) {
     return jsonResponse(
       {
         success: false,
@@ -163,12 +159,13 @@ export default async (
     );
   }
 
-  /**
-   * Make sure server-side OpenAI secret exists.
-   */
-  if (!process.env.OPENAI_API_KEY) {
+
+  if (
+    !process.env
+      .OPENAI_API_KEY
+  ) {
     console.error(
-      "OPENAI_API_KEY is missing."
+      "OPENAI_API_KEY missing."
     );
 
     return jsonResponse(
@@ -181,22 +178,102 @@ export default async (
     );
   }
 
+
+  /**
+   * ------------------------------------------------------
+   * Authentication
+   * ------------------------------------------------------
+   */
+
+  const authorizationHeader =
+    request.headers.get(
+      "Authorization"
+    );
+
+  if (
+    !authorizationHeader ||
+    !authorizationHeader
+      .startsWith(
+        "Bearer "
+      )
+  ) {
+    return jsonResponse(
+      {
+        success: false,
+        error:
+          "Authentication required.",
+      },
+      401
+    );
+  }
+
+
+  let aiRunId:
+    string | null = null;
+
+  let supabase:
+    ReturnType<
+      typeof createUserSupabaseClient
+    > | null = null;
+
+
   try {
     /**
-     * Read request body.
+     * Create Supabase client operating
+     * under the logged-in user's JWT.
      */
+    supabase =
+      createUserSupabaseClient(
+        authorizationHeader
+      );
+
+
+    /**
+     * Verify authenticated user.
+     */
+    const {
+      data: userData,
+      error: userError,
+    } =
+      await supabase.auth
+        .getUser();
+
+    if (
+      userError ||
+      !userData.user
+    ) {
+      return jsonResponse(
+        {
+          success: false,
+          error:
+            "Invalid or expired session.",
+        },
+        401
+      );
+    }
+
+    const user =
+      userData.user;
+
+
+    /**
+     * ------------------------------------------------------
+     * Request validation
+     * ------------------------------------------------------
+     */
+
     const rawBody =
       await request.json();
 
     const body =
-      rawBody as GenerateEmailRequest;
+      rawBody as
+        GenerateEmailRequest;
 
-    /**
-     * Basic request validation.
-     */
+
     if (
       !body.communicationId ||
-      typeof body.communicationId !==
+      typeof body
+        .communicationId !==
         "string"
     ) {
       return jsonResponse(
@@ -208,6 +285,7 @@ export default async (
         400
       );
     }
+
 
     if (
       !body.category ||
@@ -225,18 +303,126 @@ export default async (
       );
     }
 
+
     /**
-     * Select category intelligence.
+     * ------------------------------------------------------
+     * Verify communication exists
+     * ------------------------------------------------------
+     *
+     * RLS ensures a user cannot fetch
+     * somebody else's communication.
      */
+
+    const {
+      data:
+        communication,
+      error:
+        communicationError,
+    } =
+      await supabase
+        .from(
+          "communications"
+        )
+        .select(
+          `
+          id,
+          title,
+          category,
+          subcategory,
+          audience,
+          objective,
+          status,
+          input_data,
+          created_by
+          `
+        )
+        .eq(
+          "id",
+          body.communicationId
+        )
+        .single();
+
+
+    if (
+      communicationError ||
+      !communication
+    ) {
+      console.error(
+        "Communication lookup failed:",
+        communicationError
+      );
+
+      return jsonResponse(
+        {
+          success: false,
+          error:
+            "Communication not found or access denied.",
+        },
+        404
+      );
+    }
+
+
+    /**
+     * ------------------------------------------------------
+     * Create AI run
+     * ------------------------------------------------------
+     */
+
+    const inputSnapshot = {
+      communicationId:
+        body.communicationId,
+
+      category:
+        body.category,
+
+      title:
+        body.title ||
+        communication.title,
+
+      subcategory:
+        body.subcategory ??
+        communication.subcategory,
+
+      audience:
+        body.audience ??
+        communication.audience,
+
+      objective:
+        body.objective ??
+        communication.objective,
+
+      inputData:
+        body.inputData ||
+        communication.input_data,
+    };
+
+
+    const aiRun =
+      await createAiRun(
+        supabase,
+        body.communicationId,
+        user.id,
+        inputSnapshot
+      );
+
+
+    aiRunId =
+      aiRun.id;
+
+
+    /**
+     * ------------------------------------------------------
+     * Build prompt
+     * ------------------------------------------------------
+     */
+
     const categoryRules =
       getCategoryRules(
         body.category
       );
 
-    /**
-     * Combine master rules +
-     * category-specific behavior.
-     */
+
     const systemPrompt = `
 ${MASTER_PROMPT}
 
@@ -247,85 +433,134 @@ CATEGORY-SPECIFIC RULES
 ${categoryRules}
 `;
 
-    const sourcePrompt =
-      buildSourcePrompt(body);
 
-    console.log(
-      "Starting structured AI generation:",
-      {
+    const sourcePrompt =
+      buildSourcePrompt({
         communicationId:
           body.communicationId,
 
         category:
           body.category,
+
+        title:
+          body.title ||
+          communication.title,
+
+        subcategory:
+          body.subcategory ??
+          communication.subcategory,
+
+        audience:
+          body.audience ??
+          communication.audience,
+
+        objective:
+          body.objective ??
+          communication.objective,
+
+        inputData:
+          body.inputData ||
+          communication.input_data,
+      });
+
+
+    console.log(
+      "Starting AI run:",
+      {
+        aiRunId,
+        communicationId:
+          body.communicationId,
+        userId:
+          user.id,
+        category:
+          body.category,
       }
     );
 
+
     /**
-     * Real OpenAI call.
-     *
-     * Structured Outputs forces the response
-     * to follow outputSchema.ts.
+     * ------------------------------------------------------
+     * OpenAI structured generation
+     * ------------------------------------------------------
      */
+
     const response =
-      await client.responses.create({
-        model: "gpt-5-mini",
+      await client.responses
+        .create({
+          model:
+            MODEL_NAME,
 
-        input: [
-          {
-            role: "system",
-            content:
-              systemPrompt,
+          input: [
+            {
+              role:
+                "system",
+
+              content:
+                systemPrompt,
+            },
+
+            {
+              role:
+                "user",
+
+              content:
+                sourcePrompt,
+            },
+          ],
+
+          text: {
+            format: {
+              type:
+                "json_schema",
+
+              name:
+                EMAIL_GENERATION_JSON_SCHEMA
+                  .name,
+
+              strict:
+                EMAIL_GENERATION_JSON_SCHEMA
+                  .strict,
+
+              schema:
+                EMAIL_GENERATION_JSON_SCHEMA
+                  .schema,
+            },
           },
+        });
 
-          {
-            role: "user",
-            content:
-              sourcePrompt,
-          },
-        ],
 
-        text: {
-          format: {
-            type:
-              "json_schema",
-
-            name:
-              EMAIL_GENERATION_JSON_SCHEMA.name,
-
-            strict:
-              EMAIL_GENERATION_JSON_SCHEMA.strict,
-
-            schema:
-              EMAIL_GENERATION_JSON_SCHEMA.schema,
-          },
-        },
-      });
-
-    /**
-     * The structured result is returned
-     * as JSON text in output_text.
-     */
     const outputText =
       response.output_text;
 
-    if (!outputText) {
+
+    if (
+      !outputText
+    ) {
       throw new Error(
         "OpenAI returned an empty response."
       );
     }
 
-    let generatedData:
+
+    /**
+     * ------------------------------------------------------
+     * Parse JSON
+     * ------------------------------------------------------
+     */
+
+    let parsedOutput:
       unknown;
 
     try {
-      generatedData =
+      parsedOutput =
         JSON.parse(
           outputText
         );
-    } catch (parseError) {
+    } catch (
+      parseError
+    ) {
       console.error(
-        "Structured response JSON parse failed:",
+        "AI JSON parse failed:",
         parseError
       );
 
@@ -334,56 +569,173 @@ ${categoryRules}
       );
     }
 
+
     /**
-     * At this stage we return the
-     * generated structure to the app.
-     *
-     * Next step:
-     * server-side Zod validation +
-     * ai_runs / variants persistence.
+     * ------------------------------------------------------
+     * Server-side validation
+     * ------------------------------------------------------
      */
+
+    const validation =
+      aiGenerationSchema
+        .safeParse(
+          parsedOutput
+        );
+
+
+    if (
+      !validation.success
+    ) {
+      console.error(
+        "AI validation failed:",
+        validation.error
+          .flatten()
+      );
+
+      throw new Error(
+        "AI returned an invalid communication structure."
+      );
+    }
+
+
+    const generation =
+      validation.data;
+
+
+    /**
+     * ------------------------------------------------------
+     * Save variants
+     * ------------------------------------------------------
+     */
+
+    const savedVariants =
+      await saveVariants(
+        supabase,
+        body.communicationId,
+        aiRunId,
+        generation
+      );
+
+
+    /**
+     * ------------------------------------------------------
+     * Complete AI run
+     * ------------------------------------------------------
+     */
+
+    await completeAiRun(
+      supabase,
+      aiRunId,
+      MODEL_NAME,
+      generation
+    );
+
+
+    /**
+     * ------------------------------------------------------
+     * Update main communication status
+     * ------------------------------------------------------
+     */
+
+    const {
+      error:
+        statusError,
+    } =
+      await supabase
+        .from(
+          "communications"
+        )
+        .update({
+          status:
+            "variants_ready",
+        })
+        .eq(
+          "id",
+          body.communicationId
+        );
+
+
+    if (
+      statusError
+    ) {
+      console.error(
+        "Communication status update failed:",
+        statusError
+      );
+    }
+
+
     console.log(
-      "AI generation completed:",
+      "AI run completed:",
       {
+        aiRunId,
         communicationId:
           body.communicationId,
-
-        category:
-          body.category,
+        variantCount:
+          generation
+            .variants
+            .length,
       }
     );
 
-    return jsonResponse(
-      {
-        success: true,
 
-        communicationId:
-          body.communicationId,
+    /**
+     * ------------------------------------------------------
+     * Successful response
+     * ------------------------------------------------------
+     */
 
-        generation:
-          generatedData,
-      }
-    );
+    return jsonResponse({
+      success: true,
 
-  } catch (error) {
+      communicationId:
+        body.communicationId,
+
+      aiRunId,
+
+      generation,
+
+      variants:
+        savedVariants,
+    });
+
+  } catch (
+    error
+  ) {
     console.error(
       "Generate email error:",
       error
     );
 
-    /**
-     * Avoid exposing sensitive server details
-     * unnecessarily to the browser.
-     */
-    const message =
+
+    const errorMessage =
       error instanceof Error
         ? error.message
         : "Unknown AI generation error.";
 
+
+    /**
+     * Mark the AI run as failed
+     * if one was already created.
+     */
+    if (
+      supabase &&
+      aiRunId
+    ) {
+      await failAiRun(
+        supabase,
+        aiRunId,
+        errorMessage
+      );
+    }
+
+
     return jsonResponse(
       {
         success: false,
-        error: message,
+        aiRunId,
+        error:
+          errorMessage,
       },
       500
     );
