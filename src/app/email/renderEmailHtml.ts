@@ -184,27 +184,24 @@ export function renderEmailHtml(
         <table role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;background:#ffffff;border-collapse:separate;border-spacing:0;">
 
           <tr>
-            <td style="background:${BRAND.teal};padding:22px 32px;">
+            <td style="background:#ffffff;padding:22px 32px;border-bottom:1px solid ${BRAND.border};">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
-                  <td valign="middle">
-                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:21px;line-height:26px;font-weight:700;color:#ffffff;">
-                      Geojit
-                    </div>
-                    <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#DDF4F1;margin-top:3px;">
+                  <td valign="middle" align="left">
+                    <img
+                      src="https://www.geojit.com/HomeDesign/images/logo.png"
+                      width="150"
+                      alt="Geojit Financial Services"
+                      style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;"
+                    >
+                  </td>
+                  <td valign="middle" align="right" style="padding-left:20px;">
+                    <span style="display:inline-block;background:${BRAND.soft};border:1px solid #B9E3DE;border-radius:999px;padding:6px 11px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;font-weight:700;color:${BRAND.teal};">
                       ${escapeHtml(getCategoryLabel(category))}
-                    </div>
+                    </span>
                   </td>
                 </tr>
               </table>
-            </td>
-          </tr>
-
-          <tr>
-            <td style="padding:28px 32px 12px 32px;">
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:${BRAND.teal};">
-                ${escapeHtml(getCategoryLabel(category))}
-              </div>
             </td>
           </tr>
 
