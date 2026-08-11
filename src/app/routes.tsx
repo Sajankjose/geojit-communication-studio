@@ -1,5 +1,5 @@
-import { ReviewQueue } from "./pages/ReviewQueue";
 import { createBrowserRouter } from "react-router";
+
 import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
 import { CategorySelection } from "./pages/CategorySelection";
@@ -9,6 +9,7 @@ import { VariantSelection } from "./pages/VariantSelection";
 import { FullPreview } from "./pages/FullPreview";
 import { ApprovalSubmission } from "./pages/ApprovalSubmission";
 import { RulesSettings } from "./pages/RulesSettings";
+import { ReviewQueue } from "./pages/ReviewQueue";
 
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RoleGuard } from "./auth/RoleGuard";
@@ -18,6 +19,7 @@ export const router = createBrowserRouter([
     path: "/login",
     Component: Login,
   },
+
   {
     path: "/",
     element: (
@@ -26,6 +28,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/create/category",
     element: (
@@ -34,6 +37,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/create/form",
     element: (
@@ -42,6 +46,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/create/generating",
     element: (
@@ -50,6 +55,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/create/variants",
     element: (
@@ -58,6 +64,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/create/preview",
     element: (
@@ -66,6 +73,7 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
   {
     path: "/create/submit",
     element: (
@@ -74,22 +82,36 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+
+  {
+    path: "/reviews",
+    element: (
+      <ProtectedRoute>
+        <RoleGuard
+          allowedRoles={[
+            "marketing_reviewer",
+            "corpcom_reviewer",
+            "admin",
+          ]}
+        >
+          <ReviewQueue />
+        </RoleGuard>
+      </ProtectedRoute>
+    ),
+  },
+
   {
     path: "/settings/rules",
     element: (
       <ProtectedRoute>
-        <RoleGuard allowedRoles={["admin"]}>
+        <RoleGuard
+          allowedRoles={[
+            "admin",
+          ]}
+        >
           <RulesSettings />
         </RoleGuard>
       </ProtectedRoute>
     ),
   },
-  {
-  path: "/reviews",
-  element: (
-    <ProtectedRoute>
-      <ReviewQueue />
-    </ProtectedRoute>
-  ),
-},
 ]);
