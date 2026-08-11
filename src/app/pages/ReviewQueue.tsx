@@ -8,9 +8,14 @@ import { useNavigate } from "react-router";
 
 import {
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  FileCheck2,
   FileText,
   MessageSquareText,
   RotateCcw,
+  ShieldCheck,
+  Sparkles,
   XCircle,
 } from "lucide-react";
 
@@ -59,6 +64,11 @@ export function ReviewQueue() {
 
   const [submitting, setSubmitting] =
     useState(false);
+
+  const [
+    showAllFacts,
+    setShowAllFacts,
+  ] = useState(false);
 
   const canReview =
     reviewerRole ===
@@ -228,6 +238,7 @@ export function ReviewQueue() {
                       item.comments || ""
                     );
                     setDecisionError("");
+                    setShowAllFacts(false);
                   }}
                   className={`w-full rounded-xl border bg-white p-5 text-left shadow-sm transition-all ${
                     selected?.approval_action_id ===
@@ -289,47 +300,93 @@ export function ReviewQueue() {
                 </div>
               ) : (
                 <>
-                  <h2 className="mb-2 text-xl text-gray-900">
-                    {selected.communication?.title ||
-                      "Communication"}
-                  </h2>
+                  <div className="mb-5 border-b border-gray-100 pb-5">
+                    <div className="mb-2 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#07877B]">
+                          {formatStage(selected.stage)}
+                        </p>
+                        <h2 className="text-xl leading-7 text-gray-900">
+                          {selected.communication?.title ||
+                            "Communication"}
+                        </h2>
+                      </div>
 
-                  <p className="mb-5 text-sm text-gray-500">
-                    {formatStage(
-                      selected.stage
-                    )}
-                  </p>
+                      <span className="flex-shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                        Action required
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-500">
+                      Submitted {formatDate(selected.created_at)}
+                    </p>
+                  </div>
+
+                  <ReviewBrief
+                    item={selected}
+                  />
+
+                  <VerifiedSourceFacts
+                    item={selected}
+                    expanded={showAllFacts}
+                    onToggle={() =>
+                      setShowAllFacts(
+                        (current) => !current
+                      )
+                    }
+                  />
 
                   {selected.communication
                     ?.selected_variant_id && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const comm =
-                          selected.communication!;
+                    <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-[#07877B]" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            Copy submitted for approval
+                          </p>
+                          <p className="mt-0.5 text-xs text-gray-500">
+                            Review the final selected variant before making a decision.
+                          </p>
+                        </div>
+                      </div>
 
-                        const category =
-                          comm.category
-                            ? mapDatabaseCategory(
-                                comm.category
-                              )
-                            : "research";
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const comm =
+                            selected.communication!;
 
-                        navigate(
-                          `/create/preview?communicationId=${encodeURIComponent(
-                            comm.id
-                          )}&variantId=${encodeURIComponent(
-                            comm.selected_variant_id!
-                          )}&category=${encodeURIComponent(
-                            category
-                          )}`
-                        );
-                      }}
-                      className="mb-6 w-full rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
-                    >
-                      Open Full Preview
-                    </button>
+                          const category =
+                            comm.category
+                              ? mapDatabaseCategory(
+                                  comm.category
+                                )
+                              : "research";
+
+                          navigate(
+                            `/create/preview?communicationId=${encodeURIComponent(
+                              comm.id
+                            )}&variantId=${encodeURIComponent(
+                              comm.selected_variant_id!
+                            )}&category=${encodeURIComponent(
+                              category
+                            )}`
+                          );
+                        }}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-[#07877B] hover:text-[#07877B]"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Open Full Preview
+                      </button>
+                    </div>
                   )}
+
+                  <div className="mb-4 border-t border-gray-100 pt-5">
+                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                      Review decision
+                    </p>
+                  </div>
 
                   <div className="mb-6">
                     <label className="mb-2 flex items-center gap-2 text-sm text-gray-700">
@@ -421,6 +478,424 @@ export function ReviewQueue() {
         )}
       </main>
     </div>
+  );
+}
+
+
+function ReviewBrief({
+  item,
+}: {
+  item: ReviewQueueItem;
+}) {
+  const communication =
+    item.communication;
+
+  const inputData =
+    getInputData(
+      communication
+    );
+
+  const sourceFile =
+    inputData?.sourceFile as
+      | Record<string, any>
+      | undefined;
+
+  const rows = [
+    {
+      label: "Category",
+      value:
+        communication?.category,
+    },
+    {
+      label: "Audience",
+      value:
+        communication?.audience,
+    },
+    {
+      label: "Objective",
+      value:
+        communication?.objective,
+    },
+    {
+      label: "Source",
+      value:
+        sourceFile?.name ||
+        inputData?.sourceFileName ||
+        inputData?.fileName,
+    },
+  ].filter(
+    (row) =>
+      Boolean(row.value)
+  );
+
+  if (
+    rows.length === 0
+  ) {
+    return null;
+  }
+
+  return (
+    <section className="mb-6">
+      <div className="mb-3 flex items-center gap-2">
+        <FileCheck2 className="h-4 w-4 text-gray-500" />
+        <h3 className="text-sm font-medium text-gray-900">
+          Communication brief
+        </h3>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-gray-200">
+        {rows.map(
+          (row, index) => (
+            <div
+              key={row.label}
+              className={`grid grid-cols-[105px,1fr] gap-3 px-4 py-3 text-xs ${
+                index !==
+                rows.length - 1
+                  ? "border-b border-gray-100"
+                  : ""
+              }`}
+            >
+              <span className="text-gray-500">
+                {row.label}
+              </span>
+
+              <span className="break-words font-medium text-gray-800">
+                {String(
+                  row.value
+                )}
+              </span>
+            </div>
+          )
+        )}
+      </div>
+    </section>
+  );
+}
+
+function VerifiedSourceFacts({
+  item,
+  expanded,
+  onToggle,
+}: {
+  item: ReviewQueueItem;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const inputData =
+    getInputData(
+      item.communication
+    );
+
+  const facts =
+    inputData
+      ?.verifiedSourceFacts;
+
+  if (
+    !facts ||
+    typeof facts !== "object" ||
+    Array.isArray(facts) ||
+    Object.keys(facts).length === 0
+  ) {
+    return null;
+  }
+
+  const entries =
+    Object.entries(
+      facts
+    ).filter(
+      ([key, value]) =>
+        key !==
+          "sourceWarnings" &&
+        hasFactValue(
+          value
+        )
+    );
+
+  if (
+    entries.length === 0
+  ) {
+    return null;
+  }
+
+  const visible =
+    expanded
+      ? entries
+      : entries.slice(
+          0,
+          6
+        );
+
+  return (
+    <section className="mb-6 rounded-xl border border-[#b3d9d5] bg-[#f7fbfa] p-4">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex gap-2">
+          <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#07877B]" />
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-900">
+              Verified source facts
+            </h3>
+
+            <p className="mt-1 text-xs leading-5 text-gray-500">
+              Facts reviewed by the creator before copy generation.
+            </p>
+          </div>
+        </div>
+
+        <span className="flex-shrink-0 rounded-full bg-[#e8f5f4] px-2 py-1 text-[11px] font-medium text-[#07877B]">
+          Human verified
+        </span>
+      </div>
+
+      <div className="space-y-3">
+        {visible.map(
+          ([key, value]) => (
+            <FactRow
+              key={key}
+              label={
+                formatFactLabel(
+                  key
+                )
+              }
+              value={value}
+            />
+          )
+        )}
+      </div>
+
+      {entries.length > 6 && (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="mt-4 flex items-center gap-1 text-xs font-medium text-[#07877B] hover:text-[#06766a]"
+        >
+          {expanded ? (
+            <>
+              <ChevronUp className="h-3.5 w-3.5" />
+              Show less
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-3.5 w-3.5" />
+              View all {entries.length} facts
+            </>
+          )}
+        </button>
+      )}
+
+      {Array.isArray(
+        facts.sourceWarnings
+      ) &&
+        facts.sourceWarnings.length >
+          0 && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3">
+            <p className="mb-1 text-xs font-medium text-amber-800">
+              Source notes
+            </p>
+
+            {facts.sourceWarnings.map(
+              (
+                warning:
+                  string,
+                index:
+                  number
+              ) => (
+                <p
+                  key={index}
+                  className="text-xs leading-5 text-amber-700"
+                >
+                  {warning}
+                </p>
+              )
+            )}
+          </div>
+        )}
+    </section>
+  );
+}
+
+function FactRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: any;
+}) {
+  if (
+    Array.isArray(value)
+  ) {
+    return (
+      <div>
+        <p className="mb-1 text-xs text-gray-500">
+          {label}
+        </p>
+
+        <ul className="space-y-1">
+          {value
+            .filter(Boolean)
+            .map(
+              (
+                item:
+                  any,
+                index:
+                  number
+              ) => (
+                <li
+                  key={index}
+                  className="flex gap-2 text-xs leading-5 text-gray-800"
+                >
+                  <span className="mt-[7px] h-1 w-1 flex-shrink-0 rounded-full bg-[#07877B]" />
+                  <span>
+                    {String(
+                      item
+                    )}
+                  </span>
+                </li>
+              )
+            )}
+        </ul>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-[115px,1fr] gap-3 text-xs">
+      <span className="text-gray-500">
+        {label}
+      </span>
+
+      <span className="break-words font-medium leading-5 text-gray-800">
+        {String(value)}
+      </span>
+    </div>
+  );
+}
+
+function getInputData(
+  communication:
+    ReviewQueueItem["communication"]
+) {
+  if (
+    !communication
+  ) {
+    return null;
+  }
+
+  const data =
+    (
+      communication as any
+    ).input_data;
+
+  if (
+    !data ||
+    typeof data !== "object" ||
+    Array.isArray(data)
+  ) {
+    return null;
+  }
+
+  return data as Record<
+    string,
+    any
+  >;
+}
+
+function hasFactValue(
+  value: any
+) {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return false;
+  }
+
+  if (
+    Array.isArray(value)
+  ) {
+    return (
+      value.filter(
+        Boolean
+      ).length > 0
+    );
+  }
+
+  return true;
+}
+
+function formatFactLabel(
+  key: string
+) {
+  const labels:
+    Record<
+      string,
+      string
+    > = {
+      documentType:
+        "Document Type",
+      securityOrCompany:
+        "Company / Security",
+      reportDate:
+        "Report Date",
+      recommendation:
+        "Recommendation",
+      currentPrice:
+        "CMP / Current Price",
+      targetPrice:
+        "Target Price",
+      timeHorizon:
+        "Time Horizon",
+      valuation:
+        "Valuation",
+      keyRationale:
+        "Key Rationale",
+      riskFactors:
+        "Risk Factors",
+      keyFacts:
+        "Key Facts",
+      authority:
+        "Authority",
+      circularOrReferenceNumber:
+        "Circular / Ref.",
+      subject:
+        "Subject",
+      issueDate:
+        "Issue Date",
+      effectiveDate:
+        "Effective Date",
+      applicability:
+        "Applicability",
+      affectedProductsOrUsers:
+        "Affected Users",
+      requiredActions:
+        "Required Actions",
+      deadlines:
+        "Deadlines",
+      topicOrProduct:
+        "Topic / Product",
+      dateOrTimeline:
+        "Date / Timeline",
+      audienceOrApplicability:
+        "Audience",
+      keyMessage:
+        "Key Message",
+      riskOrLimitations:
+        "Risks / Limitations",
+    };
+
+  return (
+    labels[key] ||
+    key
+      .replace(
+        /([A-Z])/g,
+        " $1"
+      )
+      .replace(
+        /^./,
+        (character) =>
+          character.toUpperCase()
+      )
   );
 }
 
