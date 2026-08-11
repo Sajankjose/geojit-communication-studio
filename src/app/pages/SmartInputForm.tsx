@@ -11,7 +11,6 @@ import {
   FileText,
   Upload,
   Link as LinkIcon,
-  Image as ImageIcon,
 } from "lucide-react";
 
 import { TopNavBar } from "../components/TopNavBar";
@@ -79,6 +78,9 @@ export function SmartInputForm() {
 
   const [savedMessage, setSavedMessage] =
     useState("");
+
+  const [hasUnsavedChanges, setHasUnsavedChanges] =
+    useState(false);
 
   const [loadingDraft, setLoadingDraft] =
     useState(true);
@@ -182,6 +184,7 @@ export function SmartInputForm() {
 
           details: savedDetails,
         });
+        setHasUnsavedChanges(false);
       } catch (err) {
         console.error(
           "Unable to load draft:",
@@ -320,6 +323,7 @@ export function SmartInputForm() {
     }));
 
     setSavedMessage("");
+    setHasUnsavedChanges(true);
   }
 
   function updateDetail(
@@ -336,6 +340,7 @@ export function SmartInputForm() {
     }));
 
     setSavedMessage("");
+    setHasUnsavedChanges(true);
   }
 
   function mapCategoryToDatabase(
@@ -474,8 +479,9 @@ export function SmartInputForm() {
       );
 
       setSavedMessage(
-        "Draft saved successfully."
+        "All changes saved."
       );
+      setHasUnsavedChanges(false);
     } catch (err) {
       console.error(
         "Save draft failed:",
@@ -620,30 +626,30 @@ export function SmartInputForm() {
 
       <main className="mx-auto max-w-7xl px-8 py-8">
 
-        {/* Context */}
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50/30 p-4">
-
-          <div className="flex items-center gap-2">
-
-            <Sparkles className="h-5 w-5 text-blue-600" />
-
-            <p className="text-sm text-blue-900">
-
-              <strong>
-                This information builds
-                your communication
-              </strong>
-
-              {" — "}
-
-              All inputs become structured
-              data that AI will use to
-              generate variants.
-
+          {/* Page introduction */}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mb-1 text-sm font-medium text-[#07877B]">
+              Step 2 · Add the source information
             </p>
-
+            <h1 className="text-2xl text-gray-900">
+              Give AI the facts it needs
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-600">
+              Add only the source facts and instructions that matter. You can enter them manually,
+              paste existing content, or prepare a source for upload.
+            </p>
           </div>
 
+          <div className="text-sm">
+            {saving ? (
+              <span className="text-gray-500">Saving…</span>
+            ) : hasUnsavedChanges ? (
+              <span className="text-amber-700">Unsaved changes</span>
+            ) : savedMessage ? (
+              <span className="text-green-700">✓ Saved</span>
+            ) : null}
+          </div>
         </div>
 
         {/* Messages */}
@@ -654,7 +660,7 @@ export function SmartInputForm() {
           </div>
         )}
 
-        {savedMessage && (
+        {savedMessage && !hasUnsavedChanges && (
           <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
             {savedMessage}
           </div>
@@ -668,9 +674,14 @@ export function SmartInputForm() {
             {/* Basic Information */}
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
-              <h2 className="mb-6">
-                Basic Information
-              </h2>
+              <div className="mb-6">
+                <h2 className="text-lg text-gray-900">
+                  Communication basics
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Identify the communication and who should receive it.
+                </p>
+              </div>
 
               <div className="space-y-4">
 
@@ -739,9 +750,14 @@ export function SmartInputForm() {
             {/* Input Method */}
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
-              <h2 className="mb-6">
-                Input Method
-              </h2>
+              <div className="mb-6">
+                <h2 className="text-lg text-gray-900">
+                  Source information
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Choose the easiest way to provide the facts AI should work from.
+                </p>
+              </div>
 
               <div className="mb-6 grid gap-3 sm:grid-cols-3">
 
@@ -769,12 +785,6 @@ export function SmartInputForm() {
                     icon: LinkIcon,
                     label:
                       "Paste URL",
-                  },
-                  {
-                    id: "image",
-                    icon: ImageIcon,
-                    label:
-                      "Upload Image",
                   },
                 ].map((method) => (
 
@@ -921,20 +931,22 @@ export function SmartInputForm() {
               )}
 
               {/* Upload placeholders */}
-              {(inputMethod ===
-                "upload" ||
-                inputMethod ===
-                  "image") && (
+              {inputMethod ===
+                "upload" && (
 
                 <div className="rounded-lg border-2 border-dashed border-gray-300 p-8 text-center">
 
                   <Upload className="mx-auto mb-3 h-7 w-7 text-gray-400" />
 
-                  <p className="text-sm text-gray-700">
-                    File upload will be
-                    connected to Supabase
-                    Storage in the next
-                    implementation step.
+                  <p className="font-medium text-gray-800">
+                    Upload source document
+                  </p>
+                  <p className="mt-1 text-sm text-gray-500">
+                    PDF support is the next implementation step. The document will be processed
+                    into verified source facts before generation.
+                  </p>
+                  <p className="mt-3 text-xs text-gray-400">
+                    Coming next: PDF upload + extraction
                   </p>
 
                 </div>
@@ -957,9 +969,19 @@ export function SmartInputForm() {
             {/* CTA */}
             <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
-              <h2 className="mb-6">
-                Call to Action
-              </h2>
+              <div className="mb-6">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg text-gray-900">
+                    Call to action
+                  </h2>
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
+                    Optional
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">
+                  Add this only when the email should drive the reader to a specific action.
+                </p>
+              </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
 
@@ -1001,19 +1023,19 @@ export function SmartInputForm() {
           {/* HELP PANEL */}
           <aside className="space-y-6">
 
-            <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-6">
+            <div className="rounded-xl border border-[#b3d9d5] bg-[#e8f5f4]/50 p-6">
 
               <div className="mb-3 flex items-center gap-2">
 
-                <Sparkles className="h-5 w-5 text-blue-600" />
+                <Sparkles className="h-5 w-5 text-[#07877B]" />
 
-                <h3 className="text-sm text-blue-900">
+                <h3 className="text-sm text-[#075f58]">
                   AI Tip
                 </h3>
 
               </div>
 
-              <p className="text-sm text-blue-800">
+              <p className="text-sm text-[#075f58]">
                 {getAiTip(
                   category
                 )}
