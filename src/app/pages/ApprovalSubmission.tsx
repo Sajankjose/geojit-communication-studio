@@ -11,7 +11,10 @@ import {
 import {
   ArrowLeft,
   CheckCircle2,
+  CircleAlert,
+  Clock3,
   Send,
+  XCircle,
 } from "lucide-react";
 
 import { TopNavBar } from "../components/TopNavBar";
@@ -25,7 +28,6 @@ import {
 } from "../services/communications";
 
 import {
-  getExistingPendingApproval,
   submitCommunicationForApproval,
 } from "../services/approvals";
 
@@ -38,6 +40,22 @@ type Category =
   | "service"
   | "regulatory"
   | "onboarding";
+
+type ApprovalStage =
+  | "not_submitted"
+  | "marketing_pending"
+  | "corpcom_pending"
+  | "approved"
+  | "changes_requested"
+  | "rejected";
+
+interface ApprovalActionRow {
+  id: string;
+  stage: string;
+  action: string;
+  comment: string | null;
+  created_at: string;
+}
 
 interface StoredVariant {
   id: string;
@@ -156,10 +174,18 @@ export function ApprovalSubmission() {
     useState(false);
 
   const [
-    alreadySubmitted,
-    setAlreadySubmitted,
+    approvalStage,
+    setApprovalStage,
   ] =
-    useState(false);
+    useState<ApprovalStage>(
+      "not_submitted"
+    );
+
+  const [
+    latestApprovalComment,
+    setLatestApprovalComment,
+  ] =
+    useState("");
 
   const [
     error,
@@ -268,20 +294,75 @@ export function ApprovalSubmission() {
           variantRow as StoredVariant
         );
 
-        const existingApproval =
-          await getExistingPendingApproval(
-            communicationId!
+        const {
+          data:
+            approvalRows,
+          error:
+            approvalError,
+        } =
+          await supabase
+            .from(
+              "approval_actions"
+            )
+            .select(
+              `
+              id,
+              stage,
+              action,
+              comment,
+              created_at
+              `
+            )
+            .eq(
+              "communication_id",
+              communicationId!
+            )
+            .order(
+              "created_at",
+              {
+                ascending:
+                  true,
+              }
+            );
+
+        if (approvalError) {
+          throw new Error(
+            approvalError.message
           );
+        }
 
         if (cancelled) {
           return;
         }
 
-        if (existingApproval) {
-          setAlreadySubmitted(
-            true
+        const resolvedStage =
+          resolveApprovalStage(
+            (approvalRows ||
+              []) as ApprovalActionRow[]
           );
-        }
+
+        setApprovalStage(
+          resolvedStage
+        );
+
+        const latestComment =
+          [...(
+            (approvalRows ||
+              []) as ApprovalActionRow[]
+          )]
+            .reverse()
+            .find(
+              (row) =>
+                Boolean(
+                  row.comment?.trim()
+                )
+            )
+            ?.comment ||
+          "";
+
+        setLatestApprovalComment(
+          latestComment
+        );
       } catch (err) {
         if (cancelled) {
           return;
@@ -438,6 +519,15 @@ export function ApprovalSubmission() {
     );
   }
 
+  const isSubmitted =
+    approvalStage !==
+    "not_submitted";
+
+  const stagePresentation =
+    getApprovalStagePresentation(
+      approvalStage
+    );
+
   const compliance =
     variant
       ?.content_data
@@ -458,8 +548,17 @@ export function ApprovalSubmission() {
         }
         category={category}
         status={
-          alreadySubmitted
-            ? "pending-approval"
+          isSubmitted
+            ? approvalStage ===
+                "approved"
+              ? "approved"
+              : approvalStage ===
+                  "changes_requested"
+                ? "changes-requested"
+                : approvalStage ===
+                    "rejected"
+                  ? "rejected"
+                  : "pending-approval"
             : "preview-ready"
         }
         currentStep={5}
@@ -482,14 +581,14 @@ export function ApprovalSubmission() {
           </div>
 
           <h1 className="mb-3 text-3xl text-gray-900">
-            {alreadySubmitted
-              ? "Already Submitted"
+            {isSubmitted
+              ? stagePresentation.title
               : "Submit for Approval"}
           </h1>
 
           <p className="text-gray-600">
-            {alreadySubmitted
-              ? "This communication is already waiting for Marketing review."
+            {isSubmitted
+              ? stagePresentation.description
               : "Complete the verification checklist before sending this communication to the Marketing reviewer."}
           </p>
 
@@ -501,24 +600,15 @@ export function ApprovalSubmission() {
           </div>
         )}
 
-        {alreadySubmitted && (
-          <div className="mb-8 rounded-xl border border-green-200 bg-green-50 p-5">
-
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600" />
-
-              <div>
-                <p className="font-medium text-green-900">
-                  Pending Marketing approval
-                </p>
-
-                <p className="mt-1 text-sm text-green-700">
-                  No additional submission is required. Duplicate approval requests are prevented automatically.
-                </p>
-              </div>
-            </div>
-
-          </div>
+        {isSubmitted && (
+          <ApprovalStageBanner
+            stage={
+              approvalStage
+            }
+            latestComment={
+              latestApprovalComment
+            }
+          />
         )}
 
         {/* Summary */}
@@ -601,7 +691,7 @@ export function ApprovalSubmission() {
         </div>
 
         {/* Verification */}
-        {!alreadySubmitted && (
+        {!isSubmitted && (
           <>
             <div className="mb-8 rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
 
@@ -701,7 +791,7 @@ export function ApprovalSubmission() {
         {/* Actions */}
         <div className="flex flex-col gap-4">
 
-          {!alreadySubmitted && (
+          {!isSubmitted && (
             <button
               type="button"
               onClick={
@@ -721,27 +811,46 @@ export function ApprovalSubmission() {
             </button>
           )}
 
-          {alreadySubmitted && (
+          {isSubmitted && (
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  `/approval/status?communicationId=${encodeURIComponent(
+                    communicationId ||
+                      ""
+                  )}`
+                )
+              }
+              className="rounded-lg bg-[#07877B] px-8 py-4 text-white transition-colors hover:bg-[#06766a]"
+            >
+              View Approval Status
+            </button>
+          )}
+
+          {isSubmitted && (
             <button
               type="button"
               onClick={() =>
                 navigate("/")
               }
-              className="rounded-lg bg-[#07877B] px-8 py-4 text-white transition-colors hover:bg-[#06766a]"
+              className="text-sm text-gray-600 transition-colors hover:text-[#07877B]"
             >
               Return to Dashboard
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={
-              handleBack
-            }
-            className="text-sm text-gray-600 transition-colors hover:text-[#07877B]"
-          >
-            Return to Preview
-          </button>
+          {!isSubmitted && (
+            <button
+              type="button"
+              onClick={
+                handleBack
+              }
+              className="text-sm text-gray-600 transition-colors hover:text-[#07877B]"
+            >
+              Return to Preview
+            </button>
+          )}
 
         </div>
 
@@ -750,13 +859,17 @@ export function ApprovalSubmission() {
 
           <button
             type="button"
-            onClick={
-              handleBack
+            onClick={() =>
+              isSubmitted
+                ? navigate("/")
+                : handleBack()
             }
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-gray-700 transition-all hover:bg-gray-50"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {isSubmitted
+              ? "Back to Dashboard"
+              : "Back"}
           </button>
 
         </div>
@@ -764,6 +877,325 @@ export function ApprovalSubmission() {
       </main>
     </div>
   );
+}
+
+
+function ApprovalStageBanner({
+  stage,
+  latestComment,
+}: {
+  stage: ApprovalStage;
+  latestComment: string;
+}) {
+  const presentation =
+    getApprovalStagePresentation(
+      stage
+    );
+
+  const Icon =
+    stage === "approved"
+      ? CheckCircle2
+      : stage === "rejected"
+        ? XCircle
+        : stage ===
+            "changes_requested"
+          ? CircleAlert
+          : Clock3;
+
+  const styles =
+    stage === "approved"
+      ? {
+          wrapper:
+            "border-green-200 bg-green-50",
+          icon:
+            "text-green-600",
+          title:
+            "text-green-900",
+          body:
+            "text-green-700",
+        }
+      : stage === "rejected"
+        ? {
+            wrapper:
+              "border-red-200 bg-red-50",
+            icon:
+              "text-red-600",
+            title:
+              "text-red-900",
+            body:
+              "text-red-700",
+          }
+        : stage ===
+            "changes_requested"
+          ? {
+              wrapper:
+                "border-amber-200 bg-amber-50",
+              icon:
+                "text-amber-600",
+              title:
+                "text-amber-900",
+              body:
+                "text-amber-700",
+            }
+          : {
+              wrapper:
+                "border-blue-200 bg-blue-50",
+              icon:
+                "text-blue-600",
+              title:
+                "text-blue-900",
+              body:
+                "text-blue-700",
+            };
+
+  return (
+    <div
+      className={`mb-8 rounded-xl border p-5 ${styles.wrapper}`}
+    >
+      <div className="flex items-start gap-3">
+        <Icon
+          className={`mt-0.5 h-5 w-5 flex-shrink-0 ${styles.icon}`}
+        />
+
+        <div>
+          <p
+            className={`font-medium ${styles.title}`}
+          >
+            {
+              presentation.bannerTitle
+            }
+          </p>
+
+          <p
+            className={`mt-1 text-sm leading-6 ${styles.body}`}
+          >
+            {
+              presentation.bannerDescription
+            }
+          </p>
+
+          {latestComment &&
+            (
+              stage ===
+                "changes_requested" ||
+              stage ===
+                "rejected"
+            ) && (
+              <div className="mt-3 rounded-lg border border-black/5 bg-white/60 px-3 py-2">
+                <p className="text-xs font-medium text-gray-700">
+                  Reviewer comment
+                </p>
+
+                <p className="mt-1 text-sm leading-5 text-gray-700">
+                  {
+                    latestComment
+                  }
+                </p>
+              </div>
+            )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function resolveApprovalStage(
+  rows:
+    ApprovalActionRow[]
+): ApprovalStage {
+  if (
+    rows.length === 0
+  ) {
+    return "not_submitted";
+  }
+
+  const latestCorpCom =
+    [...rows]
+      .reverse()
+      .find(
+        (row) =>
+          row.stage ===
+          "corpcom_review"
+      );
+
+  if (
+    latestCorpCom
+  ) {
+    if (
+      latestCorpCom.action ===
+      "approved"
+    ) {
+      return "approved";
+    }
+
+    if (
+      latestCorpCom.action ===
+      "changes_requested"
+    ) {
+      return "changes_requested";
+    }
+
+    if (
+      latestCorpCom.action ===
+      "rejected"
+    ) {
+      return "rejected";
+    }
+
+    if (
+      latestCorpCom.action ===
+      "submitted"
+    ) {
+      return "corpcom_pending";
+    }
+  }
+
+  const latestMarketing =
+    [...rows]
+      .reverse()
+      .find(
+        (row) =>
+          row.stage ===
+          "marketing_review"
+      );
+
+  if (
+    latestMarketing
+  ) {
+    if (
+      latestMarketing.action ===
+      "changes_requested"
+    ) {
+      return "changes_requested";
+    }
+
+    if (
+      latestMarketing.action ===
+      "rejected"
+    ) {
+      return "rejected";
+    }
+
+    if (
+      latestMarketing.action ===
+      "submitted"
+    ) {
+      return "marketing_pending";
+    }
+
+    if (
+      latestMarketing.action ===
+      "approved"
+    ) {
+      /**
+       * Marketing approval should normally
+       * create a CorpCom submitted row.
+       * Until that row appears, treat the
+       * communication as moving to CorpCom,
+       * not as Marketing pending.
+       */
+      return "corpcom_pending";
+    }
+  }
+
+  return "marketing_pending";
+}
+
+function getApprovalStagePresentation(
+  stage:
+    ApprovalStage
+) {
+  switch (stage) {
+    case "marketing_pending":
+      return {
+        title:
+          "Awaiting Marketing Approval",
+
+        description:
+          "This communication has been submitted and is waiting for Marketing review.",
+
+        bannerTitle:
+          "Pending Marketing approval",
+
+        bannerDescription:
+          "No additional submission is required. The Marketing reviewer will approve, request changes or reject the communication.",
+      };
+
+    case "corpcom_pending":
+      return {
+        title:
+          "Awaiting Final CorpCom Approval",
+
+        description:
+          "Marketing review is complete. This communication is now waiting for final CorpCom approval.",
+
+        bannerTitle:
+          "Pending final CorpCom approval",
+
+        bannerDescription:
+          "Marketing has completed its review. CorpCom is the final approval stage for this communication.",
+      };
+
+    case "approved":
+      return {
+        title:
+          "Communication Approved",
+
+        description:
+          "Marketing and CorpCom approvals are complete.",
+
+        bannerTitle:
+          "Final approval completed",
+
+        bannerDescription:
+          "This communication has completed the approval workflow and is ready for the next publishing or delivery step.",
+      };
+
+    case "changes_requested":
+      return {
+        title:
+          "Changes Requested",
+
+        description:
+          "A reviewer has returned this communication to the creator for changes.",
+
+        bannerTitle:
+          "Reviewer requested changes",
+
+        bannerDescription:
+          "Review the reviewer comment, update the communication and resubmit it through the approval workflow.",
+      };
+
+    case "rejected":
+      return {
+        title:
+          "Communication Rejected",
+
+        description:
+          "A reviewer has rejected this communication.",
+
+        bannerTitle:
+          "Approval rejected",
+
+        bannerDescription:
+          "This communication cannot proceed in its current form. Review the reviewer comment before deciding the next action.",
+      };
+
+    default:
+      return {
+        title:
+          "Submit for Approval",
+
+        description:
+          "Complete the verification checklist before sending this communication to the Marketing reviewer.",
+
+        bannerTitle:
+          "",
+
+        bannerDescription:
+          "",
+      };
+  }
 }
 
 function ChecklistItem({
