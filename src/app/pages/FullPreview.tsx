@@ -665,6 +665,7 @@ export function FullPreview() {
             </div>
 
             {!isReviewMode && (
+              <>
             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
               <div className="mb-5 flex items-center justify-between">
                 <h2>Editable Fields</h2>
@@ -726,9 +727,10 @@ export function FullPreview() {
                   {saving ? "Saving..." : "Save Preview Changes"}
                 </button>
               </div>
-            )}
-
             </div>
+
+              </>
+            )}
 
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-6">
               <div className="mb-4 flex items-center gap-2">
