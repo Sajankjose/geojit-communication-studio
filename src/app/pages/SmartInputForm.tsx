@@ -18,6 +18,9 @@ import {
   AlertCircle,
   ShieldCheck,
   ScanSearch,
+  WandSparkles,
+  PencilLine,
+  CircleCheckBig,
 } from "lucide-react";
 
 import { TopNavBar } from "../components/TopNavBar";
@@ -41,6 +44,11 @@ import {
   PdfExtractionResult,
   extractCommunicationPdf,
 } from "../services/pdfExtraction";
+
+import {
+  FactExtractionResponse,
+  extractPdfFacts,
+} from "../services/pdfFactExtraction";
 
 type Category =
   | "research"
@@ -150,6 +158,38 @@ export function SmartInputForm() {
   ] =
     useState("");
 
+  const [
+    extractingFacts,
+    setExtractingFacts,
+  ] =
+    useState(false);
+
+  const [
+    factExtraction,
+    setFactExtraction,
+  ] =
+    useState<FactExtractionResponse | null>(
+      null
+    );
+
+  const [
+    factExtractionError,
+    setFactExtractionError,
+  ] =
+    useState("");
+
+  const [
+    verifiedFacts,
+    setVerifiedFacts,
+  ] =
+    useState<Record<string, any>>({});
+
+  const [
+    factsApplied,
+    setFactsApplied,
+  ] =
+    useState(false);
+
   const [dragActive, setDragActive] =
     useState(false);
 
@@ -199,6 +239,38 @@ export function SmartInputForm() {
           );
         } else {
           setSourceFile(null);
+        }
+
+        const savedVerifiedFacts =
+          savedInput.verifiedSourceFacts;
+
+        if (
+          savedVerifiedFacts &&
+          typeof savedVerifiedFacts === "object" &&
+          !Array.isArray(savedVerifiedFacts)
+        ) {
+          setVerifiedFacts(
+            savedVerifiedFacts as Record<string, any>
+          );
+
+          setFactExtraction({
+            success: true,
+            facts:
+              savedVerifiedFacts as Record<string, unknown>,
+            usage: {
+              sourceCharacters: 0,
+              promptTokens: null,
+              completionTokens: null,
+              totalTokens: null,
+              model: "saved",
+            },
+          });
+
+          setFactsApplied(
+            Boolean(
+              savedInput.sourceFactsApplied
+            )
+          );
         }
 
         const savedExtraction =
@@ -659,6 +731,385 @@ export function SmartInputForm() {
     }
   }
 
+  async function persistVerifiedFacts(
+    nextFacts: Record<string, any>,
+    applied = factsApplied
+  ) {
+    if (!communicationId) {
+      throw new Error(
+        "Communication ID is missing."
+      );
+    }
+
+    await updateCommunication(
+      communicationId,
+      {
+        input_data: {
+          ...buildInputData(),
+          verifiedSourceFacts:
+            Object.keys(
+              nextFacts
+            ).length > 0
+              ? nextFacts
+              : null,
+          sourceFactsApplied:
+            applied,
+        },
+      }
+    );
+  }
+
+  async function handleExtractFacts() {
+    if (
+      !communicationId ||
+      !extractionResult ||
+      extractingFacts
+    ) {
+      return;
+    }
+
+    if (
+      !extractionResult.extraction.relevantText
+    ) {
+      setFactExtractionError(
+        "Process the PDF again before extracting facts."
+      );
+      return;
+    }
+
+    try {
+      setExtractingFacts(true);
+      setFactExtractionError("");
+      setError("");
+      setSavedMessage("");
+      setFactsApplied(false);
+
+      const result =
+        await extractPdfFacts({
+          communicationId,
+          category,
+          relevantText:
+            extractionResult.extraction.relevantText,
+        });
+
+      const facts =
+        result.facts as Record<string, any>;
+
+      setFactExtraction(result);
+      setVerifiedFacts(facts);
+
+      await persistVerifiedFacts(
+        facts,
+        false
+      );
+
+      setSavedMessage(
+        "Key facts extracted. Please verify before using them."
+      );
+    } catch (err) {
+      console.error(
+        "Fact extraction failed:",
+        err
+      );
+
+      setFactExtractionError(
+        err instanceof Error
+          ? err.message
+          : "Unable to extract key facts."
+      );
+    } finally {
+      setExtractingFacts(false);
+    }
+  }
+
+  function updateVerifiedFact(
+    key: string,
+    value: any
+  ) {
+    setVerifiedFacts(
+      (current) => ({
+        ...current,
+        [key]: value,
+      })
+    );
+
+    setFactsApplied(false);
+    setSavedMessage("");
+  }
+
+  function updateVerifiedListItem(
+    key: string,
+    index: number,
+    value: string
+  ) {
+    setVerifiedFacts(
+      (current) => {
+        const currentList =
+          Array.isArray(
+            current[key]
+          )
+            ? [...current[key]]
+            : [];
+
+        currentList[index] =
+          value;
+
+        return {
+          ...current,
+          [key]:
+            currentList,
+        };
+      }
+    );
+
+    setFactsApplied(false);
+    setSavedMessage("");
+  }
+
+  async function handleApplyFacts() {
+    const facts =
+      verifiedFacts;
+
+    if (
+      Object.keys(
+        facts
+      ).length === 0
+    ) {
+      return;
+    }
+
+    const nextDetails = {
+      ...formData.details,
+    };
+
+    let nextTitle =
+      formData.title;
+
+    let nextTopic =
+      formData.topic;
+
+    let nextKeyMessage =
+      formData.keyMessage;
+
+    let nextSupportingPoints =
+      formData.supportingPoints;
+
+    if (
+      category === "research"
+    ) {
+      if (
+        typeof facts.securityOrCompany ===
+          "string" &&
+        facts.securityOrCompany.trim()
+      ) {
+        nextTopic =
+          facts.securityOrCompany.trim();
+
+        if (
+          !nextTitle.trim()
+        ) {
+          nextTitle =
+            `${facts.securityOrCompany.trim()} Research Communication`;
+        }
+      }
+
+      if (
+        typeof facts.recommendation ===
+        "string"
+      ) {
+        nextDetails.recommendation =
+          facts.recommendation || "";
+      }
+
+      if (
+        typeof facts.currentPrice ===
+        "string"
+      ) {
+        nextDetails.currentPrice =
+          facts.currentPrice || "";
+      }
+
+      if (
+        typeof facts.targetPrice ===
+        "string"
+      ) {
+        nextDetails.targetPrice =
+          facts.targetPrice || "";
+      }
+
+      if (
+        typeof facts.timeHorizon ===
+        "string"
+      ) {
+        nextDetails.timeHorizon =
+          facts.timeHorizon || "";
+      }
+
+      if (
+        Array.isArray(
+          facts.keyRationale
+        )
+      ) {
+        nextDetails.rationale =
+          facts.keyRationale
+            .filter(Boolean)
+            .join("\n• ");
+      }
+
+      if (
+        Array.isArray(
+          facts.riskFactors
+        )
+      ) {
+        nextDetails.riskFactors =
+          facts.riskFactors
+            .filter(Boolean)
+            .join("\n• ");
+      }
+
+      if (
+        Array.isArray(
+          facts.keyFacts
+        )
+      ) {
+        nextSupportingPoints =
+          facts.keyFacts
+            .filter(Boolean)
+            .join("\n• ");
+      }
+
+      if (
+        typeof facts.recommendation ===
+          "string" &&
+        facts.recommendation.trim()
+      ) {
+        nextKeyMessage =
+          `Recommendation: ${facts.recommendation.trim()}`;
+      }
+    }
+
+    if (
+      category ===
+      "regulatory"
+    ) {
+      if (
+        typeof facts.subject ===
+          "string" &&
+        facts.subject.trim()
+      ) {
+        nextTopic =
+          facts.subject.trim();
+
+        if (
+          !nextTitle.trim()
+        ) {
+          nextTitle =
+            facts.subject.trim();
+        }
+      }
+
+      if (
+        typeof facts.authority ===
+        "string"
+      ) {
+        nextDetails.authority =
+          facts.authority || "";
+      }
+
+      if (
+        typeof facts.circularOrReferenceNumber ===
+        "string"
+      ) {
+        nextDetails.referenceNumber =
+          facts.circularOrReferenceNumber || "";
+      }
+
+      if (
+        typeof facts.effectiveDate ===
+        "string"
+      ) {
+        nextDetails.deadline =
+          normalizeDateForInput(
+            facts.effectiveDate
+          );
+      }
+
+      if (
+        typeof facts.affectedProductsOrUsers ===
+        "string"
+      ) {
+        nextDetails.affectedProducts =
+          facts.affectedProductsOrUsers || "";
+      }
+
+      if (
+        Array.isArray(
+          facts.requiredActions
+        )
+      ) {
+        nextDetails.requiredActions =
+          facts.requiredActions
+            .filter(Boolean)
+            .join("\n• ");
+      }
+
+      if (
+        Array.isArray(
+          facts.keyFacts
+        )
+      ) {
+        nextSupportingPoints =
+          facts.keyFacts
+            .filter(Boolean)
+            .join("\n• ");
+      }
+
+      if (
+        typeof facts.applicability ===
+          "string" &&
+        facts.applicability.trim()
+      ) {
+        nextKeyMessage =
+          facts.applicability.trim();
+      }
+    }
+
+    setFormData(
+      (current) => ({
+        ...current,
+        title:
+          nextTitle,
+        topic:
+          nextTopic,
+        keyMessage:
+          nextKeyMessage,
+        supportingPoints:
+          nextSupportingPoints,
+        details:
+          nextDetails,
+      })
+    );
+
+    setFactsApplied(true);
+    setHasUnsavedChanges(true);
+
+    try {
+      await persistVerifiedFacts(
+        facts,
+        true
+      );
+    } catch (err) {
+      console.error(
+        "Unable to persist verified facts:",
+        err
+      );
+    }
+
+    setSavedMessage(
+      "Verified facts applied to the form."
+    );
+  }
+
   async function handlePdfFile(file: File) {
     if (!communicationId || uploadingFile) {
       return;
@@ -762,6 +1213,10 @@ export function SmartInputForm() {
       setSourceFile(null);
       setExtractionResult(null);
       setExtractionError("");
+      setFactExtraction(null);
+      setVerifiedFacts({});
+      setFactsApplied(false);
+      setFactExtractionError("");
       setSavedMessage("PDF removed.");
     } catch (err) {
       console.error(
@@ -926,6 +1381,30 @@ export function SmartInputForm() {
     ) {
       setError(
         "This PDF may not be relevant to the selected category. Please review the document or choose another PDF before generating."
+      );
+      return;
+    }
+
+    if (
+      inputMethod === "upload" &&
+      sourceFile &&
+      extractionResult?.relevance.relevant &&
+      !factExtraction
+    ) {
+      setError(
+        "Please extract and verify the key facts from the PDF before generating communication options."
+      );
+      return;
+    }
+
+    if (
+      inputMethod === "upload" &&
+      sourceFile &&
+      factExtraction &&
+      !factsApplied
+    ) {
+      setError(
+        "Please review the extracted facts and click “Use these facts” before generating communication options."
       );
       return;
     }
@@ -1602,6 +2081,40 @@ export function SmartInputForm() {
                               </div>
                             )}
 
+                            {extractionResult.relevance.relevant && (
+                              <div className="rounded-xl border border-[#b3d9d5] bg-white p-4">
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      Extract key facts
+                                    </p>
+                                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                                      AI will use only the filtered source text, not the full PDF.
+                                    </p>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={handleExtractFacts}
+                                    disabled={extractingFacts}
+                                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {extractingFacts ? (
+                                      <RefreshCw className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <WandSparkles className="h-4 w-4" />
+                                    )}
+
+                                    {extractingFacts
+                                      ? "Extracting…"
+                                      : factExtraction
+                                        ? "Extract Again"
+                                        : "Extract Key Facts"}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
                             <button
                               type="button"
                               onClick={handleProcessPdf}
@@ -1636,6 +2149,26 @@ export function SmartInputForm() {
                       <span>{extractionError}</span>
                     </div>
                   )}
+
+                  {factExtractionError && (
+                    <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                      <span>{factExtractionError}</span>
+                    </div>
+                  )}
+
+                  {factExtraction &&
+                    Object.keys(verifiedFacts).length > 0 && (
+                      <FactVerificationPanel
+                        category={category}
+                        facts={verifiedFacts}
+                        usage={factExtraction.usage}
+                        applied={factsApplied}
+                        onChange={updateVerifiedFact}
+                        onChangeListItem={updateVerifiedListItem}
+                        onApply={handleApplyFacts}
+                      />
+                    )}
 
                 </div>
 
@@ -1837,6 +2370,436 @@ export function SmartInputForm() {
   );
 }
 
+
+
+function FactVerificationPanel({
+  category,
+  facts,
+  usage,
+  applied,
+  onChange,
+  onChangeListItem,
+  onApply,
+}: {
+  category: Category;
+  facts: Record<string, any>;
+  usage: {
+    sourceCharacters: number;
+    promptTokens: number | null;
+    completionTokens: number | null;
+    totalTokens: number | null;
+    model: string;
+  };
+  applied: boolean;
+  onChange: (
+    key: string,
+    value: any
+  ) => void;
+  onChangeListItem: (
+    key: string,
+    index: number,
+    value: string
+  ) => void;
+  onApply: () => void;
+}) {
+  const visibleFields =
+    getFactFields(
+      category
+    );
+
+  return (
+    <div className="rounded-xl border border-[#b3d9d5] bg-[#f7fbfa] p-5">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <PencilLine className="h-4 w-4 text-[#07877B]" />
+            <h3 className="text-sm font-medium text-gray-900">
+              Review extracted facts
+            </h3>
+          </div>
+
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            Check these source facts before using them in the communication.
+          </p>
+        </div>
+
+        {usage.totalTokens !== null &&
+          usage.model !== "saved" && (
+            <div className="rounded-full bg-white px-3 py-1 text-xs text-gray-500">
+              {usage.totalTokens.toLocaleString()} tokens
+            </div>
+          )}
+      </div>
+
+      <div className="space-y-4">
+        {visibleFields.map(
+          (field) => {
+            const value =
+              facts[field.key];
+
+            if (
+              field.type === "list"
+            ) {
+              const items =
+                Array.isArray(value)
+                  ? value
+                  : [];
+
+              return (
+                <div
+                  key={field.key}
+                >
+                  <label className="mb-2 block text-xs font-medium text-gray-600">
+                    {field.label}
+                  </label>
+
+                  {items.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-gray-300 bg-white px-3 py-3 text-xs text-gray-400">
+                      Not found in source
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {items.map(
+                        (
+                          item:
+                            string,
+                          index:
+                            number
+                        ) => (
+                          <input
+                            key={`${field.key}-${index}`}
+                            value={
+                              item || ""
+                            }
+                            onChange={(
+                              event
+                            ) =>
+                              onChangeListItem(
+                                field.key,
+                                index,
+                                event.target.value
+                              )
+                            }
+                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
+                          />
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <div
+                key={field.key}
+              >
+                <label className="mb-2 block text-xs font-medium text-gray-600">
+                  {field.label}
+                </label>
+
+                <input
+                  value={
+                    typeof value ===
+                      "string"
+                      ? value
+                      : ""
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    onChange(
+                      field.key,
+                      event.target.value
+                    )
+                  }
+                  placeholder="Not found in source"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
+                />
+              </div>
+            );
+          }
+        )}
+      </div>
+
+      <div className="mt-5 flex flex-col gap-3 border-t border-[#d8ebe8] pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-gray-500">
+          Missing facts can stay blank. Do not add information that is not supported by the source.
+        </p>
+
+        <button
+          type="button"
+          onClick={onApply}
+          className={`inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium ${
+            applied
+              ? "border border-green-200 bg-green-50 text-green-700"
+              : "bg-[#07877B] text-white hover:bg-[#06766a]"
+          }`}
+        >
+          <CircleCheckBig className="h-4 w-4" />
+          {applied
+            ? "Facts applied"
+            : "Use these facts"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function getFactFields(
+  category: Category
+) {
+  if (
+    category === "research"
+  ) {
+    return [
+      {
+        key:
+          "securityOrCompany",
+        label:
+          "Company / Security",
+        type:
+          "text",
+      },
+      {
+        key:
+          "reportDate",
+        label:
+          "Report Date",
+        type:
+          "text",
+      },
+      {
+        key:
+          "recommendation",
+        label:
+          "Recommendation",
+        type:
+          "text",
+      },
+      {
+        key:
+          "currentPrice",
+        label:
+          "Current Price / CMP",
+        type:
+          "text",
+      },
+      {
+        key:
+          "targetPrice",
+        label:
+          "Target Price",
+        type:
+          "text",
+      },
+      {
+        key:
+          "timeHorizon",
+        label:
+          "Time Horizon",
+        type:
+          "text",
+      },
+      {
+        key:
+          "valuation",
+        label:
+          "Valuation",
+        type:
+          "text",
+      },
+      {
+        key:
+          "keyRationale",
+        label:
+          "Key Rationale",
+        type:
+          "list",
+      },
+      {
+        key:
+          "riskFactors",
+        label:
+          "Risk Factors",
+        type:
+          "list",
+      },
+      {
+        key:
+          "keyFacts",
+        label:
+          "Other Key Facts",
+        type:
+          "list",
+      },
+    ];
+  }
+
+  if (
+    category ===
+    "regulatory"
+  ) {
+    return [
+      {
+        key:
+          "authority",
+        label:
+          "Authority",
+        type:
+          "text",
+      },
+      {
+        key:
+          "circularOrReferenceNumber",
+        label:
+          "Circular / Reference Number",
+        type:
+          "text",
+      },
+      {
+        key:
+          "subject",
+        label:
+          "Subject",
+        type:
+          "text",
+      },
+      {
+        key:
+          "issueDate",
+        label:
+          "Issue Date",
+        type:
+          "text",
+      },
+      {
+        key:
+          "effectiveDate",
+        label:
+          "Effective Date",
+        type:
+          "text",
+      },
+      {
+        key:
+          "applicability",
+        label:
+          "Applicability",
+        type:
+          "text",
+      },
+      {
+        key:
+          "affectedProductsOrUsers",
+        label:
+          "Affected Products / Users",
+        type:
+          "text",
+      },
+      {
+        key:
+          "requiredActions",
+        label:
+          "Required Actions",
+        type:
+          "list",
+      },
+      {
+        key:
+          "deadlines",
+        label:
+          "Deadlines",
+        type:
+          "list",
+      },
+      {
+        key:
+          "keyFacts",
+        label:
+          "Other Key Facts",
+        type:
+          "list",
+      },
+    ];
+  }
+
+  return [
+    {
+      key:
+        "topicOrProduct",
+      label:
+        "Topic / Product",
+      type:
+        "text",
+    },
+    {
+      key:
+        "dateOrTimeline",
+      label:
+        "Date / Timeline",
+      type:
+        "text",
+    },
+    {
+      key:
+        "audienceOrApplicability",
+      label:
+        "Audience / Applicability",
+      type:
+        "text",
+    },
+    {
+      key:
+        "keyMessage",
+      label:
+        "Key Message",
+      type:
+        "text",
+    },
+    {
+      key:
+        "keyFacts",
+      label:
+        "Key Facts",
+      type:
+        "list",
+    },
+    {
+      key:
+        "requiredActions",
+      label:
+        "Required Actions",
+      type:
+        "list",
+    },
+    {
+      key:
+        "riskOrLimitations",
+      label:
+        "Risks / Limitations",
+      type:
+        "list",
+    },
+  ];
+}
+
+function normalizeDateForInput(
+  value: string
+) {
+  const trimmed =
+    value.trim();
+
+  if (
+    /^\\d{4}-\\d{2}-\\d{2}$/.test(
+      trimmed
+    )
+  ) {
+    return trimmed;
+  }
+
+  return "";
+}
 
 /* =========================================================
    CATEGORY-SPECIFIC FIELDS
