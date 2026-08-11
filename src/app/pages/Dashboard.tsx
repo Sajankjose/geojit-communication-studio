@@ -12,6 +12,8 @@ import {
   Clock,
   CheckCircle,
   MoreVertical,
+  ClipboardCheck,
+  ArrowRight,
 } from "lucide-react";
 
 import { TopNavBar } from "../components/TopNavBar";
@@ -33,6 +35,18 @@ export function Dashboard() {
     user,
     profile,
   } = useAuth();
+
+  const isReviewer =
+    profile?.role === "marketing_reviewer" ||
+    profile?.role === "corpcom_reviewer";
+
+  const canReview =
+    isReviewer ||
+    profile?.role === "admin";
+
+  const canCreate =
+    profile?.role === "creator" ||
+    profile?.role === "admin";
 
   const [
     communications,
@@ -207,30 +221,48 @@ export function Dashboard() {
 
           <div className="mx-auto max-w-3xl text-center">
 
+            <div className="mb-5 flex justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f5f4]">
+                {isReviewer ? (
+                  <ClipboardCheck className="h-6 w-6 text-[#07877B]" />
+                ) : (
+                  <Plus className="h-6 w-6 text-[#07877B]" />
+                )}
+              </div>
+            </div>
+
             <h1 className="mb-4 text-3xl text-gray-900">
-              Create New Communication
+              {isReviewer
+                ? "Review Communications"
+                : "Create New Communication"}
             </h1>
 
             <p className="mb-8 text-lg text-gray-600">
-              Create structured,
-              compliant,
-              Geojit-aligned emailers
-              in minutes.
+              {isReviewer
+                ? "Review communications waiting for your action and move them through the approval workflow."
+                : "Create structured, compliant, Geojit-aligned emailers in minutes."}
             </p>
 
-            <button
-              onClick={
-                handleStartCreating
-              }
-              disabled={creating}
-              className="inline-flex items-center gap-2 rounded-lg bg-[#07877B] px-8 py-4 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Plus className="h-5 w-5" />
-
-              {creating
-                ? "Creating..."
-                : "Start Creating"}
-            </button>
+            {isReviewer ? (
+              <button
+                type="button"
+                onClick={() => navigate("/reviews")}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#07877B] px-8 py-4 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg"
+              >
+                Open Review Queue
+                <ArrowRight className="h-5 w-5" />
+              </button>
+            ) : canCreate ? (
+              <button
+                type="button"
+                onClick={handleStartCreating}
+                disabled={creating}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#07877B] px-8 py-4 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Plus className="h-5 w-5" />
+                {creating ? "Creating..." : "Start Creating"}
+              </button>
+            ) : null}
 
             {error && (
               <div className="mx-auto mt-5 max-w-lg rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -257,6 +289,28 @@ export function Dashboard() {
               >
                 View Recent Communications
               </button>
+
+              {canReview && (
+                <>
+                  {canCreate && (
+                    <span className="text-gray-300">
+                      •
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/reviews"
+                      )
+                    }
+                    className="text-sm font-medium text-[#07877B] transition-colors hover:text-[#06766a]"
+                  >
+                    Review Queue
+                  </button>
+                </>
+              )}
 
               {profile?.role ===
                 "admin" && (
@@ -310,27 +364,41 @@ export function Dashboard() {
           </div>
 
           {/* Pending Approval */}
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
+          <button
+            type="button"
+            onClick={() => {
+              if (canReview) {
+                navigate("/reviews");
+              }
+            }}
+            disabled={!canReview}
+            className={`rounded-xl border bg-white p-6 text-left shadow-sm transition-all ${
+              canReview
+                ? "cursor-pointer border-gray-200 hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
+                : "cursor-default border-gray-200"
+            }`}
+          >
             <div className="mb-2 flex items-center gap-3">
-
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
                 <Clock className="h-5 w-5 text-amber-600" />
               </div>
 
               <h3 className="text-2xl">
-                {loading
-                  ? "—"
-                  : pendingApproval}
+                {loading ? "—" : pendingApproval}
               </h3>
-
             </div>
 
             <p className="text-sm text-muted-foreground">
               Pending Approval
             </p>
 
-          </div>
+            {canReview && (
+              <p className="mt-2 flex items-center gap-1 text-xs font-medium text-[#07877B]">
+                View review queue
+                <ArrowRight className="h-3.5 w-3.5" />
+              </p>
+            )}
+          </button>
 
           {/* Approved */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
