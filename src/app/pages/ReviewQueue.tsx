@@ -54,6 +54,9 @@ export function ReviewQueue() {
   const [comments, setComments] =
     useState("");
 
+  const [decisionError, setDecisionError] =
+    useState("");
+
   const [submitting, setSubmitting] =
     useState(false);
 
@@ -108,9 +111,23 @@ export function ReviewQueue() {
       return;
     }
 
+    if (
+      (decision === "changes_requested" ||
+        decision === "rejected") &&
+      !comments.trim()
+    ) {
+      setDecisionError(
+        decision === "changes_requested"
+          ? "Please explain what needs to be changed before sending this back to the creator."
+          : "Please add a reason before rejecting this communication."
+      );
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError("");
+      setDecisionError("");
 
       await submitReviewerDecision({
         approvalActionId:
@@ -210,6 +227,7 @@ export function ReviewQueue() {
                     setComments(
                       item.comments || ""
                     );
+                    setDecisionError("");
                   }}
                   className={`w-full rounded-xl border bg-white p-5 text-left shadow-sm transition-all ${
                     selected?.approval_action_id ===
@@ -321,14 +339,31 @@ export function ReviewQueue() {
                     <textarea
                       rows={5}
                       value={comments}
-                      onChange={(event) =>
+                      onChange={(event) => {
                         setComments(
                           event.target.value
-                        )
-                      }
+                        );
+                        if (decisionError) {
+                          setDecisionError("");
+                        }
+                      }}
                       placeholder="Add review comments..."
-                      className="w-full rounded-lg border border-gray-300 px-3 py-3 text-sm focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
+                      className={`w-full rounded-lg border px-3 py-3 text-sm focus:outline-none focus:ring-2 ${
+                        decisionError
+                          ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+                          : "border-gray-300 focus:border-[#07877B] focus:ring-[#07877B]/20"
+                      }`}
                     />
+
+                    <p className="mt-2 text-xs text-gray-500">
+                      A comment is required when requesting changes or rejecting a communication.
+                    </p>
+
+                    {decisionError && (
+                      <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
+                        {decisionError}
+                      </div>
+                    )}
                   </div>
 
                   <div className="space-y-3">
@@ -343,10 +378,12 @@ export function ReviewQueue() {
                       className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-3 text-white hover:bg-[#06766a] disabled:opacity-50"
                     >
                       <CheckCircle2 className="h-4 w-4" />
-                      {reviewerRole ===
-                      "corpcom_reviewer"
-                        ? "Final Approve"
-                        : "Approve & Send to CorpCom"}
+                      {submitting
+                        ? "Saving decision..."
+                        : reviewerRole ===
+                            "corpcom_reviewer"
+                          ? "Final Approve"
+                          : "Approve & Send to CorpCom"}
                     </button>
 
                     <button
@@ -357,7 +394,7 @@ export function ReviewQueue() {
                         )
                       }
                       disabled={submitting}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <RotateCcw className="h-4 w-4" />
                       Request Changes
@@ -371,7 +408,7 @@ export function ReviewQueue() {
                         )
                       }
                       disabled={submitting}
-                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700 hover:bg-red-100 disabled:opacity-50"
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <XCircle className="h-4 w-4" />
                       Reject
