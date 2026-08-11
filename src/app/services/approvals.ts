@@ -79,30 +79,33 @@ export async function submitCommunicationForApproval({
   const { data, error } = await supabase
     .from("approval_actions")
     .insert({
-      communication_id:
-        communicationId,
+  communication_id:
+    communicationId,
 
-      action:
-        "submitted",
+  action:
+    "submitted",
 
-      status:
-        "pending",
+  status:
+    "pending",
 
-      stage:
-        "marketing_review",
+  stage:
+    "marketing_review",
 
-      submitted_by:
-        user.id,
+  actor_id:
+    user.id,
 
-      reviewer_id:
-        null,
+  submitted_by:
+    user.id,
 
-      reviewer_role:
-        "marketing_reviewer",
+  reviewer_id:
+    null,
 
-      comments:
-        comments?.trim() || null,
-    })
+  reviewer_role:
+    "marketing_reviewer",
+
+  comments:
+    comments?.trim() || null,
+})
     .select("*")
     .single();
 
