@@ -1,5 +1,5 @@
 import { createBrowserRouter } from "react-router";
-
+import { ApprovalStatus } from "./pages/ApprovalStatus";
 import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
 import { CategorySelection } from "./pages/CategorySelection";
@@ -99,7 +99,14 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
-
+{
+  path: "/approval/status",
+  element: (
+    <ProtectedRoute>
+      <ApprovalStatus />
+    </ProtectedRoute>
+  ),
+},
   {
     path: "/settings/rules",
     element: (
