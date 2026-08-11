@@ -1,8 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
-import {
-  PDFParse,
-  PasswordException,
-} from "pdf-parse";
+import * as PDFParserModule from "pdf2json";
+
+const PDFParser =
+  (PDFParserModule as any).default ||
+  PDFParserModule;
 
 const MAX_FILE_BYTES =
   10 * 1024 * 1024;
