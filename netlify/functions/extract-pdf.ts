@@ -1,8 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import {
-  PDFParse,
-  PasswordException,
-} from "pdf-parse";
+import PDFParser from "pdf2json";
 
 const MAX_FILE_BYTES =
   10 * 1024 * 1024;
@@ -32,6 +29,11 @@ interface RelevanceResult {
   reason: string;
 }
 
+interface ParsedPdf {
+  rawText: string;
+  pageCount: number;
+}
+
 export default async (
   request: Request
 ) => {
@@ -59,10 +61,6 @@ export default async (
     !supabaseUrl ||
     !supabaseKey
   ) {
-    console.error(
-      "Missing Supabase function environment variables."
-    );
-
     return jsonResponse(
       500,
       {
@@ -180,10 +178,8 @@ export default async (
   }
 
   /**
-   * Defense in depth:
-   * our Storage RLS already restricts
-   * access, but the path must also start
-   * with the authenticated user's UUID.
+   * Storage RLS already protects access,
+   * but keep a second server-side check.
    */
   const firstFolder =
     sourcePath.split("/")[0];
@@ -290,25 +286,16 @@ export default async (
     );
   }
 
-  const parser =
-    new PDFParse({
-      data: bytes,
-    });
-
   try {
-    const info =
-      await parser.getInfo({
-        parsePageInfo:
-          false,
-      });
-
-    const pageCount =
-      Number(
-        info.total || 0
+    const parsed =
+      await parsePdfBuffer(
+        Buffer.from(
+          arrayBuffer
+        )
       );
 
     if (
-      pageCount >
+      parsed.pageCount >
       MAX_PAGES
     ) {
       return jsonResponse(
@@ -316,23 +303,18 @@ export default async (
         {
           success: false,
           error:
-            `This PDF has ${pageCount} pages. The current limit is ${MAX_PAGES} pages.`,
+            `This PDF has ${parsed.pageCount} pages. The current limit is ${MAX_PAGES} pages.`,
           code:
             "TOO_MANY_PAGES",
-          pageCount,
+          pageCount:
+            parsed.pageCount,
         }
       );
     }
 
-    const textResult =
-      await parser.getText();
-
-    const rawText =
-      textResult.text || "";
-
     const cleanedText =
       cleanPdfText(
-        rawText
+        parsed.rawText
       );
 
     if (
@@ -347,7 +329,8 @@ export default async (
             "This PDF has very little extractable text. It may be blank, scanned, or image-based.",
           code:
             "INSUFFICIENT_TEXT",
-          pageCount,
+          pageCount:
+            parsed.pageCount,
           extractedCharacters:
             cleanedText.length,
           requiresOcr:
@@ -374,12 +357,14 @@ export default async (
         success: true,
 
         extraction: {
-          pageCount,
+          pageCount:
+            parsed.pageCount,
+
           fileSize:
             pdfBlob.size,
 
           rawCharacters:
-            rawText.length,
+            parsed.rawText.length,
 
           cleanedCharacters:
             cleanedText.length,
@@ -408,26 +393,38 @@ export default async (
       }
     );
   } catch (error) {
+    console.error(
+      "PDF parsing failed:",
+      error
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : String(error);
+
+    const lower =
+      message.toLowerCase();
+
     if (
-      error instanceof
-      PasswordException
+      lower.includes(
+        "encrypt"
+      ) ||
+      lower.includes(
+        "password"
+      )
     ) {
       return jsonResponse(
         422,
         {
           success: false,
           error:
-            "Password-protected PDFs are not supported.",
+            "Password-protected or encrypted PDFs are not supported.",
           code:
             "PASSWORD_PROTECTED",
         }
       );
     }
-
-    console.error(
-      "PDF parsing failed:",
-      error
-    );
 
     return jsonResponse(
       422,
@@ -439,10 +436,106 @@ export default async (
           "PDF_PARSE_FAILED",
       }
     );
-  } finally {
-    await parser.destroy();
   }
 };
+
+function parsePdfBuffer(
+  buffer: Buffer
+): Promise<ParsedPdf> {
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+      /**
+       * The second argument keeps
+       * pdf2json logging quiet.
+       */
+      const pdfParser =
+        new PDFParser(
+          null,
+          1
+        );
+
+      let settled =
+        false;
+
+      const cleanup =
+        () => {
+          pdfParser.removeAllListeners();
+        };
+
+      pdfParser.on(
+        "pdfParser_dataError",
+        (
+          errorData: any
+        ) => {
+          if (settled) {
+            return;
+          }
+
+          settled =
+            true;
+
+          cleanup();
+
+          reject(
+            errorData?.parserError ||
+              new Error(
+                "PDF parsing failed."
+              )
+          );
+        }
+      );
+
+      pdfParser.on(
+        "pdfParser_dataReady",
+        (
+          pdfData: any
+        ) => {
+          if (settled) {
+            return;
+          }
+
+          settled =
+            true;
+
+          try {
+            const rawText =
+              pdfParser.getRawTextContent() ||
+              "";
+
+            const pageCount =
+              Array.isArray(
+                pdfData?.Pages
+              )
+                ? pdfData.Pages.length
+                : 0;
+
+            cleanup();
+
+            resolve({
+              rawText,
+              pageCount,
+            });
+          } catch (error) {
+            cleanup();
+            reject(error);
+          }
+        }
+      );
+
+      try {
+        pdfParser.parseBuffer(
+          buffer
+        );
+      } catch (error) {
+        cleanup();
+        reject(error);
+      }
+    }
+  );
+}
 
 function hasPdfMagicBytes(
   bytes:
@@ -544,10 +637,6 @@ function cleanPdfText(
           "#"
         );
 
-    /**
-     * Repeated short lines are usually
-     * page headers / footers.
-     */
     if (
       line.length <
         100 &&
@@ -824,12 +913,6 @@ function buildRelevantExcerpt(
             0
           );
 
-        /**
-         * Keep opening paragraphs because
-         * titles, recommendation metadata,
-         * circular refs and dates often
-         * appear at the start.
-         */
         const openingBoost =
           index < 8
             ? 2
