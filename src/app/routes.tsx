@@ -1,5 +1,5 @@
+import { ReviewQueue } from "./pages/ReviewQueue";
 import { createBrowserRouter } from "react-router";
-
 import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
 import { CategorySelection } from "./pages/CategorySelection";
@@ -84,4 +84,12 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+  {
+  path: "/reviews",
+  element: (
+    <ProtectedRoute>
+      <ReviewQueue />
+    </ProtectedRoute>
+  ),
+},
 ]);
