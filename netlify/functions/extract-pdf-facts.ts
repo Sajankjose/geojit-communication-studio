@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { z } from "zod";
+import { z } from "zod/v3";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { createClient } from "@supabase/supabase-js";
 
@@ -64,6 +64,9 @@ const GenericFacts = z.object({
 export default async (
   request: Request
 ) => {
+  console.log(
+    "extract-pdf-facts version: zod-v3-compat-2026-08-11"
+  );
   if (request.method !== "POST") {
     return jsonResponse(405, {
       success: false,
