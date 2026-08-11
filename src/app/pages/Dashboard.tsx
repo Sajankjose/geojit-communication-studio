@@ -30,9 +30,9 @@ export function Dashboard() {
   const navigate = useNavigate();
 
   const {
-  user,
-  profile,
-} = useAuth();
+    user,
+    profile,
+  } = useAuth();
 
   const [
     communications,
@@ -55,8 +55,8 @@ export function Dashboard() {
   ] = useState("");
 
   /**
-   * Load real communications from Supabase
-   * when the Dashboard opens.
+   * Load communications from Supabase
+   * when Dashboard opens.
    */
   useEffect(() => {
     async function loadCommunications() {
@@ -69,7 +69,10 @@ export function Dashboard() {
 
         setCommunications(data);
       } catch (err) {
-        console.error(err);
+        console.error(
+          "Unable to load communications:",
+          err
+        );
 
         setError(
           "Unable to load communications."
@@ -85,8 +88,8 @@ export function Dashboard() {
   }, [user]);
 
   /**
-   * Create a REAL draft record in Supabase
-   * before moving to Category Selection.
+   * Create a real draft before
+   * starting the communication journey.
    */
   const handleStartCreating =
     async () => {
@@ -103,18 +106,16 @@ export function Dashboard() {
             user.id
           );
 
-        /**
-         * The communication ID travels to
-         * the creation journey.
-         *
-         * Later we'll move this into our
-         * central CommunicationContext.
-         */
         navigate(
-          `/create/category?communicationId=${communication.id}`
+          `/create/category?communicationId=${encodeURIComponent(
+            communication.id
+          )}`
         );
       } catch (err) {
-        console.error(err);
+        console.error(
+          "Unable to create communication:",
+          err
+        );
 
         setError(
           "Unable to create a new communication. Please try again."
@@ -125,7 +126,7 @@ export function Dashboard() {
     };
 
   /**
-   * Calculate real dashboard numbers.
+   * Dashboard metrics.
    */
   const totalDrafts =
     useMemo(() => {
@@ -168,22 +169,31 @@ export function Dashboard() {
         number
       > = {};
 
-      communications.forEach((item) => {
-        if (!item.category) {
-          return;
-        }
+      communications.forEach(
+        (item) => {
+          if (!item.category) {
+            return;
+          }
 
-        counts[item.category] =
-          (counts[item.category] || 0) +
-          1;
-      });
+          counts[item.category] =
+            (counts[
+              item.category
+            ] || 0) + 1;
+        }
+      );
 
       const sorted =
-        Object.entries(counts).sort(
-          (a, b) => b[1] - a[1]
+        Object.entries(
+          counts
+        ).sort(
+          (a, b) =>
+            b[1] - a[1]
         );
 
-      return sorted[0]?.[0] || null;
+      return (
+        sorted[0]?.[0] ||
+        null
+      );
     }, [communications]);
 
   return (
@@ -194,6 +204,7 @@ export function Dashboard() {
 
         {/* Hero Section */}
         <div className="mb-12 rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-[#e8f5f4]/30 p-10 shadow-sm">
+
           <div className="mx-auto max-w-3xl text-center">
 
             <h1 className="mb-4 text-3xl text-gray-900">
@@ -230,6 +241,7 @@ export function Dashboard() {
             <div className="mt-8 flex items-center justify-center gap-4">
 
               <button
+                type="button"
                 className="text-sm text-gray-600 transition-colors hover:text-[#07877B]"
               >
                 View Drafts
@@ -240,29 +252,32 @@ export function Dashboard() {
               </span>
 
               <button
+                type="button"
                 className="text-sm text-gray-600 transition-colors hover:text-[#07877B]"
               >
                 View Recent Communications
               </button>
 
-             {profile?.role === "admin" && (
-  <>
-    <span className="text-gray-300">
-      •
-    </span>
+              {profile?.role ===
+                "admin" && (
+                <>
+                  <span className="text-gray-300">
+                    •
+                  </span>
 
-    <button
-      onClick={() =>
-        navigate(
-          "/settings/rules"
-        )
-      }
-      className="text-sm text-gray-600 transition-colors hover:text-[#07877B]"
-    >
-      Templates / Rules
-    </button>
-  </>
-)}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/settings/rules"
+                      )
+                    }
+                    className="text-sm text-gray-600 transition-colors hover:text-[#07877B]"
+                  >
+                    Templates / Rules
+                  </button>
+                </>
+              )}
 
             </div>
           </div>
@@ -271,6 +286,7 @@ export function Dashboard() {
         {/* Summary Cards */}
         <div className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
+          {/* Drafts */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
             <div className="mb-2 flex items-center gap-3">
@@ -293,6 +309,7 @@ export function Dashboard() {
 
           </div>
 
+          {/* Pending Approval */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
             <div className="mb-2 flex items-center gap-3">
@@ -315,6 +332,7 @@ export function Dashboard() {
 
           </div>
 
+          {/* Approved */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
             <div className="mb-2 flex items-center gap-3">
@@ -337,6 +355,7 @@ export function Dashboard() {
 
           </div>
 
+          {/* Most Used Category */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
             <div className="mb-2">
@@ -403,66 +422,73 @@ export function Dashboard() {
 
                 {communications
                   .slice(0, 10)
-                  .map((comm) => (
-                    <div
-                      key={comm.id}
-                      className="group flex items-center gap-4 rounded-lg border border-transparent p-4 transition-all hover:border-gray-200 hover:bg-gray-50"
-                    >
-
-                      <button
-                        onClick={() =>
-                          openCommunication(
-                            navigate,
-                            comm
-                          )
+                  .map(
+                    (comm) => (
+                      <div
+                        key={
+                          comm.id
                         }
-                        className="flex-1 text-left"
+                        className="group flex items-center gap-4 rounded-lg border border-transparent p-4 transition-all hover:border-gray-200 hover:bg-gray-50"
                       >
 
-                        <h3 className="mb-2">
-                          {comm.title}
-                        </h3>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openCommunication(
+                              navigate,
+                              comm
+                            )
+                          }
+                          className="flex-1 text-left"
+                        >
 
-                        <div className="flex flex-wrap items-center gap-3">
+                          <h3 className="mb-2">
+                            {comm.title}
+                          </h3>
 
-                          {comm.category && (
-                            <CategoryTag
-                              category={
-                                mapDatabaseCategory(
-                                  comm.category
+                          <div className="flex flex-wrap items-center gap-3">
+
+                            {comm.category && (
+                              <CategoryTag
+                                category={
+                                  mapDatabaseCategory(
+                                    comm.category
+                                  )
+                                }
+                                size="sm"
+                              />
+                            )}
+
+                            <StatusBadge
+                              status={
+                                mapDatabaseStatus(
+                                  comm.status
                                 )
                               }
                               size="sm"
                             />
-                          )}
 
-                          <StatusBadge
-                            status={
-                              mapDatabaseStatus(
-                                comm.status
-                              )
-                            }
-                            size="sm"
-                          />
+                            <span className="text-sm text-muted-foreground">
+                              {formatDate(
+                                comm.updated_at
+                              )}
+                            </span>
 
-                          <span className="text-sm text-muted-foreground">
-                            {formatDate(
-                              comm.updated_at
-                            )}
-                          </span>
+                          </div>
 
-                        </div>
+                        </button>
 
-                      </button>
+                        <button
+                          type="button"
+                          aria-label="Communication options"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 opacity-0 transition-all hover:bg-gray-200 hover:text-gray-600 group-hover:opacity-100"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                        </button>
 
-                      <button
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 opacity-0 transition-all hover:bg-gray-200 hover:text-gray-600 group-hover:opacity-100"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-
-                    </div>
-                  ))}
+                      </div>
+                    )
+                  )}
 
               </div>
             )}
@@ -476,9 +502,8 @@ export function Dashboard() {
 
 
 /**
- * Converts our database category names
- * to the names already understood by
- * the existing CategoryTag component.
+ * Convert database category names
+ * to CategoryTag values.
  */
 function mapDatabaseCategory(
   category: string
@@ -517,34 +542,31 @@ function mapDatabaseCategory(
 
 
 /**
- * Maps database workflow statuses into
- * the StatusBadge values already present
- * in the current UI.
+ * Keep database workflow statuses intact.
+ *
+ * StatusBadge now understands the
+ * real Supabase workflow values.
  */
 function mapDatabaseStatus(
   status: string
-):
-  | "draft"
-  | "generated"
-  | "pending"
-  | "approved" {
-
+) {
   switch (status) {
 
-    case "approved":
-      return "approved";
-
+    case "draft":
+    case "input_ready":
+    case "generating":
     case "variants_ready":
     case "variant_selected":
     case "preview_ready":
-      return "generated";
-
     case "pending_approval":
     case "submitted":
     case "marketing_review":
     case "marketing_approved":
     case "corpcom_review":
-      return "pending";
+    case "changes_requested":
+    case "rejected":
+    case "approved":
+      return status;
 
     default:
       return "draft";
@@ -553,29 +575,76 @@ function mapDatabaseStatus(
 
 
 /**
- * Reopen a communication at the correct workflow stage.
+ * Open communication at its
+ * appropriate workflow stage.
  */
 function openCommunication(
-  navigate: ReturnType<typeof useNavigate>,
+  navigate: ReturnType<
+    typeof useNavigate
+  >,
   comm: CommunicationRecord
 ) {
-  const category =
-    comm.category
-      ? mapDatabaseCategory(comm.category)
-      : null;
 
   const communicationParam =
-    `communicationId=${encodeURIComponent(comm.id)}`;
+    `communicationId=${encodeURIComponent(
+      comm.id
+    )}`;
 
+  /**
+   * Once a communication enters the
+   * approval workflow, the creator
+   * should see Approval Status rather
+   * than returning to submission.
+   */
+  const approvalStatuses = [
+    "pending_approval",
+    "submitted",
+    "marketing_review",
+    "marketing_approved",
+    "corpcom_review",
+    "changes_requested",
+    "rejected",
+    "approved",
+  ];
+
+  if (
+    approvalStatuses.includes(
+      comm.status
+    )
+  ) {
+    navigate(
+      `/approval/status?${communicationParam}`
+    );
+
+    return;
+  }
+
+  const category =
+    comm.category
+      ? mapDatabaseCategory(
+          comm.category
+        )
+      : null;
+
+  /**
+   * No category yet:
+   * return to Category Selection.
+   */
   if (!category) {
-    navigate(`/create/category?${communicationParam}`);
+    navigate(
+      `/create/category?${communicationParam}`
+    );
+
     return;
   }
 
   const categoryParam =
-    `&category=${encodeURIComponent(category)}`;
+    `&category=${encodeURIComponent(
+      category
+    )}`;
 
   switch (comm.status) {
+
     case "generating":
       navigate(
         `/create/generating?${communicationParam}${categoryParam}`
@@ -590,60 +659,40 @@ function openCommunication(
 
     case "variant_selected":
     case "preview_ready":
-      if (comm.selected_variant_id) {
+
+      if (
+        comm.selected_variant_id
+      ) {
         navigate(
           `/create/preview?${communicationParam}&variantId=${encodeURIComponent(
             comm.selected_variant_id
           )}${categoryParam}`
         );
+
         return;
       }
+
       navigate(
         `/create/variants?${communicationParam}${categoryParam}`
       );
+
       return;
 
-    case "pending_approval":
-    case "submitted":
-    case "marketing_review":
-    case "marketing_approved":
-    case "corpcom_review":
-      if (comm.selected_variant_id) {
-        navigate(
-          `/create/submit?${communicationParam}&variantId=${encodeURIComponent(
-            comm.selected_variant_id
-          )}${categoryParam}`
-        );
-        return;
-      }
-      navigate(
-        `/create/variants?${communicationParam}${categoryParam}`
-      );
-      return;
-
-    case "approved":
-      if (comm.selected_variant_id) {
-        navigate(
-          `/create/preview?${communicationParam}&variantId=${encodeURIComponent(
-            comm.selected_variant_id
-          )}${categoryParam}`
-        );
-        return;
-      }
-      break;
-
+    case "input_ready":
+    case "draft":
     default:
-      break;
-  }
 
-  navigate(
-    `/create/form?${communicationParam}${categoryParam}`
-  );
+      navigate(
+        `/create/form?${communicationParam}${categoryParam}`
+      );
+
+      return;
+  }
 }
 
 
 /**
- * Simple readable date for the Dashboard.
+ * Dashboard-friendly date.
  */
 function formatDate(
   dateValue: string
