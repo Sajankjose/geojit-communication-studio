@@ -138,6 +138,7 @@ export function Dashboard() {
   const pendingApproval =
     useMemo(() => {
       const pendingStatuses = [
+        "pending_approval",
         "submitted",
         "marketing_review",
         "marketing_approved",
@@ -409,22 +410,12 @@ export function Dashboard() {
                     >
 
                       <button
-                        onClick={() => {
-                          if (comm.category) {
-                            const uiCategory =
-                              mapDatabaseCategory(
-                                comm.category
-                              );
-
-                            navigate(
-                              `/create/form?communicationId=${comm.id}&category=${uiCategory}`
-                            );
-                          } else {
-                            navigate(
-                              `/create/category?communicationId=${comm.id}`
-                            );
-                          }
-                        }}
+                        onClick={() =>
+                          openCommunication(
+                            navigate,
+                            comm
+                          )
+                        }
                         className="flex-1 text-left"
                       >
 
@@ -548,6 +539,7 @@ function mapDatabaseStatus(
     case "preview_ready":
       return "generated";
 
+    case "pending_approval":
     case "submitted":
     case "marketing_review":
     case "marketing_approved":
@@ -557,6 +549,96 @@ function mapDatabaseStatus(
     default:
       return "draft";
   }
+}
+
+
+/**
+ * Reopen a communication at the correct workflow stage.
+ */
+function openCommunication(
+  navigate: ReturnType<typeof useNavigate>,
+  comm: CommunicationRecord
+) {
+  const category =
+    comm.category
+      ? mapDatabaseCategory(comm.category)
+      : null;
+
+  const communicationParam =
+    `communicationId=${encodeURIComponent(comm.id)}`;
+
+  if (!category) {
+    navigate(`/create/category?${communicationParam}`);
+    return;
+  }
+
+  const categoryParam =
+    `&category=${encodeURIComponent(category)}`;
+
+  switch (comm.status) {
+    case "generating":
+      navigate(
+        `/create/generating?${communicationParam}${categoryParam}`
+      );
+      return;
+
+    case "variants_ready":
+      navigate(
+        `/create/variants?${communicationParam}${categoryParam}`
+      );
+      return;
+
+    case "variant_selected":
+    case "preview_ready":
+      if (comm.selected_variant_id) {
+        navigate(
+          `/create/preview?${communicationParam}&variantId=${encodeURIComponent(
+            comm.selected_variant_id
+          )}${categoryParam}`
+        );
+        return;
+      }
+      navigate(
+        `/create/variants?${communicationParam}${categoryParam}`
+      );
+      return;
+
+    case "pending_approval":
+    case "submitted":
+    case "marketing_review":
+    case "marketing_approved":
+    case "corpcom_review":
+      if (comm.selected_variant_id) {
+        navigate(
+          `/create/submit?${communicationParam}&variantId=${encodeURIComponent(
+            comm.selected_variant_id
+          )}${categoryParam}`
+        );
+        return;
+      }
+      navigate(
+        `/create/variants?${communicationParam}${categoryParam}`
+      );
+      return;
+
+    case "approved":
+      if (comm.selected_variant_id) {
+        navigate(
+          `/create/preview?${communicationParam}&variantId=${encodeURIComponent(
+            comm.selected_variant_id
+          )}${categoryParam}`
+        );
+        return;
+      }
+      break;
+
+    default:
+      break;
+  }
+
+  navigate(
+    `/create/form?${communicationParam}${categoryParam}`
+  );
 }
 
 
