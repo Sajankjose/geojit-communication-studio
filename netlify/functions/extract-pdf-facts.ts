@@ -1,6 +1,4 @@
 import OpenAI from "openai";
-import { z } from "zod/v3";
-import { zodResponseFormat } from "openai/helpers/zod";
 import { createClient } from "@supabase/supabase-js";
 
 const MAX_SOURCE_CHARS = 8000;
@@ -19,53 +17,218 @@ interface RequestBody {
   relevantText?: string;
 }
 
-const ResearchFacts = z.object({
-  documentType: z.string().nullable(),
-  securityOrCompany: z.string().nullable(),
-  reportDate: z.string().nullable(),
-  recommendation: z.string().nullable(),
-  currentPrice: z.string().nullable(),
-  targetPrice: z.string().nullable(),
-  timeHorizon: z.string().nullable(),
-  valuation: z.string().nullable(),
-  keyRationale: z.array(z.string()).max(5),
-  riskFactors: z.array(z.string()).max(5),
-  keyFacts: z.array(z.string()).max(6),
-  sourceWarnings: z.array(z.string()).max(4),
-});
+const ResearchSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    documentType: {
+      type: ["string", "null"],
+    },
+    securityOrCompany: {
+      type: ["string", "null"],
+    },
+    reportDate: {
+      type: ["string", "null"],
+    },
+    recommendation: {
+      type: ["string", "null"],
+    },
+    currentPrice: {
+      type: ["string", "null"],
+    },
+    targetPrice: {
+      type: ["string", "null"],
+    },
+    timeHorizon: {
+      type: ["string", "null"],
+    },
+    valuation: {
+      type: ["string", "null"],
+    },
+    keyRationale: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      maxItems: 5,
+    },
+    riskFactors: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      maxItems: 5,
+    },
+    keyFacts: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      maxItems: 6,
+    },
+    sourceWarnings: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      maxItems: 4,
+    },
+  },
+  required: [
+    "documentType",
+    "securityOrCompany",
+    "reportDate",
+    "recommendation",
+    "currentPrice",
+    "targetPrice",
+    "timeHorizon",
+    "valuation",
+    "keyRationale",
+    "riskFactors",
+    "keyFacts",
+    "sourceWarnings",
+  ],
+} as const;
 
-const RegulatoryFacts = z.object({
-  documentType: z.string().nullable(),
-  authority: z.string().nullable(),
-  circularOrReferenceNumber: z.string().nullable(),
-  subject: z.string().nullable(),
-  issueDate: z.string().nullable(),
-  effectiveDate: z.string().nullable(),
-  applicability: z.string().nullable(),
-  affectedProductsOrUsers: z.string().nullable(),
-  requiredActions: z.array(z.string()).max(6),
-  deadlines: z.array(z.string()).max(4),
-  keyFacts: z.array(z.string()).max(6),
-  sourceWarnings: z.array(z.string()).max(4),
-});
+const RegulatorySchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    documentType: {
+      type: ["string", "null"],
+    },
+    authority: {
+      type: ["string", "null"],
+    },
+    circularOrReferenceNumber: {
+      type: ["string", "null"],
+    },
+    subject: {
+      type: ["string", "null"],
+    },
+    issueDate: {
+      type: ["string", "null"],
+    },
+    effectiveDate: {
+      type: ["string", "null"],
+    },
+    applicability: {
+      type: ["string", "null"],
+    },
+    affectedProductsOrUsers: {
+      type: ["string", "null"],
+    },
+    requiredActions: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      maxItems: 6,
+    },
+    deadlines: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      maxItems: 4,
+    },
+    keyFacts: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      maxItems: 6,
+    },
+    sourceWarnings: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      maxItems: 4,
+    },
+  },
+  required: [
+    "documentType",
+    "authority",
+    "circularOrReferenceNumber",
+    "subject",
+    "issueDate",
+    "effectiveDate",
+    "applicability",
+    "affectedProductsOrUsers",
+    "requiredActions",
+    "deadlines",
+    "keyFacts",
+    "sourceWarnings",
+  ],
+} as const;
 
-const GenericFacts = z.object({
-  documentType: z.string().nullable(),
-  topicOrProduct: z.string().nullable(),
-  dateOrTimeline: z.string().nullable(),
-  audienceOrApplicability: z.string().nullable(),
-  keyMessage: z.string().nullable(),
-  keyFacts: z.array(z.string()).max(6),
-  requiredActions: z.array(z.string()).max(5),
-  riskOrLimitations: z.array(z.string()).max(4),
-  sourceWarnings: z.array(z.string()).max(4),
-});
+const GenericSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    documentType: {
+      type: ["string", "null"],
+    },
+    topicOrProduct: {
+      type: ["string", "null"],
+    },
+    dateOrTimeline: {
+      type: ["string", "null"],
+    },
+    audienceOrApplicability: {
+      type: ["string", "null"],
+    },
+    keyMessage: {
+      type: ["string", "null"],
+    },
+    keyFacts: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      maxItems: 6,
+    },
+    requiredActions: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      maxItems: 5,
+    },
+    riskOrLimitations: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      maxItems: 4,
+    },
+    sourceWarnings: {
+      type: "array",
+      items: {
+        type: "string",
+      },
+      maxItems: 4,
+    },
+  },
+  required: [
+    "documentType",
+    "topicOrProduct",
+    "dateOrTimeline",
+    "audienceOrApplicability",
+    "keyMessage",
+    "keyFacts",
+    "requiredActions",
+    "riskOrLimitations",
+    "sourceWarnings",
+  ],
+} as const;
 
 export default async (
   request: Request
 ) => {
   console.log(
-    "extract-pdf-facts version: zod-v3-compat-2026-08-11"
+    "extract-pdf-facts version: manual-json-schema-2026-08-11"
   );
   if (request.method !== "POST") {
     return jsonResponse(405, {
@@ -264,11 +427,11 @@ export default async (
 
   const schema =
     category === "research"
-      ? ResearchFacts
+      ? ResearchSchema
       : category ===
           "regulatory"
-        ? RegulatoryFacts
-        : GenericFacts;
+        ? RegulatorySchema
+        : GenericSchema;
 
   const schemaName =
     category === "research"
@@ -285,11 +448,7 @@ export default async (
 
   try {
     const completion =
-      await openai.chat.completions.parse({
-        /**
-         * Focused extraction task:
-         * use a small, low-cost model.
-         */
+      await openai.chat.completions.create({
         model:
           "gpt-4.1-nano",
 
@@ -308,11 +467,20 @@ export default async (
           },
         ],
 
-        response_format:
-          zodResponseFormat(
+        response_format: {
+          type:
+            "json_schema",
+
+          json_schema: {
+            name:
+              schemaName,
+
+            strict:
+              true,
+
             schema,
-            schemaName
-          ),
+          },
+        },
       });
 
     const message =
@@ -329,14 +497,33 @@ export default async (
       });
     }
 
-    const facts =
-      message?.parsed;
+    const content =
+      message?.content;
 
-    if (!facts) {
+    if (!content) {
       return jsonResponse(502, {
         success: false,
         error:
           "Fact extraction returned no structured data.",
+      });
+    }
+
+    let facts:
+      Record<string, unknown>;
+
+    try {
+      facts =
+        JSON.parse(content);
+    } catch (parseError) {
+      console.error(
+        "Unable to parse structured fact JSON:",
+        parseError
+      );
+
+      return jsonResponse(502, {
+        success: false,
+        error:
+          "Fact extraction returned invalid structured data.",
       });
     }
 
