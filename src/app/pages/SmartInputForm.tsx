@@ -16,6 +16,8 @@ import {
   Trash2,
   RefreshCw,
   AlertCircle,
+  ShieldCheck,
+  ScanSearch,
 } from "lucide-react";
 
 import { TopNavBar } from "../components/TopNavBar";
@@ -34,6 +36,11 @@ import {
   uploadCommunicationPdf,
   validatePdfFile,
 } from "../services/sourceUpload";
+
+import {
+  PdfExtractionResult,
+  extractCommunicationPdf,
+} from "../services/pdfExtraction";
 
 type Category =
   | "research"
@@ -123,6 +130,26 @@ export function SmartInputForm() {
   const [uploadError, setUploadError] =
     useState("");
 
+  const [
+    processingPdf,
+    setProcessingPdf,
+  ] =
+    useState(false);
+
+  const [
+    extractionResult,
+    setExtractionResult,
+  ] =
+    useState<PdfExtractionResult | null>(
+      null
+    );
+
+  const [
+    extractionError,
+    setExtractionError,
+  ] =
+    useState("");
+
   const [dragActive, setDragActive] =
     useState(false);
 
@@ -172,6 +199,51 @@ export function SmartInputForm() {
           );
         } else {
           setSourceFile(null);
+        }
+
+        const savedExtraction =
+          savedInput.sourceExtraction;
+
+        if (
+          savedExtraction &&
+          typeof savedExtraction === "object" &&
+          !Array.isArray(savedExtraction)
+        ) {
+          setExtractionResult({
+            success: true,
+            extraction: {
+              pageCount:
+                Number(savedExtraction.pageCount || 0),
+              fileSize:
+                Number(savedExtraction.fileSize || 0),
+              rawCharacters:
+                Number(savedExtraction.rawCharacters || 0),
+              cleanedCharacters:
+                Number(savedExtraction.cleanedCharacters || 0),
+              compactText: "",
+              relevantText: "",
+              truncated:
+                Boolean(savedExtraction.truncated),
+              requiresOcr:
+                Boolean(savedExtraction.requiresOcr),
+            },
+            relevance: {
+              relevant:
+                Boolean(savedExtraction.relevant),
+              score:
+                Number(savedExtraction.relevanceScore || 0),
+              matchedSignals:
+                Array.isArray(savedExtraction.matchedSignals)
+                  ? savedExtraction.matchedSignals
+                  : [],
+              reason:
+                typeof savedExtraction.reason === "string"
+                  ? savedExtraction.reason
+                  : "",
+            },
+          });
+        } else {
+          setExtractionResult(null);
         }
 
         if (savedCategory) {
@@ -474,6 +546,119 @@ export function SmartInputForm() {
     );
   }
 
+  async function persistExtractionResult(
+    result: PdfExtractionResult | null
+  ) {
+    if (!communicationId) {
+      throw new Error(
+        "Communication ID is missing."
+      );
+    }
+
+    await updateCommunication(
+      communicationId,
+      {
+        input_data: {
+          ...buildInputData(),
+          sourceExtraction:
+            result
+              ? {
+                  pageCount:
+                    result.extraction.pageCount,
+                  fileSize:
+                    result.extraction.fileSize,
+                  rawCharacters:
+                    result.extraction.rawCharacters,
+                  cleanedCharacters:
+                    result.extraction.cleanedCharacters,
+                  truncated:
+                    result.extraction.truncated,
+                  requiresOcr:
+                    result.extraction.requiresOcr,
+                  relevant:
+                    result.relevance.relevant,
+                  relevanceScore:
+                    result.relevance.score,
+                  matchedSignals:
+                    result.relevance.matchedSignals,
+                  reason:
+                    result.relevance.reason,
+                  processedAt:
+                    new Date().toISOString(),
+                }
+              : null,
+        },
+      }
+    );
+  }
+
+  async function handleProcessPdf() {
+    if (
+      !sourceFile ||
+      processingPdf
+    ) {
+      return;
+    }
+
+    try {
+      setProcessingPdf(true);
+      setExtractionError("");
+      setError("");
+      setSavedMessage("");
+
+      const result =
+        await extractCommunicationPdf({
+          sourcePath:
+            sourceFile.path,
+          category,
+        });
+
+      setExtractionResult(
+        result
+      );
+
+      await persistExtractionResult(
+        result
+      );
+
+      setSavedMessage(
+        result.relevance.relevant
+          ? "PDF processed successfully."
+          : "PDF processed, but relevance needs review."
+      );
+    } catch (err) {
+      console.error(
+        "PDF processing failed:",
+        err
+      );
+
+      setExtractionResult(
+        null
+      );
+
+      try {
+        await persistExtractionResult(
+          null
+        );
+      } catch (
+        persistError
+      ) {
+        console.error(
+          "Unable to clear extraction metadata:",
+          persistError
+        );
+      }
+
+      setExtractionError(
+        err instanceof Error
+          ? err.message
+          : "Unable to process PDF."
+      );
+    } finally {
+      setProcessingPdf(false);
+    }
+  }
+
   async function handlePdfFile(file: File) {
     if (!communicationId || uploadingFile) {
       return;
@@ -575,6 +760,8 @@ export function SmartInputForm() {
       await persistSourceFile(null);
 
       setSourceFile(null);
+      setExtractionResult(null);
+      setExtractionError("");
       setSavedMessage("PDF removed.");
     } catch (err) {
       console.error(
@@ -717,6 +904,29 @@ export function SmartInputForm() {
 
   async function handleGenerate() {
     if (generating) {
+      return;
+    }
+
+    if (
+      inputMethod === "upload" &&
+      sourceFile &&
+      !extractionResult
+    ) {
+      setError(
+        "Please process the uploaded PDF before generating communication options."
+      );
+      return;
+    }
+
+    if (
+      inputMethod === "upload" &&
+      sourceFile &&
+      extractionResult &&
+      !extractionResult.relevance.relevant
+    ) {
+      setError(
+        "This PDF may not be relevant to the selected category. Please review the document or choose another PDF before generating."
+      );
       return;
     }
 
@@ -1265,8 +1475,150 @@ export function SmartInputForm() {
                         </div>
                       </div>
 
-                      <div className="mt-4 rounded-lg border border-green-100 bg-white/70 px-4 py-3 text-xs leading-5 text-gray-600">
-                        The PDF is stored privately. Content extraction has not started yet.
+                      <div className="mt-4 border-t border-green-100 pt-4">
+                        {!extractionResult ? (
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-gray-800">
+                                Ready to process
+                              </p>
+                              <p className="mt-1 text-xs text-gray-500">
+                                Extract text and check relevance before using this PDF for AI generation.
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={handleProcessPdf}
+                              disabled={
+                                processingPdf ||
+                                uploadingFile ||
+                                removingFile
+                              }
+                              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {processingPdf ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <ScanSearch className="h-4 w-4" />
+                              )}
+
+                              {processingPdf
+                                ? "Processing…"
+                                : "Process PDF"}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div className="flex items-start gap-3">
+                                <div
+                                  className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
+                                    extractionResult.relevance.relevant
+                                      ? "bg-green-100"
+                                      : "bg-amber-100"
+                                  }`}
+                                >
+                                  {extractionResult.relevance.relevant ? (
+                                    <ShieldCheck className="h-5 w-5 text-green-600" />
+                                  ) : (
+                                    <AlertCircle className="h-5 w-5 text-amber-600" />
+                                  )}
+                                </div>
+
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {extractionResult.relevance.relevant
+                                      ? "Document looks relevant"
+                                      : "Relevance needs review"}
+                                  </p>
+
+                                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                                    {extractionResult.relevance.reason}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <span
+                                className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-medium ${
+                                  extractionResult.relevance.relevant
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-amber-100 text-amber-700"
+                                }`}
+                              >
+                                {extractionResult.relevance.score}% relevance
+                              </span>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-3">
+                              <div className="rounded-lg bg-white px-4 py-3">
+                                <p className="text-xs text-gray-500">
+                                  Pages
+                                </p>
+                                <p className="mt-1 text-sm font-medium text-gray-900">
+                                  {extractionResult.extraction.pageCount}
+                                </p>
+                              </div>
+
+                              <div className="rounded-lg bg-white px-4 py-3">
+                                <p className="text-xs text-gray-500">
+                                  Extracted text
+                                </p>
+                                <p className="mt-1 text-sm font-medium text-gray-900">
+                                  {extractionResult.extraction.cleanedCharacters.toLocaleString()} chars
+                                </p>
+                              </div>
+
+                              <div className="rounded-lg bg-white px-4 py-3">
+                                <p className="text-xs text-gray-500">
+                                  OCR required
+                                </p>
+                                <p className="mt-1 text-sm font-medium text-gray-900">
+                                  {extractionResult.extraction.requiresOcr
+                                    ? "Yes"
+                                    : "No"}
+                                </p>
+                              </div>
+                            </div>
+
+                            {extractionResult.relevance.matchedSignals.length > 0 && (
+                              <div>
+                                <p className="mb-2 text-xs font-medium text-gray-600">
+                                  Matched signals
+                                </p>
+
+                                <div className="flex flex-wrap gap-2">
+                                  {extractionResult.relevance.matchedSignals.map(
+                                    (signal) => (
+                                      <span
+                                        key={signal}
+                                        className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600"
+                                      >
+                                        {signal}
+                                      </span>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={handleProcessPdf}
+                              disabled={processingPdf}
+                              className="inline-flex items-center gap-2 text-xs font-medium text-[#07877B] hover:text-[#06766a] disabled:opacity-50"
+                            >
+                              <RefreshCw
+                                className={`h-3.5 w-3.5 ${
+                                  processingPdf
+                                    ? "animate-spin"
+                                    : ""
+                                }`}
+                              />
+                              Process again
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -1275,6 +1627,13 @@ export function SmartInputForm() {
                     <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                       <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
                       <span>{uploadError}</span>
+                    </div>
+                  )}
+
+                  {extractionError && (
+                    <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                      <span>{extractionError}</span>
                     </div>
                   )}
 
