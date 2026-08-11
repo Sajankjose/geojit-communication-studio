@@ -1,5 +1,5 @@
 import { generateCommunication } from "../services/aiGeneration";
-import { useEffect, useState } from "react";
+import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
 import {
   useNavigate,
   useSearchParams,
@@ -11,6 +11,11 @@ import {
   FileText,
   Upload,
   Link as LinkIcon,
+  CheckCircle2,
+  FileUp,
+  Trash2,
+  RefreshCw,
+  AlertCircle,
 } from "lucide-react";
 
 import { TopNavBar } from "../components/TopNavBar";
@@ -21,6 +26,14 @@ import {
   getCommunicationById,
   updateCommunication,
 } from "../services/communications";
+
+import {
+  SourceFileMetadata,
+  formatFileSize,
+  removeCommunicationPdf,
+  uploadCommunicationPdf,
+  validatePdfFile,
+} from "../services/sourceUpload";
 
 type Category =
   | "research"
@@ -98,6 +111,24 @@ export function SmartInputForm() {
       details: {},
     });
 
+  const [sourceFile, setSourceFile] =
+    useState<SourceFileMetadata | null>(null);
+
+  const [uploadingFile, setUploadingFile] =
+    useState(false);
+
+  const [removingFile, setRemovingFile] =
+    useState(false);
+
+  const [uploadError, setUploadError] =
+    useState("");
+
+  const [dragActive, setDragActive] =
+    useState(false);
+
+  const fileInputRef =
+    useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
     async function loadDraft() {
       if (!communicationId) {
@@ -127,6 +158,21 @@ export function SmartInputForm() {
           mapDatabaseCategoryToUi(
             communication.category
           );
+
+        const savedSourceFile =
+          savedInput.sourceFile;
+
+        if (
+          savedSourceFile &&
+          typeof savedSourceFile === "object" &&
+          !Array.isArray(savedSourceFile)
+        ) {
+          setSourceFile(
+            savedSourceFile as SourceFileMetadata
+          );
+        } else {
+          setSourceFile(null);
+        }
 
         if (savedCategory) {
           setCategory(savedCategory);
@@ -394,6 +440,195 @@ export function SmartInputForm() {
     }
   }
 
+  function buildInputData(
+    nextSourceFile: SourceFileMetadata | null = sourceFile
+  ) {
+    return {
+      inputMethod,
+      title: formData.title,
+      audience: formData.audience,
+      topic: formData.topic,
+      keyMessage: formData.keyMessage,
+      supportingPoints: formData.supportingPoints,
+      ctaText: formData.ctaText,
+      ctaUrl: formData.ctaUrl,
+      categorySpecificDetails: formData.details,
+      sourceFile: nextSourceFile,
+    };
+  }
+
+  async function persistSourceFile(
+    nextSourceFile: SourceFileMetadata | null
+  ) {
+    if (!communicationId) {
+      throw new Error("Communication ID is missing.");
+    }
+
+    await updateCommunication(
+      communicationId,
+      {
+        input_data: buildInputData(
+          nextSourceFile
+        ),
+      }
+    );
+  }
+
+  async function handlePdfFile(file: File) {
+    if (!communicationId || uploadingFile) {
+      return;
+    }
+
+    const validationError = validatePdfFile(file);
+
+    if (validationError) {
+      setUploadError(validationError);
+      return;
+    }
+
+    try {
+      setUploadingFile(true);
+      setUploadError("");
+      setError("");
+      setSavedMessage("");
+
+      const previousFile = sourceFile;
+
+      const uploaded =
+        await uploadCommunicationPdf({
+          communicationId,
+          file,
+        });
+
+      try {
+        await persistSourceFile(uploaded);
+      } catch (metadataError) {
+        try {
+          await removeCommunicationPdf(
+            uploaded.path
+          );
+        } catch (cleanupError) {
+          console.error(
+            "Unable to clean up uploaded PDF:",
+            cleanupError
+          );
+        }
+
+        throw metadataError;
+      }
+
+      setSourceFile(uploaded);
+      setHasUnsavedChanges(false);
+      setSavedMessage(
+        "PDF uploaded successfully."
+      );
+
+      if (
+        previousFile?.path &&
+        previousFile.path !== uploaded.path
+      ) {
+        try {
+          await removeCommunicationPdf(
+            previousFile.path
+          );
+        } catch (removeOldError) {
+          console.warn(
+            "New PDF saved, but previous PDF could not be removed:",
+            removeOldError
+          );
+        }
+      }
+    } catch (err) {
+      console.error(
+        "PDF upload failed:",
+        err
+      );
+
+      setUploadError(
+        err instanceof Error
+          ? err.message
+          : "Unable to upload PDF."
+      );
+    } finally {
+      setUploadingFile(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  }
+
+  async function handleRemovePdf() {
+    if (!sourceFile || removingFile) {
+      return;
+    }
+
+    try {
+      setRemovingFile(true);
+      setUploadError("");
+      setError("");
+
+      await removeCommunicationPdf(
+        sourceFile.path
+      );
+
+      await persistSourceFile(null);
+
+      setSourceFile(null);
+      setSavedMessage("PDF removed.");
+    } catch (err) {
+      console.error(
+        "Unable to remove PDF:",
+        err
+      );
+
+      setUploadError(
+        err instanceof Error
+          ? err.message
+          : "Unable to remove PDF."
+      );
+    } finally {
+      setRemovingFile(false);
+    }
+  }
+
+  function handleFileInputChange(
+    event: ChangeEvent<HTMLInputElement>
+  ) {
+    const file = event.target.files?.[0];
+    if (file) handlePdfFile(file);
+  }
+
+  function handleDragOver(
+    event: DragEvent<HTMLDivElement>
+  ) {
+    event.preventDefault();
+    if (!uploadingFile) {
+      setDragActive(true);
+    }
+  }
+
+  function handleDragLeave(
+    event: DragEvent<HTMLDivElement>
+  ) {
+    event.preventDefault();
+    setDragActive(false);
+  }
+
+  function handleDrop(
+    event: DragEvent<HTMLDivElement>
+  ) {
+    event.preventDefault();
+    setDragActive(false);
+
+    const file =
+      event.dataTransfer.files?.[0];
+
+    if (file) {
+      handlePdfFile(file);
+    }
+  }
+
   async function saveToSupabase(
     nextStatus = "draft"
   ) {
@@ -406,26 +641,8 @@ export function SmartInputForm() {
     const databaseCategory =
       mapCategoryToDatabase(category);
 
-    const inputData = {
-      inputMethod,
-
-      title: formData.title,
-      audience: formData.audience,
-
-      topic: formData.topic,
-
-      keyMessage:
-        formData.keyMessage,
-
-      supportingPoints:
-        formData.supportingPoints,
-
-      ctaText: formData.ctaText,
-      ctaUrl: formData.ctaUrl,
-
-      categorySpecificDetails:
-        formData.details,
-    };
+    const inputData =
+      buildInputData();
 
     return updateCommunication(
       communicationId,
@@ -934,20 +1151,132 @@ export function SmartInputForm() {
               {inputMethod ===
                 "upload" && (
 
-                <div className="rounded-lg border-2 border-dashed border-gray-300 p-8 text-center">
+                <div className="space-y-4">
 
-                  <Upload className="mx-auto mb-3 h-7 w-7 text-gray-400" />
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                  />
 
-                  <p className="font-medium text-gray-800">
-                    Upload source document
-                  </p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    PDF support is the next implementation step. The document will be processed
-                    into verified source facts before generation.
-                  </p>
-                  <p className="mt-3 text-xs text-gray-400">
-                    Coming next: PDF upload + extraction
-                  </p>
+                  {!sourceFile ? (
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      className={`rounded-xl border-2 border-dashed p-8 text-center transition-all ${
+                        dragActive
+                          ? "border-[#07877B] bg-[#e8f5f4]/50"
+                          : "border-gray-300 bg-gray-50/40 hover:border-[#07877B]/60"
+                      }`}
+                    >
+                      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
+                        {uploadingFile ? (
+                          <RefreshCw className="h-6 w-6 animate-spin text-[#07877B]" />
+                        ) : (
+                          <FileUp className="h-6 w-6 text-[#07877B]" />
+                        )}
+                      </div>
+
+                      <p className="font-medium text-gray-900">
+                        {uploadingFile
+                          ? "Uploading PDF…"
+                          : "Drop your PDF here"}
+                      </p>
+
+                      <p className="mt-1 text-sm text-gray-500">
+                        or choose a file from your computer
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          fileInputRef.current?.click()
+                        }
+                        disabled={uploadingFile}
+                        className="mt-5 rounded-lg border border-[#07877B] bg-white px-5 py-2.5 text-sm font-medium text-[#07877B] transition-colors hover:bg-[#e8f5f4]/40 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Choose PDF
+                      </button>
+
+                      <div className="mx-auto mt-5 flex max-w-md flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-gray-400">
+                        <span>PDF only</span>
+                        <span>•</span>
+                        <span>Maximum 10 MB</span>
+                        <span>•</span>
+                        <span>1 file</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-green-200 bg-green-50/40 p-5">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-green-100">
+                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                          </div>
+
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-gray-900">
+                              {sourceFile.name}
+                            </p>
+
+                            <p className="mt-1 text-xs text-gray-500">
+                              {formatFileSize(
+                                sourceFile.size
+                              )}
+                              {" · "}
+                              Uploaded securely
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-shrink-0 gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              fileInputRef.current?.click()
+                            }
+                            disabled={
+                              uploadingFile ||
+                              removingFile
+                            }
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                            Replace
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={handleRemovePdf}
+                            disabled={
+                              uploadingFile ||
+                              removingFile
+                            }
+                            className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            {removingFile
+                              ? "Removing…"
+                              : "Remove"}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 rounded-lg border border-green-100 bg-white/70 px-4 py-3 text-xs leading-5 text-gray-600">
+                        The PDF is stored privately. Content extraction has not started yet.
+                      </div>
+                    </div>
+                  )}
+
+                  {uploadError && (
+                    <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                      <span>{uploadError}</span>
+                    </div>
+                  )}
 
                 </div>
 
