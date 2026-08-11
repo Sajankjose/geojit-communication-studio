@@ -114,6 +114,8 @@ export function FullPreview() {
   const communicationId = searchParams.get("communicationId");
   const variantId = searchParams.get("variantId");
   const urlCategory = searchParams.get("category") as Category | null;
+  const isReviewMode =
+    searchParams.get("mode") === "review";
 
   const [category, setCategory] = useState<Category>(
     urlCategory || "research"
@@ -287,6 +289,10 @@ export function FullPreview() {
   }
 
   async function handleSave() {
+    if (isReviewMode) {
+      return;
+    }
+
     try {
       setSaving(true);
       setError("");
@@ -419,7 +425,13 @@ export function FullPreview() {
   }
 
   async function handleSubmit() {
-    if (!communicationId || !variantId) return;
+    if (
+      isReviewMode ||
+      !communicationId ||
+      !variantId
+    ) {
+      return;
+    }
 
     try {
       setSaving(true);
@@ -448,6 +460,11 @@ export function FullPreview() {
   }
 
   function handleBack() {
+    if (isReviewMode) {
+      navigate("/reviews");
+      return;
+    }
+
     if (!communicationId) {
       navigate("/");
       return;
@@ -497,7 +514,11 @@ export function FullPreview() {
         status="preview-ready"
         currentStep={5}
         totalSteps={5}
-        onSaveDraft={handleSave}
+        onSaveDraft={
+          isReviewMode
+            ? undefined
+            : handleSave
+        }
       />
 
       <ProgressStepper currentStep={5} />
@@ -511,9 +532,25 @@ export function FullPreview() {
               <StatusBadge status="preview-ready" />
             </div>
 
-            <p className="text-sm text-muted-foreground">
-              Review the selected AI-generated communication before submission.
-            </p>
+            {isReviewMode ? (
+              <div className="mt-3 rounded-lg border border-[#b3d9d5] bg-[#f3fbfa] px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-[#07877B]" />
+                  <span className="text-sm font-medium text-[#07877B]">
+                    Review Mode
+                  </span>
+                </div>
+
+                <p className="mt-1 text-sm text-gray-600">
+                  You are viewing the communication submitted for approval.
+                  Return to the Review Queue to record your decision.
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Review the selected AI-generated communication before submission.
+              </p>
+            )}
 
             {variant && (
               <p className="mt-1 text-xs text-gray-500">
@@ -627,6 +664,7 @@ export function FullPreview() {
               </div>
             </div>
 
+            {!isReviewMode && (
             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
               <div className="mb-5 flex items-center justify-between">
                 <h2>Editable Fields</h2>
@@ -688,6 +726,8 @@ export function FullPreview() {
                   {saving ? "Saving..." : "Save Preview Changes"}
                 </button>
               </div>
+            )}
+
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-6">
@@ -738,22 +778,35 @@ export function FullPreview() {
                 Download HTML
               </button>
 
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={saving}
-                className="w-full rounded-lg bg-[#07877B] px-4 py-3 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {saving ? "Saving..." : "Submit for Approval"}
-              </button>
+              {isReviewMode ? (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-3 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Review Queue
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={saving}
+                    className="w-full rounded-lg bg-[#07877B] px-4 py-3 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {saving ? "Saving..." : "Submit for Approval"}
+                  </button>
 
-              <button
-                type="button"
-                onClick={handleBack}
-                className="w-full text-center text-sm text-gray-600 transition-colors hover:text-[#07877B]"
-              >
-                Back to Variants
-              </button>
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="w-full text-center text-sm text-gray-600 transition-colors hover:text-[#07877B]"
+                  >
+                    Back to Variants
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -765,7 +818,9 @@ export function FullPreview() {
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-gray-700 transition-all hover:bg-gray-50"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            {isReviewMode
+              ? "Back to Review Queue"
+              : "Back"}
           </button>
         </div>
       </main>
