@@ -5,11 +5,6 @@
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
-  external_node_modules = [
-    "@napi-rs/canvas",
-    "pdf-parse",
-    "pdfjs-dist"
-  ]
 
 [[redirects]]
   from = "/*"
