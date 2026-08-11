@@ -1,5 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-import PDFParser from "pdf2json";
+import {
+  PDFParse,
+  PasswordException,
+} from "pdf-parse";
 
 const MAX_FILE_BYTES =
   10 * 1024 * 1024;
@@ -29,11 +32,6 @@ interface RelevanceResult {
   reason: string;
 }
 
-interface ParsedPdf {
-  rawText: string;
-  pageCount: number;
-}
-
 export default async (
   request: Request
 ) => {
@@ -51,16 +49,20 @@ export default async (
   }
 
   const supabaseUrl =
-  process.env.VITE_SUPABASE_URL ||
-  process.env.SUPABASE_URL;
+    process.env.SUPABASE_URL;
 
-const supabaseKey =
-  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  process.env.SUPABASE_PUBLISHABLE_KEY;
+  const supabaseKey =
+    process.env
+      .SUPABASE_PUBLISHABLE_KEY;
+
   if (
     !supabaseUrl ||
     !supabaseKey
   ) {
+    console.error(
+      "Missing Supabase function environment variables."
+    );
+
     return jsonResponse(
       500,
       {
@@ -178,8 +180,10 @@ const supabaseKey =
   }
 
   /**
-   * Storage RLS already protects access,
-   * but keep a second server-side check.
+   * Defense in depth:
+   * our Storage RLS already restricts
+   * access, but the path must also start
+   * with the authenticated user's UUID.
    */
   const firstFolder =
     sourcePath.split("/")[0];
@@ -286,16 +290,25 @@ const supabaseKey =
     );
   }
 
+  const parser =
+    new PDFParse({
+      data: bytes,
+    });
+
   try {
-    const parsed =
-      await parsePdfBuffer(
-        Buffer.from(
-          arrayBuffer
-        )
+    const info =
+      await parser.getInfo({
+        parsePageInfo:
+          false,
+      });
+
+    const pageCount =
+      Number(
+        info.total || 0
       );
 
     if (
-      parsed.pageCount >
+      pageCount >
       MAX_PAGES
     ) {
       return jsonResponse(
@@ -303,18 +316,23 @@ const supabaseKey =
         {
           success: false,
           error:
-            `This PDF has ${parsed.pageCount} pages. The current limit is ${MAX_PAGES} pages.`,
+            `This PDF has ${pageCount} pages. The current limit is ${MAX_PAGES} pages.`,
           code:
             "TOO_MANY_PAGES",
-          pageCount:
-            parsed.pageCount,
+          pageCount,
         }
       );
     }
 
+    const textResult =
+      await parser.getText();
+
+    const rawText =
+      textResult.text || "";
+
     const cleanedText =
       cleanPdfText(
-        parsed.rawText
+        rawText
       );
 
     if (
@@ -329,8 +347,7 @@ const supabaseKey =
             "This PDF has very little extractable text. It may be blank, scanned, or image-based.",
           code:
             "INSUFFICIENT_TEXT",
-          pageCount:
-            parsed.pageCount,
+          pageCount,
           extractedCharacters:
             cleanedText.length,
           requiresOcr:
@@ -357,14 +374,12 @@ const supabaseKey =
         success: true,
 
         extraction: {
-          pageCount:
-            parsed.pageCount,
-
+          pageCount,
           fileSize:
             pdfBlob.size,
 
           rawCharacters:
-            parsed.rawText.length,
+            rawText.length,
 
           cleanedCharacters:
             cleanedText.length,
@@ -393,38 +408,26 @@ const supabaseKey =
       }
     );
   } catch (error) {
-    console.error(
-      "PDF parsing failed:",
-      error
-    );
-
-    const message =
-      error instanceof Error
-        ? error.message
-        : String(error);
-
-    const lower =
-      message.toLowerCase();
-
     if (
-      lower.includes(
-        "encrypt"
-      ) ||
-      lower.includes(
-        "password"
-      )
+      error instanceof
+      PasswordException
     ) {
       return jsonResponse(
         422,
         {
           success: false,
           error:
-            "Password-protected or encrypted PDFs are not supported.",
+            "Password-protected PDFs are not supported.",
           code:
             "PASSWORD_PROTECTED",
         }
       );
     }
+
+    console.error(
+      "PDF parsing failed:",
+      error
+    );
 
     return jsonResponse(
       422,
@@ -436,106 +439,10 @@ const supabaseKey =
           "PDF_PARSE_FAILED",
       }
     );
+  } finally {
+    await parser.destroy();
   }
 };
-
-function parsePdfBuffer(
-  buffer: Buffer
-): Promise<ParsedPdf> {
-  return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
-      /**
-       * The second argument keeps
-       * pdf2json logging quiet.
-       */
-      const pdfParser =
-        new PDFParser(
-          null,
-          1
-        );
-
-      let settled =
-        false;
-
-      const cleanup =
-        () => {
-          pdfParser.removeAllListeners();
-        };
-
-      pdfParser.on(
-        "pdfParser_dataError",
-        (
-          errorData: any
-        ) => {
-          if (settled) {
-            return;
-          }
-
-          settled =
-            true;
-
-          cleanup();
-
-          reject(
-            errorData?.parserError ||
-              new Error(
-                "PDF parsing failed."
-              )
-          );
-        }
-      );
-
-      pdfParser.on(
-        "pdfParser_dataReady",
-        (
-          pdfData: any
-        ) => {
-          if (settled) {
-            return;
-          }
-
-          settled =
-            true;
-
-          try {
-            const rawText =
-              pdfParser.getRawTextContent() ||
-              "";
-
-            const pageCount =
-              Array.isArray(
-                pdfData?.Pages
-              )
-                ? pdfData.Pages.length
-                : 0;
-
-            cleanup();
-
-            resolve({
-              rawText,
-              pageCount,
-            });
-          } catch (error) {
-            cleanup();
-            reject(error);
-          }
-        }
-      );
-
-      try {
-        pdfParser.parseBuffer(
-          buffer
-        );
-      } catch (error) {
-        cleanup();
-        reject(error);
-      }
-    }
-  );
-}
 
 function hasPdfMagicBytes(
   bytes:
@@ -637,6 +544,10 @@ function cleanPdfText(
           "#"
         );
 
+    /**
+     * Repeated short lines are usually
+     * page headers / footers.
+     */
     if (
       line.length <
         100 &&
@@ -913,6 +824,12 @@ function buildRelevantExcerpt(
             0
           );
 
+        /**
+         * Keep opening paragraphs because
+         * titles, recommendation metadata,
+         * circular refs and dates often
+         * appear at the start.
+         */
         const openingBoost =
           index < 8
             ? 2
