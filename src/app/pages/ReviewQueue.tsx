@@ -379,7 +379,7 @@ export function ReviewQueue() {
                               comm.selected_variant_id!
                             )}&category=${encodeURIComponent(
                               category
-                            )}`
+                            )}&mode=review`
                           );
                         }}
                         className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-[#07877B] hover:text-[#07877B]"
