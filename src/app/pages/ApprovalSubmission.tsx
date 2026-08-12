@@ -475,10 +475,17 @@ export function ApprovalSubmission() {
   }
 
   async function handleSubmit() {
+    const isRevisionResubmission =
+      approvalStage ===
+      "changes_requested";
+
     if (
       !communicationId ||
       !variantId ||
-      !allChecked ||
+      (
+        !isRevisionResubmission &&
+        !allChecked
+      ) ||
       submitting
     ) {
       return;
@@ -524,6 +531,25 @@ export function ApprovalSubmission() {
             "pending_approval",
         }
       );
+
+      if (
+        approvalStage ===
+        "changes_requested"
+      ) {
+        setApprovalStage(
+          "marketing_pending"
+        );
+
+        setLatestApprovalAction(
+          "resubmitted"
+        );
+
+        setLatestApprovalComment(
+          ""
+        );
+
+        return;
+      }
 
       navigate(
         "/?submission=success",
@@ -891,23 +917,46 @@ export function ApprovalSubmission() {
             "changes_requested" &&
             communicationId &&
             variantId && (
-              <button
-                type="button"
-                onClick={() =>
-                  navigate(
-                    `/create/preview?communicationId=${encodeURIComponent(
-                      communicationId
-                    )}&variantId=${encodeURIComponent(
-                      variantId
-                    )}&category=${encodeURIComponent(
-                      category
-                    )}&mode=revision`
-                  )
-                }
-                className="flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-8 py-4 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg"
-              >
-                Revise Communication
-              </button>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      `/create/preview?communicationId=${encodeURIComponent(
+                        communicationId
+                      )}&variantId=${encodeURIComponent(
+                        variantId
+                      )}&category=${encodeURIComponent(
+                        category
+                      )}&mode=revision`
+                    )
+                  }
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#07877B] bg-white px-8 py-4 font-medium text-[#07877B] transition-all hover:bg-[#f3fbfa]"
+                >
+                  Revise Communication
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    handleSubmit
+                  }
+                  disabled={
+                    submitting
+                  }
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-8 py-4 font-medium text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <CheckCircle2 className="h-5 w-5" />
+
+                  {submitting
+                    ? "Resubmitting..."
+                    : "Resubmit to Marketing"}
+                </button>
+
+                <p className="text-center text-xs leading-5 text-gray-500">
+                  Resubmission is allowed only after you have saved at least one requested change.
+                </p>
+              </div>
             )}
 
           {isSubmitted &&
@@ -1301,7 +1350,7 @@ function getApprovalStagePresentation(
           "Reviewer requested changes",
 
         bannerDescription:
-          "Review the reviewer comment, update the communication and resubmit it through the approval workflow.",
+          "Open Revise Communication, make and save the requested changes, then return here and select Resubmit to Marketing.",
       };
 
     case "rejected":
