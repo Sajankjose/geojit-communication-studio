@@ -16,17 +16,16 @@ export interface AdminUser {
   createdAt: string;
   lastSignInAt: string | null;
   emailConfirmed: boolean;
+  active: boolean;
+  bannedUntil: string | null;
+  isCurrentUser: boolean;
 }
 
 async function getToken() {
   const {
-    data: {
-      session,
-    },
+    data: { session },
     error,
-  } =
-    await supabase.auth
-      .getSession();
+  } = await supabase.auth.getSession();
 
   if (
     error ||
@@ -40,8 +39,10 @@ async function getToken() {
   return session.access_token;
 }
 
-export async function getAdminUsers():
-  Promise<AdminUser[]> {
+async function request(
+  method: "GET" | "POST" | "PATCH",
+  body?: unknown
+) {
   const token =
     await getToken();
 
@@ -49,15 +50,27 @@ export async function getAdminUsers():
     await fetch(
       "/.netlify/functions/admin-users",
       {
-        method: "GET",
-
+        method,
         headers: {
+          accept:
+            "application/json",
+          ...(body
+            ? {
+                "content-type":
+                  "application/json",
+              }
+            : {}),
           "x-supabase-access-token":
             token,
-
-          "accept":
-            "application/json",
         },
+        ...(body
+          ? {
+              body:
+                JSON.stringify(
+                  body
+                ),
+            }
+          : {}),
       }
     );
 
@@ -72,9 +85,19 @@ export async function getAdminUsers():
   ) {
     throw new Error(
       payload?.error ||
-        "Unable to load users."
+        "Unable to complete the request."
     );
   }
+
+  return payload;
+}
+
+export async function getAdminUsers():
+  Promise<AdminUser[]> {
+  const payload =
+    await request(
+      "GET"
+    );
 
   return payload.users as AdminUser[];
 }
@@ -94,61 +117,36 @@ export async function createAdminUser({
   department: string;
   role: UserRole;
 }): Promise<AdminUser> {
-  const token =
-    await getToken();
-
-  const response =
-    await fetch(
-      "/.netlify/functions/admin-users",
+  const payload =
+    await request(
+      "POST",
       {
-        method: "POST",
-
-        headers: {
-          "content-type":
-            "application/json",
-
-          "accept":
-            "application/json",
-
-          /**
-           * IMPORTANT:
-           * Do not use Authorization here.
-           * Netlify may interpret Bearer tokens
-           * as Netlify Identity JWTs before the
-           * function receives the request.
-           */
-          "x-supabase-access-token":
-            token,
-        },
-
-        body:
-          JSON.stringify({
-            email,
-            password,
-            fullName,
-            designation,
-            department,
-            role,
-          }),
+        email,
+        password,
+        fullName,
+        designation,
+        department,
+        role,
       }
     );
 
-  const payload =
-    await readPayload(
-      response
-    );
-
-  if (
-    !response.ok ||
-    !payload?.success
-  ) {
-    throw new Error(
-      payload?.error ||
-        "Unable to create user."
-    );
-  }
-
   return payload.user as AdminUser;
+}
+
+export async function setAdminUserActive({
+  userId,
+  active,
+}: {
+  userId: string;
+  active: boolean;
+}) {
+  return request(
+    "PATCH",
+    {
+      userId,
+      active,
+    }
+  );
 }
 
 async function readPayload(
@@ -162,12 +160,13 @@ async function readPayload(
   }
 
   try {
-    return JSON.parse(text);
+    return JSON.parse(
+      text
+    );
   } catch {
     return {
       success: false,
-      error:
-        text,
+      error: text,
     };
   }
 }
