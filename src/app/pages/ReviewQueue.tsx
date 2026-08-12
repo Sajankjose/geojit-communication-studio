@@ -253,12 +253,20 @@ export function ReviewQueue() {
                         {item.communication?.title ||
                           "Untitled Communication"}
                       </h3>
-                      <p className="mt-1 text-xs text-gray-500">
-                        Submitted{" "}
-                        {formatDate(
-                          item.created_at
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <p className="text-xs text-gray-500">
+                          Submitted{" "}
+                          {formatDate(
+                            item.created_at
+                          )}
+                        </p>
+
+                        {item.is_resubmission && (
+                          <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                            Revised & resubmitted
+                          </span>
                         )}
-                      </p>
+                      </div>
                     </div>
 
                     {item.communication?.category && (
@@ -363,15 +371,16 @@ export function ReviewQueue() {
                                   comm.category
                                 )
                               : "research";
-navigate(
-  `/create/preview?communicationId=${encodeURIComponent(
-    comm.id
-  )}&variantId=${encodeURIComponent(
-    comm.selected_variant_id!
-  )}&category=${encodeURIComponent(
-    category
-  )}&mode=review`
-);
+
+                          navigate(
+                            `/create/preview?communicationId=${encodeURIComponent(
+                              comm.id
+                            )}&variantId=${encodeURIComponent(
+                              comm.selected_variant_id!
+                            )}&category=${encodeURIComponent(
+                              category
+                            )}`
+                          );
                         }}
                         className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-[#07877B] hover:text-[#07877B]"
                       >
