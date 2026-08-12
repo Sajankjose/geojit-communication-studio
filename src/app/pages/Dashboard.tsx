@@ -14,6 +14,7 @@ import {
   MoreVertical,
   ClipboardCheck,
   ArrowRight,
+  UserCog,
 } from "lucide-react";
 
 import { TopNavBar } from "../components/TopNavBar";
