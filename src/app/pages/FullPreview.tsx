@@ -143,6 +143,9 @@ export function FullPreview() {
   const isReviewMode =
     searchParams.get("mode") === "review";
 
+  const isRevisionMode =
+    searchParams.get("mode") === "revision";
+
   const reviewerRole =
     (
       profile?.role ===
@@ -167,6 +170,15 @@ export function FullPreview() {
   const [ctaText, setCtaText] = useState("");
   const [ctaUrl, setCtaUrl] = useState("");
   const [ctaEnabled, setCtaEnabled] = useState(false);
+
+  const [
+    editableContentData,
+    setEditableContentData,
+  ] =
+    useState<VariantContentData | null>(
+      null
+    );
+
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -275,6 +287,13 @@ export function FullPreview() {
         const loadedVariant = variantRow as StoredVariant;
 
         setVariant(loadedVariant);
+        setEditableContentData(
+          loadedVariant.content_data
+            ? structuredClone(
+                loadedVariant.content_data
+              )
+            : {}
+        );
         setSubject(loadedVariant.subject_lines?.[0] || "");
         setPreheader(loadedVariant.preheader || "");
 
@@ -399,7 +418,9 @@ export function FullPreview() {
     };
 
     const nextContentData = {
-      ...(variant.content_data || {}),
+      ...(editableContentData ||
+        variant.content_data ||
+        {}),
       cta: nextCta,
     };
 
@@ -428,6 +449,10 @@ export function FullPreview() {
             content_data: nextContentData,
           }
         : current
+    );
+
+    setEditableContentData(
+      nextContentData
     );
 
     await updateCommunication(communicationId, {
@@ -482,7 +507,9 @@ export function FullPreview() {
       preheader,
 
       contentData: {
-        ...(variant?.content_data || {}),
+        ...(editableContentData ||
+          variant?.content_data ||
+          {}),
         cta: {
           enabled: ctaEnabled,
           label: ctaText,
@@ -757,7 +784,9 @@ export function FullPreview() {
   }
 
   const liveContentData = {
-    ...(variant?.content_data || {}),
+    ...(editableContentData ||
+      variant?.content_data ||
+      {}),
     cta: {
       enabled: ctaEnabled,
       label: ctaText,
@@ -808,7 +837,21 @@ export function FullPreview() {
 
                 <p className="mt-1 text-sm text-gray-600">
                   You are viewing the communication submitted for approval.
-                  Return to the Review Queue to record your decision.
+                  Record your decision below or return to the Review Queue.
+                </p>
+              </div>
+            ) : isRevisionMode ? (
+              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <RotateCcw className="h-4 w-4 text-amber-700" />
+                  <span className="text-sm font-medium text-amber-800">
+                    Revision Mode
+                  </span>
+                </div>
+
+                <p className="mt-1 text-sm leading-6 text-amber-700">
+                  A reviewer has requested changes. Update the communication,
+                  save your changes, then resubmit it for Marketing review.
                 </p>
               </div>
             ) : (
@@ -1008,6 +1051,30 @@ export function FullPreview() {
             </div>
 
               </>
+            )}
+
+
+            {!isReviewMode && (
+              <BodyContentEditor
+                contentData={
+                  editableContentData
+                }
+                onChange={(
+                  nextContentData
+                ) => {
+                  setEditableContentData(
+                    nextContentData
+                  );
+
+                  setPreviewDirty(
+                    true
+                  );
+
+                  setSavedMessage(
+                    ""
+                  );
+                }}
+              />
             )}
 
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-6">
@@ -1252,7 +1319,11 @@ export function FullPreview() {
                     disabled={saving}
                     className="w-full rounded-lg bg-[#07877B] px-4 py-3 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {saving ? "Saving..." : "Submit for Approval"}
+                    {saving
+                      ? "Saving..."
+                      : isRevisionMode
+                        ? "Resubmit for Marketing Approval"
+                        : "Submit for Approval"}
                   </button>
 
                   <button
@@ -1281,6 +1352,335 @@ export function FullPreview() {
           </button>
         </div>
       </main>
+    </div>
+  );
+}
+
+
+function BodyContentEditor({
+  contentData,
+  onChange,
+}: {
+  contentData:
+    VariantContentData | null;
+  onChange: (
+    next:
+      VariantContentData
+  ) => void;
+}) {
+  const body =
+    contentData?.body || {};
+
+  const sections =
+    body.sections || [];
+
+  function updateBody(
+    patch:
+      Partial<
+        NonNullable<
+          VariantContentData[
+            "body"
+          ]
+        >
+      >
+  ) {
+    onChange({
+      ...(contentData || {}),
+      body: {
+        ...body,
+        ...patch,
+      },
+    });
+  }
+
+  function updateSection(
+    index: number,
+    patch:
+      Partial<
+        NonNullable<
+          NonNullable<
+            VariantContentData[
+              "body"
+            ]
+          >["sections"]
+        >[number]
+      >
+  ) {
+    const nextSections =
+      sections.map(
+        (
+          section,
+          sectionIndex
+        ) =>
+          sectionIndex ===
+          index
+            ? {
+                ...section,
+                ...patch,
+              }
+            : section
+      );
+
+    updateBody({
+      sections:
+        nextSections,
+    });
+  }
+
+  function updateBullet(
+    sectionIndex:
+      number,
+    bulletIndex:
+      number,
+    value:
+      string
+  ) {
+    const section =
+      sections[
+        sectionIndex
+      ];
+
+    if (!section) {
+      return;
+    }
+
+    const currentItems =
+      Array.isArray(
+        section.items
+      )
+        ? [
+            ...section.items,
+          ]
+        : [];
+
+    currentItems[
+      bulletIndex
+    ] = value;
+
+    updateSection(
+      sectionIndex,
+      {
+        items:
+          currentItems,
+      }
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="mb-5">
+        <h2 className="text-base font-medium text-gray-900">
+          Email Body Content
+        </h2>
+
+        <p className="mt-1 text-xs leading-5 text-gray-500">
+          Edit the generated copy here. Changes update the preview immediately.
+        </p>
+      </div>
+
+      <div className="space-y-5">
+        <EditableTextArea
+          label="Introduction"
+          value={
+            body.intro ||
+            ""
+          }
+          onChange={(
+            value
+          ) =>
+            updateBody({
+              intro:
+                value,
+            })
+          }
+        />
+
+        {sections.map(
+          (
+            section,
+            sectionIndex
+          ) => (
+            <div
+              key={
+                sectionIndex
+              }
+              className="rounded-lg border border-gray-200 bg-gray-50 p-4"
+            >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Section{" "}
+                  {
+                    sectionIndex +
+                    1
+                  }{" "}
+                  ·{" "}
+                  {
+                    section.type
+                  }
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <EditableField
+                  label="Section Title"
+                  value={
+                    section.title ||
+                    ""
+                  }
+                  onChange={(
+                    value
+                  ) =>
+                    updateSection(
+                      sectionIndex,
+                      {
+                        title:
+                          value,
+                      }
+                    )
+                  }
+                />
+
+                {(
+                  section.type ===
+                    "bullets" ||
+                  section.type ===
+                    "steps"
+                ) &&
+                Array.isArray(
+                  section.items
+                ) ? (
+                  <div>
+                    <label className="mb-2 block text-sm text-gray-700">
+                      Bullet Points
+                    </label>
+
+                    <div className="space-y-2">
+                      {section.items.map(
+                        (
+                          item,
+                          bulletIndex
+                        ) => {
+                          const bulletValue =
+                            typeof item ===
+                            "string"
+                              ? item
+                              : `${item.label}: ${item.value}`;
+
+                          return (
+                            <div
+                              key={
+                                bulletIndex
+                              }
+                              className="flex gap-2"
+                            >
+                              <span className="pt-2 text-sm text-[#07877B]">
+                                •
+                              </span>
+
+                              <textarea
+                                rows={
+                                  2
+                                }
+                                value={
+                                  bulletValue
+                                }
+                                onChange={(
+                                  event
+                                ) =>
+                                  updateBullet(
+                                    sectionIndex,
+                                    bulletIndex,
+                                    event
+                                      .target
+                                      .value
+                                  )
+                                }
+                                className="min-h-[64px] flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
+                              />
+                            </div>
+                          );
+                        }
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <EditableTextArea
+                    label="Content"
+                    value={
+                      section.content ||
+                      ""
+                    }
+                    onChange={(
+                      value
+                    ) =>
+                      updateSection(
+                        sectionIndex,
+                        {
+                          content:
+                            value,
+                        }
+                      )
+                    }
+                  />
+                )}
+              </div>
+            </div>
+          )
+        )}
+
+        <EditableTextArea
+          label="Closing"
+          value={
+            body.closing ||
+            ""
+          }
+          onChange={(
+            value
+          ) =>
+            updateBody({
+              closing:
+                value,
+            })
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
+function EditableTextArea({
+  label,
+  value,
+  onChange,
+}: {
+  label:
+    string;
+  value:
+    string;
+  onChange: (
+    value:
+      string
+  ) => void;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm text-gray-700">
+        {label}
+      </label>
+
+      <textarea
+        rows={4}
+        value={value}
+        onChange={(
+          event
+        ) =>
+          onChange(
+            event.target
+              .value
+          )
+        }
+        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
+      />
     </div>
   );
 }
