@@ -201,6 +201,12 @@ export function ApprovalSubmission() {
     useState("");
 
   const [
+    latestApprovalAction,
+    setLatestApprovalAction,
+  ] =
+    useState("");
+
+  const [
     error,
     setError,
   ] =
@@ -381,6 +387,26 @@ export function ApprovalSubmission() {
 
         setApprovalStage(
           resolvedStage
+        );
+
+        const latestRow =
+          [...(
+            (approvalRows ||
+              []) as ApprovalActionRow[]
+          )]
+            .sort(
+              (a, b) =>
+                new Date(
+                  b.created_at
+                ).getTime() -
+                new Date(
+                  a.created_at
+                ).getTime()
+            )[0];
+
+        setLatestApprovalAction(
+          latestRow?.action ||
+            ""
         );
 
         const latestComment =
@@ -571,7 +597,8 @@ export function ApprovalSubmission() {
 
   const stagePresentation =
     getApprovalStagePresentation(
-      approvalStage
+      approvalStage,
+      latestApprovalAction
     );
 
   const compliance =
@@ -653,6 +680,9 @@ export function ApprovalSubmission() {
             }
             latestComment={
               latestApprovalComment
+            }
+            latestAction={
+              latestApprovalAction
             }
           />
         )}
@@ -954,13 +984,16 @@ export function ApprovalSubmission() {
 function ApprovalStageBanner({
   stage,
   latestComment,
+  latestAction,
 }: {
   stage: ApprovalStage;
   latestComment: string;
+  latestAction: string;
 }) {
   const presentation =
     getApprovalStagePresentation(
-      stage
+      stage,
+      latestAction
     );
 
   const Icon =
@@ -1080,93 +1113,107 @@ function resolveApprovalStage(
     return "not_submitted";
   }
 
-  const latestCorpCom =
+  /**
+   * Approval history is an audit trail.
+   * Older "changes_requested" rows must remain,
+   * but they must NOT override a newer creator
+   * resubmission.
+   *
+   * The CURRENT workflow state is therefore
+   * derived from the latest approval event
+   * chronologically.
+   */
+  const latest =
     [...rows]
-      .reverse()
-      .find(
-        (row) =>
-          row.stage ===
-          "corpcom_review"
-      );
+      .sort(
+        (a, b) =>
+          new Date(
+            b.created_at
+          ).getTime() -
+          new Date(
+            a.created_at
+          ).getTime()
+      )[0];
 
-  if (
-    latestCorpCom
-  ) {
-    if (
-      latestCorpCom.action ===
-      "approved"
-    ) {
-      return "approved";
-    }
-
-    if (
-      latestCorpCom.action ===
-      "changes_requested"
-    ) {
-      return "changes_requested";
-    }
-
-    if (
-      latestCorpCom.action ===
-      "rejected"
-    ) {
-      return "rejected";
-    }
-
-    if (
-      latestCorpCom.action ===
-      "submitted"
-    ) {
-      return "corpcom_pending";
-    }
+  if (!latest) {
+    return "not_submitted";
   }
 
-  const latestMarketing =
-    [...rows]
-      .reverse()
-      .find(
-        (row) =>
-          row.stage ===
-          "marketing_review"
-      );
+  if (
+    latest.action ===
+    "rejected"
+  ) {
+    return "rejected";
+  }
 
   if (
-    latestMarketing
+    latest.action ===
+    "changes_requested"
   ) {
-    if (
-      latestMarketing.action ===
-      "changes_requested"
-    ) {
-      return "changes_requested";
-    }
+    return "changes_requested";
+  }
 
-    if (
-      latestMarketing.action ===
-      "rejected"
-    ) {
-      return "rejected";
-    }
+  /**
+   * Creator first submission OR revised
+   * resubmission always re-enters Marketing.
+   */
+  if (
+    latest.stage ===
+      "marketing_review" &&
+    (
+      latest.action ===
+        "submitted" ||
+      latest.action ===
+        "resubmitted"
+    )
+  ) {
+    return "marketing_pending";
+  }
 
-    if (
-      latestMarketing.action ===
-      "submitted"
-    ) {
-      return "marketing_pending";
-    }
-
-    if (
-      latestMarketing.action ===
+  /**
+   * Marketing approval is immediately followed
+   * by creation of a CorpCom pending row.
+   * If the UI reads during that tiny transition,
+   * still represent the next stage correctly.
+   */
+  if (
+    latest.stage ===
+      "marketing_review" &&
+    latest.action ===
       "approved"
-    ) {
-      /**
-       * Marketing approval should normally
-       * create a CorpCom submitted row.
-       * Until that row appears, treat the
-       * communication as moving to CorpCom,
-       * not as Marketing pending.
-       */
-      return "corpcom_pending";
-    }
+  ) {
+    return "corpcom_pending";
+  }
+
+  if (
+    latest.stage ===
+      "corpcom_review" &&
+    latest.action ===
+      "submitted"
+  ) {
+    return "corpcom_pending";
+  }
+
+  if (
+    latest.stage ===
+      "corpcom_review" &&
+    latest.action ===
+      "approved"
+  ) {
+    return "approved";
+  }
+
+  /**
+   * Defensive fallback for any explicit
+   * terminal approved event.
+   */
+  if (
+    latest.stage ===
+      "approved" ||
+    latest.action ===
+      "approved"
+  ) {
+    return "approved";
   }
 
   return "marketing_pending";
@@ -1174,10 +1221,30 @@ function resolveApprovalStage(
 
 function getApprovalStagePresentation(
   stage:
-    ApprovalStage
+    ApprovalStage,
+  latestAction = ""
 ) {
   switch (stage) {
     case "marketing_pending":
+      if (
+        latestAction ===
+        "resubmitted"
+      ) {
+        return {
+          title:
+            "Revised & Resubmitted",
+
+          description:
+            "The requested changes have been completed and this communication has been resubmitted for Marketing review.",
+
+          bannerTitle:
+            "Revised communication awaiting Marketing approval",
+
+          bannerDescription:
+            "Your changes were saved successfully and the revised communication is now back with the Marketing reviewer.",
+        };
+      }
+
       return {
         title:
           "Awaiting Marketing Approval",
