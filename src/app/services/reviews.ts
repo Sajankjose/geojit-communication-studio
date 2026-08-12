@@ -1,12 +1,21 @@
 import { supabase } from "../../lib/supabase";
 import { requireCurrentUserRole } from "./requireRole";
 
+export interface ReviewPerson {
+  id: string;
+  full_name: string | null;
+  designation: string | null;
+  department: string | null;
+  role: string | null;
+}
+
 export interface ReviewQueueItem {
   approval_action_id: string;
   communication_id: string;
   action: string;
   status: string;
   stage: string;
+  submitted_by: string | null;
   reviewer_role: string | null;
   comments: string | null;
   created_at: string;
@@ -19,6 +28,7 @@ export interface ReviewQueueItem {
     audience: string | null;
     objective: string | null;
     status: string;
+    created_by: string | null;
     selected_variant_id: string | null;
     input_data: Record<string, any> | null;
     updated_at: string;
@@ -31,6 +41,22 @@ export interface ReviewQueueItem {
     latest_review_comment: string | null;
   } | null;
 
+  /**
+   * Person who originally created the communication.
+   * For the first Marketing submission this will
+   * normally be the same as stage_submitter.
+   */
+  original_submitter: ReviewPerson | null;
+
+  /**
+   * Person who sent the communication into the
+   * CURRENT review stage.
+   *
+   * Marketing stage -> Creator
+   * CorpCom stage   -> Marketing reviewer
+   */
+  stage_submitter: ReviewPerson | null;
+
   is_resubmission: boolean;
 }
 
@@ -40,8 +66,7 @@ export async function getReviewerQueue(
     | "corpcom_reviewer"
 ): Promise<ReviewQueueItem[]> {
   const {
-    role:
-      actualRole,
+    role: actualRole,
   } =
     await requireCurrentUserRole([
       "marketing_reviewer",
@@ -49,8 +74,7 @@ export async function getReviewerQueue(
     ]);
 
   if (
-    actualRole !==
-    reviewerRole
+    actualRole !== reviewerRole
   ) {
     throw new Error(
       "Reviewer role mismatch. Access denied."
@@ -68,9 +92,7 @@ export async function getReviewerQueue(
     error,
   } =
     await supabase
-      .from(
-        "approval_actions"
-      )
+      .from("approval_actions")
       .select(
         `
         id,
@@ -78,6 +100,7 @@ export async function getReviewerQueue(
         action,
         status,
         stage,
+        submitted_by,
         reviewer_role,
         comments,
         created_at,
@@ -89,6 +112,7 @@ export async function getReviewerQueue(
           audience,
           objective,
           status,
+          created_by,
           selected_variant_id,
           input_data,
           updated_at,
@@ -101,21 +125,11 @@ export async function getReviewerQueue(
         )
         `
       )
-      .eq(
-        "stage",
-        stage
-      )
-      .eq(
-        "status",
-        "pending"
-      )
-      .order(
-        "created_at",
-        {
-          ascending:
-            true,
-        }
-      );
+      .eq("stage", stage)
+      .eq("status", "pending")
+      .order("created_at", {
+        ascending: true,
+      });
 
   if (error) {
     throw new Error(
@@ -123,9 +137,79 @@ export async function getReviewerQueue(
     );
   }
 
-  return (
-    data || []
-  ).map(
+  const rows =
+    (data || []) as any[];
+
+  /**
+   * Collect only the profile IDs required to render
+   * the current review queue.
+   */
+  const profileIds =
+    Array.from(
+      new Set(
+        rows
+          .flatMap((row) => [
+            row.submitted_by,
+            row.communication
+              ?.created_by,
+          ])
+          .filter(Boolean)
+      )
+    ) as string[];
+
+  const profileMap =
+    new Map<
+      string,
+      ReviewPerson
+    >();
+
+  if (
+    profileIds.length >
+    0
+  ) {
+    const {
+      data: profiles,
+      error: profileError,
+    } =
+      await supabase
+        .from("profiles")
+        .select(
+          `
+          id,
+          full_name,
+          designation,
+          department,
+          role
+          `
+        )
+        .in(
+          "id",
+          profileIds
+        );
+
+    if (profileError) {
+      console.error(
+        "Unable to load submitter profiles:",
+        profileError
+      );
+
+      throw new Error(
+        "Unable to load submitter details for the review queue."
+      );
+    }
+
+    for (
+      const profile of
+      profiles || []
+    ) {
+      profileMap.set(
+        profile.id,
+        profile as ReviewPerson
+      );
+    }
+  }
+
+  return rows.map(
     (row: any) => ({
       approval_action_id:
         row.id,
@@ -142,6 +226,9 @@ export async function getReviewerQueue(
       stage:
         row.stage,
 
+      submitted_by:
+        row.submitted_by,
+
       reviewer_role:
         row.reviewer_role,
 
@@ -154,6 +241,22 @@ export async function getReviewerQueue(
       communication:
         row.communication ||
         null,
+
+      original_submitter:
+        row.communication
+          ?.created_by
+          ? profileMap.get(
+              row.communication
+                .created_by
+            ) || null
+          : null,
+
+      stage_submitter:
+        row.submitted_by
+          ? profileMap.get(
+              row.submitted_by
+            ) || null
+          : null,
 
       is_resubmission:
         row.action ===
@@ -186,8 +289,7 @@ export async function submitReviewerDecision({
 }) {
   const {
     user,
-    role:
-      actualRole,
+    role: actualRole,
   } =
     await requireCurrentUserRole([
       "marketing_reviewer",
@@ -195,8 +297,7 @@ export async function submitReviewerDecision({
     ]);
 
   if (
-    actualRole !==
-    reviewerRole
+    actualRole !== reviewerRole
   ) {
     throw new Error(
       "Reviewer role mismatch. Access denied."
@@ -210,21 +311,12 @@ export async function submitReviewerDecision({
     comments?.trim() ||
     null;
 
-  /**
-   * Close the CURRENT pending review action.
-   * select().single() verifies that Supabase
-   * actually updated the intended audit row.
-   */
   const {
-    data:
-      closedAction,
-    error:
-      closeError,
+    data: closedAction,
+    error: closeError,
   } =
     await supabase
-      .from(
-        "approval_actions"
-      )
+      .from("approval_actions")
       .update({
         status:
           decision ===
@@ -232,8 +324,7 @@ export async function submitReviewerDecision({
             ? "completed"
             : decision,
 
-        action:
-          decision,
+        action: decision,
 
         actor_id:
           user.id,
@@ -285,9 +376,7 @@ export async function submitReviewerDecision({
       error,
     } =
       await supabase
-        .from(
-          "communications"
-        )
+        .from("communications")
         .update({
           status:
             "changes_requested",
@@ -329,9 +418,7 @@ export async function submitReviewerDecision({
       error,
     } =
       await supabase
-        .from(
-          "communications"
-        )
+        .from("communications")
         .update({
           status:
             "rejected",
@@ -357,21 +444,21 @@ export async function submitReviewerDecision({
   }
 
   /**
-   * Marketing approval creates the next pending
-   * CorpCom audit row.
+   * Marketing approval creates the CorpCom handoff.
+   * submitted_by is intentionally the Marketing
+   * reviewer here, so CorpCom can see who sent it
+   * to their stage. original_submitter remains
+   * available through communications.created_by.
    */
   if (
     reviewerRole ===
     "marketing_reviewer"
   ) {
     const {
-      error:
-        nextError,
+      error: nextError,
     } =
       await supabase
-        .from(
-          "approval_actions"
-        )
+        .from("approval_actions")
         .insert({
           communication_id:
             communicationId,
@@ -401,9 +488,7 @@ export async function submitReviewerDecision({
             cleanComment,
         });
 
-    if (
-      nextError
-    ) {
+    if (nextError) {
       throw new Error(
         nextError.message
       );
@@ -416,9 +501,7 @@ export async function submitReviewerDecision({
         statusError,
     } =
       await supabase
-        .from(
-          "communications"
-        )
+        .from("communications")
         .update({
           status:
             "corpcom_review",
@@ -447,15 +530,6 @@ export async function submitReviewerDecision({
     return;
   }
 
-  /**
-   * CorpCom approval is FINAL.
-   *
-   * At this point the corpcom_review pending row
-   * has already been changed to:
-   * action=approved, status=completed.
-   * We now also verify the parent communication
-   * moves to approved.
-   */
   const {
     data:
       finalCommunication,
@@ -463,9 +537,7 @@ export async function submitReviewerDecision({
       finalError,
   } =
     await supabase
-      .from(
-        "communications"
-      )
+      .from("communications")
       .update({
         status:
           "approved",
