@@ -31,10 +31,17 @@ export async function getExistingPendingApproval(
         "communication_id",
         communicationId
       )
-      .eq("status", "pending")
-      .order("created_at", {
-        ascending: false,
-      })
+      .eq(
+        "status",
+        "pending"
+      )
+      .order(
+        "created_at",
+        {
+          ascending:
+            false,
+        }
+      )
       .limit(1)
       .maybeSingle();
 
@@ -78,8 +85,7 @@ export async function submitCommunicationForApproval({
   }
 
   /**
-   * First protect against accidental duplicate
-   * submissions already waiting with a reviewer.
+   * Prevent duplicate pending review rows.
    */
   const existing =
     await getExistingPendingApproval(
@@ -91,9 +97,7 @@ export async function submitCommunicationForApproval({
   }
 
   /**
-   * Check whether this is a reviewer-requested
-   * revision and, if so, verify the creator has
-   * actually saved a change after the request.
+   * Load revision state.
    */
   const {
     data: communication,
@@ -107,7 +111,9 @@ export async function submitCommunicationForApproval({
         revision_required,
         revision_requested_at,
         revision_completed_at,
-        revision_count
+        revision_resubmitted_at,
+        revision_count,
+        latest_review_comment
         `
       )
       .eq(
@@ -131,6 +137,11 @@ export async function submitCommunicationForApproval({
       communication.revision_required
     );
 
+  /**
+   * A creator may resubmit only after a real
+   * revision has been saved after the reviewer
+   * requested changes.
+   */
   if (revisionRequired) {
     const requestedAt =
       communication.revision_requested_at
@@ -151,7 +162,7 @@ export async function submitCommunicationForApproval({
       completedAt <= requestedAt
     ) {
       throw new Error(
-        "Marketing/CorpCom has requested changes. Please make and save the requested changes before resubmitting."
+        "A reviewer has requested changes. Please make and save the requested changes before resubmitting."
       );
     }
   }
@@ -159,15 +170,35 @@ export async function submitCommunicationForApproval({
   const submittedAt =
     new Date().toISOString();
 
-  const { data, error } =
+  /**
+   * This is the key UX/audit distinction:
+   *
+   * First submission  → submitted
+   * Revised submission → resubmitted
+   */
+  const approvalAction =
+    revisionRequired
+      ? "resubmitted"
+      : "submitted";
+
+  const cleanComment =
+    comments?.trim() ||
+    null;
+
+  const {
+    data,
+    error,
+  } =
     await supabase
-      .from("approval_actions")
+      .from(
+        "approval_actions"
+      )
       .insert({
         communication_id:
           communicationId,
 
         action:
-          "submitted",
+          approvalAction,
 
         status:
           "pending",
@@ -188,8 +219,7 @@ export async function submitCommunicationForApproval({
           "marketing_reviewer",
 
         comments:
-          comments?.trim() ||
-          null,
+          cleanComment,
       })
       .select("*")
       .single();
@@ -206,8 +236,11 @@ export async function submitCommunicationForApproval({
   }
 
   /**
-   * If this submission follows requested changes,
-   * record it explicitly for creator + reviewer UI.
+   * Persist a platform-wide revision state.
+   *
+   * Keep revision_resubmitted_at after this point.
+   * Dashboard / Review Queue / Full Preview can use
+   * it to communicate that this is a revised copy.
    */
   if (revisionRequired) {
     const {
@@ -215,7 +248,9 @@ export async function submitCommunicationForApproval({
         revisionUpdateError,
     } =
       await supabase
-        .from("communications")
+        .from(
+          "communications"
+        )
         .update({
           revision_required:
             false,
