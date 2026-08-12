@@ -23,11 +23,13 @@ async function getToken() {
     data: {
       session,
     },
+    error,
   } =
     await supabase.auth
       .getSession();
 
   if (
+    error ||
     !session?.access_token
   ) {
     throw new Error(
@@ -50,14 +52,19 @@ export async function getAdminUsers():
         method: "GET",
 
         headers: {
-          authorization:
-            `Bearer ${token}`,
+          "x-supabase-access-token":
+            token,
+
+          "accept":
+            "application/json",
         },
       }
     );
 
   const payload =
-    await response.json();
+    await readPayload(
+      response
+    );
 
   if (
     !response.ok ||
@@ -100,8 +107,18 @@ export async function createAdminUser({
           "content-type":
             "application/json",
 
-          authorization:
-            `Bearer ${token}`,
+          "accept":
+            "application/json",
+
+          /**
+           * IMPORTANT:
+           * Do not use Authorization here.
+           * Netlify may interpret Bearer tokens
+           * as Netlify Identity JWTs before the
+           * function receives the request.
+           */
+          "x-supabase-access-token":
+            token,
         },
 
         body:
@@ -117,7 +134,9 @@ export async function createAdminUser({
     );
 
   const payload =
-    await response.json();
+    await readPayload(
+      response
+    );
 
   if (
     !response.ok ||
@@ -130,4 +149,25 @@ export async function createAdminUser({
   }
 
   return payload.user as AdminUser;
+}
+
+async function readPayload(
+  response: Response
+) {
+  const text =
+    await response.text();
+
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      success: false,
+      error:
+        text,
+    };
+  }
 }
