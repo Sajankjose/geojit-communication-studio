@@ -24,6 +24,10 @@ import {
   updateCommunication,
 } from "../services/communications";
 
+import {
+  markCreatorRevisionComplete,
+} from "../services/revisionTracking";
+
 import { supabase } from "../../lib/supabase";
 
 import { renderEmailHtml } from "../email/renderEmailHtml";
@@ -136,6 +140,10 @@ export function FullPreview() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [savedMessage, setSavedMessage] = useState("");
+  const [
+    previewDirty,
+    setPreviewDirty,
+  ] = useState(false);
 
   useEffect(() => {
     if (!communicationId || !variantId) {
@@ -286,6 +294,19 @@ export function FullPreview() {
       selected_variant_id: variantId,
       status: "preview_ready",
     });
+
+    if (
+      previewDirty &&
+      !isReviewMode
+    ) {
+      await markCreatorRevisionComplete(
+        communicationId
+      );
+
+      setPreviewDirty(
+        false
+      );
+    }
   }
 
   async function handleSave() {
@@ -676,13 +697,19 @@ export function FullPreview() {
                 <EditableField
                   label="Subject Line"
                   value={subject}
-                  onChange={setSubject}
+                  onChange={(value) => {
+                    setSubject(value);
+                    setPreviewDirty(true);
+                  }}
                 />
 
                 <EditableField
                   label="Preheader"
                   value={preheader}
-                  onChange={setPreheader}
+                  onChange={(value) => {
+                    setPreheader(value);
+                    setPreviewDirty(true);
+                  }}
                 />
 
                 <div className="flex items-center justify-between rounded-lg border border-gray-200 p-3">
@@ -696,9 +723,10 @@ export function FullPreview() {
                   <input
                     type="checkbox"
                     checked={ctaEnabled}
-                    onChange={(event) =>
-                      setCtaEnabled(event.target.checked)
-                    }
+                    onChange={(event) => {
+                      setCtaEnabled(event.target.checked);
+                      setPreviewDirty(true);
+                    }}
                     className="h-4 w-4 accent-[#07877B]"
                   />
                 </div>
@@ -706,7 +734,10 @@ export function FullPreview() {
                 <EditableField
                   label="CTA Text"
                   value={ctaText}
-                  onChange={setCtaText}
+                  onChange={(value) => {
+                    setCtaText(value);
+                    setPreviewDirty(true);
+                  }}
                   disabled={!ctaEnabled}
                 />
 
@@ -714,7 +745,10 @@ export function FullPreview() {
                   label="CTA URL"
                   type="url"
                   value={ctaUrl}
-                  onChange={setCtaUrl}
+                  onChange={(value) => {
+                    setCtaUrl(value);
+                    setPreviewDirty(true);
+                  }}
                   disabled={!ctaEnabled}
                 />
 
