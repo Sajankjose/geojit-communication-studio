@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabase";
+import { requireCurrentUserRole } from "./requireRole";
 
 export interface ReviewQueueItem {
   approval_action_id: string;
@@ -38,6 +39,24 @@ export async function getReviewerQueue(
     | "marketing_reviewer"
     | "corpcom_reviewer"
 ): Promise<ReviewQueueItem[]> {
+  const {
+    role:
+      actualRole,
+  } =
+    await requireCurrentUserRole([
+      "marketing_reviewer",
+      "corpcom_reviewer",
+    ]);
+
+  if (
+    actualRole !==
+    reviewerRole
+  ) {
+    throw new Error(
+      "Reviewer role mismatch. Access denied."
+    );
+  }
+
   const stage =
     reviewerRole ===
     "marketing_reviewer"
@@ -166,18 +185,21 @@ export async function submitReviewerDecision({
     | "corpcom_reviewer";
 }) {
   const {
-    data: { user },
-    error: userError,
+    user,
+    role:
+      actualRole,
   } =
-    await supabase.auth
-      .getUser();
+    await requireCurrentUserRole([
+      "marketing_reviewer",
+      "corpcom_reviewer",
+    ]);
 
   if (
-    userError ||
-    !user
+    actualRole !==
+    reviewerRole
   ) {
     throw new Error(
-      "Your session has expired. Please sign in again."
+      "Reviewer role mismatch. Access denied."
     );
   }
 
