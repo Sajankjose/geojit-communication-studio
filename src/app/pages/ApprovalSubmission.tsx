@@ -19,6 +19,7 @@ import {
 
 import { TopNavBar } from "../components/TopNavBar";
 import { CategoryTag } from "../components/CategoryTag";
+import { useAuth } from "../auth/useAuth";
 import { CommunicationStateBar } from "../components/CommunicationStateBar";
 import { ProgressStepper } from "../components/ProgressStepper";
 
@@ -95,8 +96,20 @@ export function ApprovalSubmission() {
   const navigate =
     useNavigate();
 
+  const {
+    profile,
+    loading:
+      authLoading,
+  } = useAuth();
+
   const [searchParams] =
     useSearchParams();
+
+  const isReviewer =
+    profile?.role ===
+      "marketing_reviewer" ||
+    profile?.role ===
+      "corpcom_reviewer";
 
   const communicationId =
     searchParams.get(
@@ -199,6 +212,31 @@ export function ApprovalSubmission() {
     ).every(Boolean);
 
   useEffect(() => {
+    if (
+      !authLoading &&
+      isReviewer
+    ) {
+      navigate(
+        "/reviews",
+        {
+          replace: true,
+        }
+      );
+    }
+  }, [
+    authLoading,
+    isReviewer,
+    navigate,
+  ]);
+
+  useEffect(() => {
+    if (
+      authLoading ||
+      isReviewer
+    ) {
+      return;
+    }
+
     if (
       !communicationId ||
       !variantId
@@ -391,6 +429,8 @@ export function ApprovalSubmission() {
       cancelled = true;
     };
   }, [
+    authLoading,
+    isReviewer,
     communicationId,
     variantId,
   ]);
@@ -501,7 +541,11 @@ export function ApprovalSubmission() {
     );
   }
 
-  if (loading) {
+  if (
+    authLoading ||
+    isReviewer ||
+    loading
+  ) {
     return (
       <div className="min-h-screen bg-background">
         <TopNavBar />
@@ -511,7 +555,9 @@ export function ApprovalSubmission() {
             <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#07877B]" />
 
             <p className="text-sm text-gray-600">
-              Preparing approval submission...
+              {isReviewer
+                ? "Returning to review queue..."
+                : "Preparing approval submission..."}
             </p>
           </div>
         </div>
