@@ -28,6 +28,11 @@ import {
   getMyCommunications,
 } from "../services/communications";
 
+import {
+  getReviewerQueue,
+  ReviewQueueItem,
+} from "../services/reviews";
+
 export function Dashboard() {
   const navigate = useNavigate();
 
@@ -54,6 +59,11 @@ export function Dashboard() {
   ] = useState<CommunicationRecord[]>([]);
 
   const [
+    reviewQueue,
+    setReviewQueue,
+  ] = useState<ReviewQueueItem[]>([]);
+
+  const [
     loading,
     setLoading,
   ] = useState(true);
@@ -69,37 +79,78 @@ export function Dashboard() {
   ] = useState("");
 
   /**
-   * Load communications from Supabase
-   * when Dashboard opens.
+   * Load role-specific dashboard data.
+   *
+   * Creator/Admin creation metrics use
+   * communications.
+   *
+   * Reviewer pending metrics use the exact
+   * same getReviewerQueue() source as /reviews,
+   * so the dashboard count can never disagree
+   * with the Review Queue.
    */
   useEffect(() => {
-    async function loadCommunications() {
+    async function loadDashboard() {
       try {
         setLoading(true);
         setError("");
 
+        if (
+          profile?.role ===
+            "marketing_reviewer" ||
+          profile?.role ===
+            "corpcom_reviewer"
+        ) {
+          const queue =
+            await getReviewerQueue(
+              profile.role
+            );
+
+          setReviewQueue(
+            queue
+          );
+
+          setCommunications(
+            []
+          );
+
+          return;
+        }
+
         const data =
           await getMyCommunications();
 
-        setCommunications(data);
+        setCommunications(
+          data
+        );
+
+        setReviewQueue(
+          []
+        );
       } catch (err) {
         console.error(
-          "Unable to load communications:",
+          "Unable to load dashboard:",
           err
         );
 
         setError(
-          "Unable to load communications."
+          "Unable to load dashboard data."
         );
       } finally {
         setLoading(false);
       }
     }
 
-    if (user) {
-      loadCommunications();
+    if (
+      user &&
+      profile?.role
+    ) {
+      loadDashboard();
     }
-  }, [user]);
+  }, [
+    user,
+    profile?.role,
+  ]);
 
   /**
    * Create a real draft before
@@ -152,6 +203,10 @@ export function Dashboard() {
 
   const pendingApproval =
     useMemo(() => {
+      if (isReviewer) {
+        return reviewQueue.length;
+      }
+
       const pendingStatuses = [
         "pending_approval",
         "submitted",
@@ -166,7 +221,19 @@ export function Dashboard() {
             item.status
           )
       ).length;
-    }, [communications]);
+    }, [
+      communications,
+      isReviewer,
+      reviewQueue,
+    ]);
+
+  const revisedResubmissions =
+    useMemo(() => {
+      return reviewQueue.filter(
+        (item) =>
+          item.is_resubmission
+      ).length;
+    }, [reviewQueue]);
 
   const approved =
     useMemo(() => {
@@ -183,18 +250,37 @@ export function Dashboard() {
         number
       > = {};
 
-      communications.forEach(
-        (item) => {
-          if (!item.category) {
-            return;
-          }
+      if (isReviewer) {
+        reviewQueue.forEach(
+          (item) => {
+            const category =
+              item.communication
+                ?.category;
 
-          counts[item.category] =
-            (counts[
-              item.category
-            ] || 0) + 1;
-        }
-      );
+            if (!category) {
+              return;
+            }
+
+            counts[category] =
+              (counts[
+                category
+              ] || 0) + 1;
+          }
+        );
+      } else {
+        communications.forEach(
+          (item) => {
+            if (!item.category) {
+              return;
+            }
+
+            counts[item.category] =
+              (counts[
+                item.category
+              ] || 0) + 1;
+          }
+        );
+      }
 
       const sorted =
         Object.entries(
@@ -208,7 +294,11 @@ export function Dashboard() {
         sorted[0]?.[0] ||
         null
       );
-    }, [communications]);
+    }, [
+      communications,
+      isReviewer,
+      reviewQueue,
+    ]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -340,7 +430,7 @@ export function Dashboard() {
         {/* Summary Cards */}
         <div className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
-          {/* Drafts */}
+          {/* Drafts / Review stage */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
             <div className="mb-2 flex items-center gap-3">
@@ -349,16 +439,22 @@ export function Dashboard() {
                 <FileText className="h-5 w-5 text-gray-600" />
               </div>
 
-              <h3 className="text-2xl">
+              <h3 className={isReviewer ? "text-lg" : "text-2xl"}>
                 {loading
                   ? "—"
-                  : totalDrafts}
+                  : isReviewer
+                    ? profile?.role === "corpcom_reviewer"
+                      ? "CorpCom"
+                      : "Marketing"
+                    : totalDrafts}
               </h3>
 
             </div>
 
             <p className="text-sm text-muted-foreground">
-              Total Drafts
+              {isReviewer
+                ? "Current Review Stage"
+                : "Total Drafts"}
             </p>
 
           </div>
@@ -400,7 +496,7 @@ export function Dashboard() {
             )}
           </button>
 
-          {/* Approved */}
+          {/* Approved / Revised */}
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
             <div className="mb-2 flex items-center gap-3">
@@ -412,13 +508,17 @@ export function Dashboard() {
               <h3 className="text-2xl">
                 {loading
                   ? "—"
-                  : approved}
+                  : isReviewer
+                    ? revisedResubmissions
+                    : approved}
               </h3>
 
             </div>
 
             <p className="text-sm text-muted-foreground">
-              Approved
+              {isReviewer
+                ? "Revised & Resubmitted"
+                : "Approved"}
             </p>
 
           </div>
@@ -455,7 +555,9 @@ export function Dashboard() {
         <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
 
           <h2 className="mb-6 text-xl">
-            Recent Communications
+            {isReviewer
+              ? "Pending Reviews"
+              : "Recent Communications"}
           </h2>
 
           {loading && (
@@ -465,6 +567,93 @@ export function Dashboard() {
           )}
 
           {!loading &&
+            isReviewer &&
+            reviewQueue.length ===
+              0 && (
+              <div className="py-12 text-center">
+
+                <CheckCircle className="mx-auto mb-4 h-10 w-10 text-green-400" />
+
+                <h3 className="mb-2 text-gray-900">
+                  You're all caught up
+                </h3>
+
+                <p className="text-sm text-gray-500">
+                  No communications are waiting for your review.
+                </p>
+
+              </div>
+            )}
+
+          {!loading &&
+            isReviewer &&
+            reviewQueue.length >
+              0 && (
+              <div className="space-y-1">
+
+                {reviewQueue.map(
+                  (item) => (
+                    <button
+                      key={
+                        item.approval_action_id
+                      }
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          "/reviews"
+                        )
+                      }
+                      className="group flex w-full items-center gap-4 rounded-lg border border-transparent p-4 text-left transition-all hover:border-gray-200 hover:bg-gray-50"
+                    >
+                      <div className="flex-1">
+                        <h3 className="mb-2">
+                          {item.communication
+                            ?.title ||
+                            "Untitled Communication"}
+                        </h3>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                          {item.communication
+                            ?.category && (
+                            <CategoryTag
+                              category={
+                                mapDatabaseCategory(
+                                  item.communication.category
+                                )
+                              }
+                              size="sm"
+                            />
+                          )}
+
+                          <StatusBadge
+                            status="pending_approval"
+                            size="sm"
+                          />
+
+                          {item.is_resubmission && (
+                            <span className="rounded-full border border-green-200 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                              Revised & resubmitted
+                            </span>
+                          )}
+
+                          <span className="text-sm text-muted-foreground">
+                            {formatDate(
+                              item.created_at
+                            )}
+                          </span>
+                        </div>
+                      </div>
+
+                      <ArrowRight className="h-4 w-4 text-gray-400 transition-transform group-hover:translate-x-0.5" />
+                    </button>
+                  )
+                )}
+
+              </div>
+            )}
+
+          {!loading &&
+            !isReviewer &&
             communications.length ===
               0 && (
               <div className="py-12 text-center">
@@ -484,6 +673,7 @@ export function Dashboard() {
             )}
 
           {!loading &&
+            !isReviewer &&
             communications.length >
               0 && (
               <div className="space-y-1">
@@ -491,7 +681,13 @@ export function Dashboard() {
                 {communications
                   .slice(0, 10)
                   .map(
-                    (comm) => (
+                    (comm) => {
+                      const revision =
+                        getRevisionState(
+                          comm
+                        );
+
+                      return (
                       <div
                         key={
                           comm.id
@@ -536,6 +732,14 @@ export function Dashboard() {
                               size="sm"
                             />
 
+                            {revision.label && (
+                              <span
+                                className={`rounded-full border px-2.5 py-1 text-xs font-medium ${revision.className}`}
+                              >
+                                {revision.label}
+                              </span>
+                            )}
+
                             <span className="text-sm text-muted-foreground">
                               {formatDate(
                                 comm.updated_at
@@ -543,6 +747,12 @@ export function Dashboard() {
                             </span>
 
                           </div>
+
+                          {revision.message && (
+                            <p className="mt-2 text-xs text-gray-600">
+                              {revision.message}
+                            </p>
+                          )}
 
                         </button>
 
@@ -555,7 +765,8 @@ export function Dashboard() {
                         </button>
 
                       </div>
-                    )
+                      );
+                    }
                   )}
 
               </div>
@@ -758,6 +969,83 @@ function openCommunication(
   }
 }
 
+
+function getRevisionState(
+  comm:
+    CommunicationRecord
+) {
+  const item =
+    comm as CommunicationRecord & {
+      revision_required?: boolean;
+      revision_requested_at?: string | null;
+      revision_completed_at?: string | null;
+      revision_resubmitted_at?: string | null;
+      latest_review_comment?: string | null;
+    };
+
+  if (
+    item.revision_required &&
+    !item.revision_completed_at
+  ) {
+    return {
+      label:
+        "Revision required",
+
+      message:
+        item.latest_review_comment
+          ? `Reviewer: ${item.latest_review_comment}`
+          : "A reviewer has requested changes before this can be resubmitted.",
+
+      className:
+        "border-amber-200 bg-amber-50 text-amber-700",
+    };
+  }
+
+  if (
+    item.revision_required &&
+    item.revision_completed_at
+  ) {
+    return {
+      label:
+        "Changes saved",
+
+      message:
+        "Requested changes have been saved. This communication is ready to resubmit for Marketing review.",
+
+      className:
+        "border-blue-200 bg-blue-50 text-blue-700",
+    };
+  }
+
+  if (
+    item.revision_resubmitted_at &&
+    [
+      "pending_approval",
+      "submitted",
+      "marketing_review",
+      "corpcom_review",
+    ].includes(
+      item.status
+    )
+  ) {
+    return {
+      label:
+        "Revised & resubmitted",
+
+      message:
+        "The revised communication has been sent back into the approval workflow.",
+
+      className:
+        "border-green-200 bg-green-50 text-green-700",
+    };
+  }
+
+  return {
+    label: "",
+    message: "",
+    className: "",
+  };
+}
 
 /**
  * Dashboard-friendly date.
