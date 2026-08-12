@@ -16,6 +16,7 @@ import {
   RotateCcw,
   ShieldCheck,
   Sparkles,
+  UserRound,
   XCircle,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ import { useAuth } from "../auth/useAuth";
 
 import {
   getReviewerQueue,
+  ReviewPerson,
   ReviewQueueItem,
   submitReviewerDecision,
 } from "../services/reviews";
@@ -59,11 +61,15 @@ export function ReviewQueue() {
   const [comments, setComments] =
     useState("");
 
-  const [decisionError, setDecisionError] =
-    useState("");
+  const [
+    decisionError,
+    setDecisionError,
+  ] = useState("");
 
-  const [submitting, setSubmitting] =
-    useState(false);
+  const [
+    submitting,
+    setSubmitting,
+  ] = useState(false);
 
   const [
     showAllFacts,
@@ -122,12 +128,14 @@ export function ReviewQueue() {
     }
 
     if (
-      (decision === "changes_requested" ||
+      (decision ===
+        "changes_requested" ||
         decision === "rejected") &&
       !comments.trim()
     ) {
       setDecisionError(
-        decision === "changes_requested"
+        decision ===
+          "changes_requested"
           ? "Please explain what needs to be changed before sending this back to the creator."
           : "Please add a reason before rejecting this communication."
       );
@@ -177,10 +185,12 @@ export function ReviewQueue() {
     return (
       <div className="min-h-screen bg-background">
         <TopNavBar />
+
         <main className="mx-auto max-w-5xl px-8 py-16 text-center">
           <h1 className="mb-3 text-2xl text-gray-900">
             Review access required
           </h1>
+
           <p className="text-gray-600">
             This page is available to Marketing and CorpCom reviewers.
           </p>
@@ -198,6 +208,7 @@ export function ReviewQueue() {
           <h1 className="mb-2 text-3xl text-gray-900">
             {heading}
           </h1>
+
           <p className="text-gray-600">
             Review communications waiting for your action.
           </p>
@@ -216,9 +227,11 @@ export function ReviewQueue() {
         ) : items.length === 0 ? (
           <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
             <CheckCircle2 className="mx-auto mb-4 h-10 w-10 text-green-500" />
+
             <h2 className="mb-2 text-xl text-gray-900">
               You're all caught up
             </h2>
+
             <p className="text-sm text-gray-500">
               There are no communications waiting for your review.
             </p>
@@ -250,9 +263,11 @@ export function ReviewQueue() {
                   <div className="mb-3 flex items-start justify-between gap-4">
                     <div>
                       <h3 className="text-base text-gray-900">
-                        {item.communication?.title ||
+                        {item.communication
+                          ?.title ||
                           "Untitled Communication"}
                       </h3>
+
                       <div className="mt-1 flex flex-wrap items-center gap-2">
                         <p className="text-xs text-gray-500">
                           Submitted{" "}
@@ -263,19 +278,26 @@ export function ReviewQueue() {
 
                         {item.is_resubmission && (
                           <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
-                            Revised & resubmitted
+                            Revised &amp; resubmitted
                           </span>
                         )}
                       </div>
+
+                      <SubmitterInline
+                        item={item}
+                        reviewerRole={
+                          reviewerRole!
+                        }
+                      />
                     </div>
 
-                    {item.communication?.category && (
+                    {item.communication
+                      ?.category && (
                       <CategoryTag
-                        category={
-                          mapDatabaseCategory(
-                            item.communication.category
-                          )
-                        }
+                        category={mapDatabaseCategory(
+                          item.communication
+                            .category
+                        )}
                         size="sm"
                       />
                     )}
@@ -284,9 +306,10 @@ export function ReviewQueue() {
                   <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-600">
                     <span>
                       Audience:{" "}
-                      {item.communication?.audience ||
-                        "—"}
+                      {item.communication
+                        ?.audience || "—"}
                     </span>
+
                     <span>
                       Stage:{" "}
                       {formatStage(
@@ -302,6 +325,7 @@ export function ReviewQueue() {
               {!selected ? (
                 <div className="py-10 text-center">
                   <FileText className="mx-auto mb-3 h-9 w-9 text-gray-300" />
+
                   <p className="text-sm text-gray-500">
                     Select a communication to review.
                   </p>
@@ -312,10 +336,14 @@ export function ReviewQueue() {
                     <div className="mb-2 flex items-start justify-between gap-3">
                       <div>
                         <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#07877B]">
-                          {formatStage(selected.stage)}
+                          {formatStage(
+                            selected.stage
+                          )}
                         </p>
+
                         <h2 className="text-xl leading-7 text-gray-900">
-                          {selected.communication?.title ||
+                          {selected.communication
+                            ?.title ||
                             "Communication"}
                         </h2>
                       </div>
@@ -326,9 +354,19 @@ export function ReviewQueue() {
                     </div>
 
                     <p className="text-xs text-gray-500">
-                      Submitted {formatDate(selected.created_at)}
+                      Submitted{" "}
+                      {formatDate(
+                        selected.created_at
+                      )}
                     </p>
                   </div>
+
+                  <SubmissionIdentity
+                    item={selected}
+                    reviewerRole={
+                      reviewerRole!
+                    }
+                  />
 
                   <ReviewBrief
                     item={selected}
@@ -336,10 +374,13 @@ export function ReviewQueue() {
 
                   <VerifiedSourceFacts
                     item={selected}
-                    expanded={showAllFacts}
+                    expanded={
+                      showAllFacts
+                    }
                     onToggle={() =>
                       setShowAllFacts(
-                        (current) => !current
+                        (current) =>
+                          !current
                       )
                     }
                   />
@@ -349,10 +390,12 @@ export function ReviewQueue() {
                     <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
                       <div className="mb-3 flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-[#07877B]" />
+
                         <div>
                           <p className="text-sm font-medium text-gray-900">
                             Copy submitted for approval
                           </p>
+
                           <p className="mt-0.5 text-xs text-gray-500">
                             Review the final selected variant before making a decision.
                           </p>
@@ -401,15 +444,22 @@ export function ReviewQueue() {
                       <MessageSquareText className="h-4 w-4" />
                       Reviewer Comment
                     </label>
+
                     <textarea
                       rows={5}
                       value={comments}
                       onChange={(event) => {
                         setComments(
-                          event.target.value
+                          event.target
+                            .value
                         );
-                        if (decisionError) {
-                          setDecisionError("");
+
+                        if (
+                          decisionError
+                        ) {
+                          setDecisionError(
+                            ""
+                          );
                         }
                       }}
                       placeholder="Add review comments..."
@@ -426,7 +476,9 @@ export function ReviewQueue() {
 
                     {decisionError && (
                       <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
-                        {decisionError}
+                        {
+                          decisionError
+                        }
                       </div>
                     )}
                   </div>
@@ -439,10 +491,13 @@ export function ReviewQueue() {
                           "approved"
                         )
                       }
-                      disabled={submitting}
+                      disabled={
+                        submitting
+                      }
                       className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-3 text-white hover:bg-[#06766a] disabled:opacity-50"
                     >
                       <CheckCircle2 className="h-4 w-4" />
+
                       {submitting
                         ? "Saving decision..."
                         : reviewerRole ===
@@ -458,7 +513,9 @@ export function ReviewQueue() {
                           "changes_requested"
                         )
                       }
-                      disabled={submitting}
+                      disabled={
+                        submitting
+                      }
                       className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <RotateCcw className="h-4 w-4" />
@@ -472,7 +529,9 @@ export function ReviewQueue() {
                           "rejected"
                         )
                       }
-                      disabled={submitting}
+                      disabled={
+                        submitting
+                      }
                       className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <XCircle className="h-4 w-4" />
@@ -489,6 +548,202 @@ export function ReviewQueue() {
   );
 }
 
+function SubmitterInline({
+  item,
+  reviewerRole,
+}: {
+  item: ReviewQueueItem;
+  reviewerRole: ReviewerRole;
+}) {
+  const original =
+    item.original_submitter;
+
+  const stage =
+    item.stage_submitter;
+
+  if (
+    !original &&
+    !stage
+  ) {
+    return null;
+  }
+
+  const isSamePerson =
+    original?.id &&
+    stage?.id &&
+    original.id ===
+      stage.id;
+
+  if (
+    reviewerRole ===
+      "marketing_reviewer" ||
+    isSamePerson
+  ) {
+    const person =
+      original || stage;
+
+    return (
+      <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-600">
+        <UserRound className="h-3.5 w-3.5 text-gray-400" />
+        <span>
+          Submitted by{" "}
+          <strong className="font-medium text-gray-800">
+            {formatPersonName(
+              person
+            )}
+          </strong>
+          {formatPersonMeta(
+            person
+          )}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-1 text-xs text-gray-600">
+      {original && (
+        <div className="flex items-center gap-1.5">
+          <UserRound className="h-3.5 w-3.5 text-gray-400" />
+          <span>
+            Originally submitted by{" "}
+            <strong className="font-medium text-gray-800">
+              {formatPersonName(
+                original
+              )}
+            </strong>
+          </span>
+        </div>
+      )}
+
+      {stage && (
+        <div className="flex items-center gap-1.5">
+          <UserRound className="h-3.5 w-3.5 text-gray-400" />
+          <span>
+            Sent to CorpCom by{" "}
+            <strong className="font-medium text-gray-800">
+              {formatPersonName(
+                stage
+              )}
+            </strong>
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubmissionIdentity({
+  item,
+  reviewerRole,
+}: {
+  item: ReviewQueueItem;
+  reviewerRole: ReviewerRole;
+}) {
+  const original =
+    item.original_submitter;
+
+  const stage =
+    item.stage_submitter;
+
+  if (
+    !original &&
+    !stage
+  ) {
+    return null;
+  }
+
+  const samePerson =
+    original?.id &&
+    stage?.id &&
+    original.id ===
+      stage.id;
+
+  return (
+    <section className="mb-6 rounded-xl border border-[#b3d9d5] bg-[#f7fbfa] p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <UserRound className="h-4 w-4 text-[#07877B]" />
+
+        <h3 className="text-sm font-medium text-gray-900">
+          Submission details
+        </h3>
+      </div>
+
+      {reviewerRole ===
+        "marketing_reviewer" ||
+      samePerson ? (
+        <PersonRow
+          label="Submitted by"
+          person={
+            original ||
+            stage
+          }
+        />
+      ) : (
+        <div className="space-y-3">
+          <PersonRow
+            label="Originally submitted by"
+            person={
+              original
+            }
+          />
+
+          <PersonRow
+            label="Sent to CorpCom by"
+            person={
+              stage
+            }
+          />
+        </div>
+      )}
+
+      {item.is_resubmission && (
+        <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
+          Revised and resubmitted after reviewer feedback
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PersonRow({
+  label,
+  person,
+}: {
+  label: string;
+  person:
+    ReviewPerson | null;
+}) {
+  return (
+    <div className="grid grid-cols-[125px,1fr] gap-3 text-xs">
+      <span className="text-gray-500">
+        {label}
+      </span>
+
+      <div>
+        <p className="font-medium text-gray-900">
+          {formatPersonName(
+            person
+          )}
+        </p>
+
+        {person && (
+          <p className="mt-0.5 text-gray-500">
+            {[
+              person.designation,
+              person.department,
+              formatRoleLabel(
+                person.role
+              ),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ReviewBrief({
   item,
@@ -531,9 +786,8 @@ function ReviewBrief({
         inputData?.sourceFileName ||
         inputData?.fileName,
     },
-  ].filter(
-    (row) =>
-      Boolean(row.value)
+  ].filter((row) =>
+    Boolean(row.value)
   );
 
   if (
@@ -546,6 +800,7 @@ function ReviewBrief({
     <section className="mb-6">
       <div className="mb-3 flex items-center gap-2">
         <FileCheck2 className="h-4 w-4 text-gray-500" />
+
         <h3 className="text-sm font-medium text-gray-900">
           Communication brief
         </h3>
@@ -602,21 +857,18 @@ function VerifiedSourceFacts({
     !facts ||
     typeof facts !== "object" ||
     Array.isArray(facts) ||
-    Object.keys(facts).length === 0
+    Object.keys(facts)
+      .length === 0
   ) {
     return null;
   }
 
   const entries =
-    Object.entries(
-      facts
-    ).filter(
+    Object.entries(facts).filter(
       ([key, value]) =>
         key !==
           "sourceWarnings" &&
-        hasFactValue(
-          value
-        )
+        hasFactValue(value)
     );
 
   if (
@@ -660,21 +912,24 @@ function VerifiedSourceFacts({
           ([key, value]) => (
             <FactRow
               key={key}
-              label={
-                formatFactLabel(
-                  key
-                )
+              label={formatFactLabel(
+                key
+              )}
+              value={
+                value
               }
-              value={value}
             />
           )
         )}
       </div>
 
-      {entries.length > 6 && (
+      {entries.length >
+        6 && (
         <button
           type="button"
-          onClick={onToggle}
+          onClick={
+            onToggle
+          }
           className="mt-4 flex items-center gap-1 text-xs font-medium text-[#07877B] hover:text-[#06766a]"
         >
           {expanded ? (
@@ -685,7 +940,11 @@ function VerifiedSourceFacts({
           ) : (
             <>
               <ChevronDown className="h-3.5 w-3.5" />
-              View all {entries.length} facts
+              View all{" "}
+              {
+                entries.length
+              }{" "}
+              facts
             </>
           )}
         </button>
@@ -694,8 +953,8 @@ function VerifiedSourceFacts({
       {Array.isArray(
         facts.sourceWarnings
       ) &&
-        facts.sourceWarnings.length >
-          0 && (
+        facts.sourceWarnings
+          .length > 0 && (
           <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3">
             <p className="mb-1 text-xs font-medium text-amber-800">
               Source notes
@@ -709,10 +968,14 @@ function VerifiedSourceFacts({
                   number
               ) => (
                 <p
-                  key={index}
+                  key={
+                    index
+                  }
                   className="text-xs leading-5 text-amber-700"
                 >
-                  {warning}
+                  {
+                    warning
+                  }
                 </p>
               )
             )}
@@ -740,19 +1003,22 @@ function FactRow({
 
         <ul className="space-y-1">
           {value
-            .filter(Boolean)
+            .filter(
+              Boolean
+            )
             .map(
               (
-                item:
-                  any,
-                index:
-                  number
+                item: any,
+                index: number
               ) => (
                 <li
-                  key={index}
+                  key={
+                    index
+                  }
                   className="flex gap-2 text-xs leading-5 text-gray-800"
                 >
                   <span className="mt-[7px] h-1 w-1 flex-shrink-0 rounded-full bg-[#07877B]" />
+
                   <span>
                     {String(
                       item
@@ -783,9 +1049,7 @@ function getInputData(
   communication:
     ReviewQueueItem["communication"]
 ) {
-  if (
-    !communication
-  ) {
+  if (!communication) {
     return null;
   }
 
@@ -796,7 +1060,8 @@ function getInputData(
 
   if (
     !data ||
-    typeof data !== "object" ||
+    typeof data !==
+      "object" ||
     Array.isArray(data)
   ) {
     return null;
@@ -813,7 +1078,8 @@ function hasFactValue(
 ) {
   if (
     value === null ||
-    value === undefined ||
+    value ===
+      undefined ||
     value === ""
   ) {
     return false;
@@ -907,6 +1173,62 @@ function formatFactLabel(
   );
 }
 
+function formatPersonName(
+  person:
+    ReviewPerson | null
+) {
+  if (!person) {
+    return "Unknown user";
+  }
+
+  return (
+    person.full_name ||
+    "Unknown user"
+  );
+}
+
+function formatPersonMeta(
+  person:
+    ReviewPerson | null
+) {
+  if (!person) {
+    return "";
+  }
+
+  const meta = [
+    person.designation,
+    person.department,
+  ].filter(Boolean);
+
+  if (
+    meta.length === 0
+  ) {
+    return "";
+  }
+
+  return ` · ${meta.join(
+    " · "
+  )}`;
+}
+
+function formatRoleLabel(
+  role:
+    string | null
+) {
+  switch (role) {
+    case "creator":
+      return "Creator";
+    case "marketing_reviewer":
+      return "Marketing Reviewer";
+    case "corpcom_reviewer":
+      return "CorpCom Reviewer";
+    case "admin":
+      return "Admin";
+    default:
+      return role || "";
+  }
+}
+
 function mapDatabaseCategory(
   category: string
 ):
@@ -919,16 +1241,22 @@ function mapDatabaseCategory(
   switch (category) {
     case "Research & Advisory":
       return "research";
+
     case "Investor Education":
       return "education";
+
     case "Product & Sales":
       return "product";
+
     case "Service & Transactional":
       return "service";
+
     case "Regulatory & Compliance":
       return "regulatory";
+
     case "Onboarding & Journey":
       return "onboarding";
+
     default:
       return "research";
   }
@@ -937,13 +1265,16 @@ function mapDatabaseCategory(
 function formatDate(
   value: string
 ) {
-  return new Date(value).toLocaleString(
+  return new Date(
+    value
+  ).toLocaleString(
     "en-IN",
     {
       day: "numeric",
       month: "short",
       hour: "numeric",
-      minute: "2-digit",
+      minute:
+        "2-digit",
     }
   );
 }
@@ -954,8 +1285,10 @@ function formatStage(
   switch (stage) {
     case "marketing_review":
       return "Marketing Review";
+
     case "corpcom_review":
       return "CorpCom Review";
+
     default:
       return stage;
   }
