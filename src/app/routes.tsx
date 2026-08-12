@@ -11,6 +11,7 @@ import { ApprovalSubmission } from "./pages/ApprovalSubmission";
 import { ApprovalStatus } from "./pages/ApprovalStatus";
 import { ReviewQueue } from "./pages/ReviewQueue";
 import { RulesSettings } from "./pages/RulesSettings";
+import { UserManagement } from "./pages/UserManagement";
 
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { RoleGuard } from "./auth/RoleGuard";
@@ -198,6 +199,22 @@ export const router =
             ]}
           >
             <RulesSettings />
+          </RoleGuard>
+        </ProtectedRoute>
+      ),
+    },
+
+    {
+      path:
+        "/settings/users",
+      element: (
+        <ProtectedRoute>
+          <RoleGuard
+            allowedRoles={[
+              "admin",
+            ]}
+          >
+            <UserManagement />
           </RoleGuard>
         </ProtectedRoute>
       ),
