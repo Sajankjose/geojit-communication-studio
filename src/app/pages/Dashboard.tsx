@@ -550,6 +550,77 @@ export function Dashboard() {
 
         </div>
 
+        {profile?.role ===
+          "admin" && (
+          <div className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-[#07877B]">
+                  Administration
+                </p>
+
+                <h2 className="mt-1 text-xl text-gray-900">
+                  Platform Management
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-gray-500">
+                  Manage users, roles and Communication Studio rules.
+                </p>
+              </div>
+
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e8f5f4]">
+                <UserCog className="h-5 w-5 text-[#07877B]" />
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    "/settings/users"
+                  )
+                }
+                className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-4 text-left transition-all hover:border-[#07877B] hover:bg-[#f7fbfa]"
+              >
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    User Management
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                    Add users and assign Creator, Marketing, CorpCom or Admin roles.
+                  </p>
+                </div>
+
+                <ArrowRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    "/settings/rules"
+                  )
+                }
+                className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-4 text-left transition-all hover:border-[#07877B] hover:bg-[#f7fbfa]"
+              >
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    Rules & Settings
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                    Manage communication rules and controlled settings.
+                  </p>
+                </div>
+
+                <ArrowRight className="h-4 w-4 flex-shrink-0 text-gray-400" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Recent Communications */}
         <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
 
