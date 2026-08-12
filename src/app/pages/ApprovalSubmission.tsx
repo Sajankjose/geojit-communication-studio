@@ -857,22 +857,47 @@ export function ApprovalSubmission() {
             </button>
           )}
 
-          {isSubmitted && (
-            <button
-              type="button"
-              onClick={() =>
-                navigate(
-                  `/approval/status?communicationId=${encodeURIComponent(
-                    communicationId ||
-                      ""
-                  )}`
-                )
-              }
-              className="rounded-lg bg-[#07877B] px-8 py-4 text-white transition-colors hover:bg-[#06766a]"
-            >
-              View Approval Status
-            </button>
-          )}
+          {approvalStage ===
+            "changes_requested" &&
+            communicationId &&
+            variantId && (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/create/preview?communicationId=${encodeURIComponent(
+                      communicationId
+                    )}&variantId=${encodeURIComponent(
+                      variantId
+                    )}&category=${encodeURIComponent(
+                      category
+                    )}&mode=revision`
+                  )
+                }
+                className="flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-8 py-4 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg"
+              >
+                Revise Communication
+              </button>
+            )}
+
+          {isSubmitted &&
+            approvalStage !==
+              "changes_requested" && (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/approval/status?communicationId=${encodeURIComponent(
+                      communicationId ||
+                        ""
+                    )}`
+                  )
+                }
+                className="rounded-lg bg-[#07877B] px-8 py-4 text-white transition-colors hover:bg-[#06766a]"
+              >
+                View Approval Status
+              </button>
+            )}
 
           {isSubmitted && (
             <button
