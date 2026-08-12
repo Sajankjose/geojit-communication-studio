@@ -31,7 +31,8 @@ export default async (
   ) {
     return jsonResponse(405, {
       success: false,
-      error: "Method not allowed.",
+      error:
+        "Method not allowed.",
     });
   }
 
@@ -55,11 +56,19 @@ export default async (
       "Admin user service environment variables are missing.",
       {
         hasUrl:
-          Boolean(supabaseUrl),
+          Boolean(
+            supabaseUrl
+          ),
+
         hasPublishableKey:
-          Boolean(publishableKey),
+          Boolean(
+            publishableKey
+          ),
+
         hasServiceRoleKey:
-          Boolean(serviceRoleKey),
+          Boolean(
+            serviceRoleKey
+          ),
       }
     );
 
@@ -70,33 +79,36 @@ export default async (
     });
   }
 
-  const authHeader =
-    request.headers.get(
-      "authorization"
-    );
+  /**
+   * IMPORTANT:
+   *
+   * We deliberately use a custom header instead
+   * of Authorization: Bearer ...
+   *
+   * Netlify can interpret Authorization Bearer
+   * tokens as Netlify Identity authentication.
+   * Our app uses Supabase Auth, so we validate
+   * the Supabase access token ourselves.
+   */
+  const token =
+    request.headers
+      .get(
+        "x-supabase-access-token"
+      )
+      ?.trim();
 
-  if (
-    !authHeader ||
-    !authHeader
-      .toLowerCase()
-      .startsWith("bearer ")
-  ) {
+  if (!token) {
     return jsonResponse(401, {
       success: false,
       error:
-        "Authentication required.",
+        "Supabase authentication token is missing.",
     });
   }
 
-  const token =
-    authHeader
-      .slice(7)
-      .trim();
-
   /**
-   * Normal user client:
-   * validate the caller and read their profile
-   * under normal RLS/auth context.
+   * Normal Supabase client:
+   * verifies the caller's Supabase token and
+   * reads the caller's profile under RLS.
    */
   const userClient =
     createClient(
@@ -104,9 +116,13 @@ export default async (
       publishableKey,
       {
         auth: {
-          persistSession: false,
-          autoRefreshToken: false,
+          persistSession:
+            false,
+
+          autoRefreshToken:
+            false,
         },
+
         global: {
           headers: {
             Authorization:
@@ -117,26 +133,37 @@ export default async (
     );
 
   const {
-    data: userData,
-    error: userError,
+    data:
+      userData,
+    error:
+      userError,
   } =
     await userClient.auth
-      .getUser(token);
+      .getUser(
+        token
+      );
 
   if (
     userError ||
     !userData.user
   ) {
+    console.error(
+      "Supabase user verification failed:",
+      userError
+    );
+
     return jsonResponse(401, {
       success: false,
       error:
-        "Invalid or expired session.",
+        "Invalid or expired Supabase session.",
     });
   }
 
   const {
-    data: profile,
-    error: profileError,
+    data:
+      profile,
+    error:
+      profileError,
   } =
     await userClient
       .from("profiles")
@@ -153,6 +180,11 @@ export default async (
     profileError ||
     !profile
   ) {
+    console.error(
+      "Admin profile verification failed:",
+      profileError
+    );
+
     return jsonResponse(403, {
       success: false,
       error:
@@ -172,9 +204,10 @@ export default async (
   }
 
   /**
-   * Privileged client:
-   * exists only inside this Netlify Function.
-   * NEVER expose this key in VITE_* variables.
+   * Privileged Supabase client.
+   *
+   * This key exists ONLY inside Netlify Functions.
+   * It must never be exposed in browser code.
    */
   const adminClient =
     createClient(
@@ -182,8 +215,11 @@ export default async (
       serviceRoleKey,
       {
         auth: {
-          persistSession: false,
-          autoRefreshToken: false,
+          persistSession:
+            false,
+
+          autoRefreshToken:
+            false,
         },
       }
     );
@@ -210,8 +246,10 @@ async function listUsers(
     >
 ) {
   const {
-    data: authData,
-    error: authError,
+    data:
+      authData,
+    error:
+      authError,
   } =
     await adminClient.auth
       .admin
@@ -234,8 +272,10 @@ async function listUsers(
   }
 
   const {
-    data: profiles,
-    error: profileError,
+    data:
+      profiles,
+    error:
+      profileError,
   } =
     await adminClient
       .from("profiles")
@@ -264,8 +304,12 @@ async function listUsers(
 
   const profileMap =
     new Map(
-      (profiles || []).map(
-        (item: any) => [
+      (
+        profiles || []
+      ).map(
+        (
+          item: any
+        ) => [
           item.id,
           item,
         ]
@@ -289,17 +333,20 @@ async function listUsers(
             "",
 
           fullName:
-            profile?.full_name ||
+            profile
+              ?.full_name ||
             user.user_metadata
               ?.full_name ||
             "",
 
           designation:
-            profile?.designation ||
+            profile
+              ?.designation ||
             "",
 
           department:
-            profile?.department ||
+            profile
+              ?.department ||
             "",
 
           role:
@@ -427,11 +474,13 @@ async function createUser(
   }
 
   /**
-   * Create Auth user on the server.
+   * Create the Supabase Auth user.
    */
   const {
-    data: created,
-    error: createError,
+    data:
+      created,
+    error:
+      createError,
   } =
     await adminClient.auth
       .admin
@@ -439,13 +488,6 @@ async function createUser(
         email,
         password,
 
-        /**
-         * Current internal-user workflow:
-         * create as email-confirmed.
-         *
-         * Later we can replace this with
-         * an invite/password-reset workflow.
-         */
         email_confirm:
           true,
 
@@ -477,6 +519,7 @@ async function createUser(
         : 400,
       {
         success: false,
+
         error:
           duplicate
             ? "A user with this email already exists."
@@ -487,10 +530,11 @@ async function createUser(
   }
 
   /**
-   * Auth and public profile are kept together.
+   * Create/update the application profile.
    */
   const {
-    error: profileInsertError,
+    error:
+      profileInsertError,
   } =
     await adminClient
       .from("profiles")
@@ -527,8 +571,8 @@ async function createUser(
     );
 
     /**
-     * Avoid leaving an unusable Auth-only user
-     * if profile creation failed.
+     * Roll back Auth creation if profile
+     * persistence fails.
      */
     await adminClient.auth
       .admin
@@ -538,6 +582,7 @@ async function createUser(
 
     return jsonResponse(500, {
       success: false,
+
       error:
         "The login was created but the user profile could not be created. The partial account was rolled back.",
     });
@@ -551,7 +596,6 @@ async function createUser(
         created.user.id,
 
       email,
-
       fullName,
       designation,
       department,
@@ -560,6 +604,12 @@ async function createUser(
       createdAt:
         created.user
           .created_at,
+
+      lastSignInAt:
+        null,
+
+      emailConfirmed:
+        true,
     },
   });
 }
