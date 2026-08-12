@@ -46,8 +46,7 @@ export function Dashboard() {
     profile?.role === "corpcom_reviewer";
 
   const canReview =
-    isReviewer ||
-    profile?.role === "admin";
+    isReviewer;
 
   const canCreate =
     profile?.role === "creator" ||
