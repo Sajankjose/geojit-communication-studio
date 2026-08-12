@@ -8,10 +8,13 @@ import {
 import {
   CheckCircle2,
   KeyRound,
+  MoreVertical,
   Plus,
   RefreshCw,
   Search,
   ShieldCheck,
+  UserCheck,
+  UserMinus,
   UserPlus,
   Users,
   X,
@@ -23,6 +26,7 @@ import {
   AdminUser,
   createAdminUser,
   getAdminUsers,
+  setAdminUserActive,
   UserRole,
 } from "../services/adminUsers";
 
@@ -32,80 +36,59 @@ const ROLE_OPTIONS: Array<{
   description: string;
 }> = [
   {
-    value:
-      "creator",
-    label:
-      "Creator",
+    value: "creator",
+    label: "Creator",
     description:
       "Creates, edits and submits communications.",
   },
-
   {
-    value:
-      "marketing_reviewer",
-    label:
-      "Marketing Reviewer",
+    value: "marketing_reviewer",
+    label: "Marketing Reviewer",
     description:
       "Reviews creator submissions and sends approved copy to CorpCom.",
   },
-
   {
-    value:
-      "corpcom_reviewer",
-    label:
-      "CorpCom Reviewer",
+    value: "corpcom_reviewer",
+    label: "CorpCom Reviewer",
     description:
       "Final communication approval authority.",
   },
-
   {
-    value:
-      "admin",
-    label:
-      "Admin",
+    value: "admin",
+    label: "Admin",
     description:
       "Platform administration and oversight. Not an approver.",
   },
 ];
 
 export function UserManagement() {
-  const [
-    users,
-    setUsers,
-  ] =
-    useState<
-      AdminUser[]
-    >([]);
+  const [users, setUsers] =
+    useState<AdminUser[]>([]);
 
-  const [
-    loading,
-    setLoading,
-  ] =
+  const [loading, setLoading] =
     useState(true);
 
-  const [
-    error,
-    setError,
-  ] =
+  const [error, setError] =
     useState("");
 
-  const [
-    success,
-    setSuccess,
-  ] =
+  const [success, setSuccess] =
     useState("");
 
-  const [
-    search,
-    setSearch,
-  ] =
+  const [search, setSearch] =
     useState("");
 
   const [
     showAddUser,
     setShowAddUser,
+  ] = useState(false);
+
+  const [
+    statusTarget,
+    setStatusTarget,
   ] =
-    useState(false);
+    useState<AdminUser | null>(
+      null
+    );
 
   async function loadUsers() {
     try {
@@ -132,38 +115,35 @@ export function UserManagement() {
   }, []);
 
   const filteredUsers =
-    useMemo(
-      () => {
-        const term =
-          search
-            .trim()
-            .toLowerCase();
+    useMemo(() => {
+      const term =
+        search
+          .trim()
+          .toLowerCase();
 
-        if (!term) {
-          return users;
-        }
+      if (!term) {
+        return users;
+      }
 
-        return users.filter(
-          (user) =>
-            [
-              user.fullName,
-              user.email,
-              user.designation,
-              user.department,
-              getRoleLabel(
-                user.role
-              ),
-            ]
-              .join(" ")
-              .toLowerCase()
-              .includes(term)
-        );
-      },
-      [
-        search,
-        users,
-      ]
-    );
+      return users.filter(
+        (user) =>
+          [
+            user.fullName,
+            user.email,
+            user.designation,
+            user.department,
+            getRoleLabel(
+              user.role
+            ),
+            user.active
+              ? "active"
+              : "deactivated",
+          ]
+            .join(" ")
+            .toLowerCase()
+            .includes(term)
+      );
+    }, [search, users]);
 
   const roleCounts =
     useMemo(
@@ -172,28 +152,32 @@ export function UserManagement() {
           users.filter(
             (user) =>
               user.role ===
-              "creator"
+                "creator" &&
+              user.active
           ).length,
 
         marketing:
           users.filter(
             (user) =>
               user.role ===
-              "marketing_reviewer"
+                "marketing_reviewer" &&
+              user.active
           ).length,
 
         corpcom:
           users.filter(
             (user) =>
               user.role ===
-              "corpcom_reviewer"
+                "corpcom_reviewer" &&
+              user.active
           ).length,
 
         admin:
           users.filter(
             (user) =>
               user.role ===
-              "admin"
+                "admin" &&
+              user.active
           ).length,
       }),
       [users]
@@ -216,7 +200,7 @@ export function UserManagement() {
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-              Add internal users and assign their Communication Studio role.
+              Add users, assign roles, and control platform access without deleting historical records.
             </p>
           </div>
 
@@ -225,7 +209,9 @@ export function UserManagement() {
             onClick={() => {
               setSuccess("");
               setError("");
-              setShowAddUser(true);
+              setShowAddUser(
+                true
+              );
             }}
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-5 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-[#06766a]"
           >
@@ -249,28 +235,28 @@ export function UserManagement() {
 
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <RoleStat
-            label="Creators"
+            label="Active Creators"
             value={
               roleCounts.creator
             }
           />
 
           <RoleStat
-            label="Marketing"
+            label="Active Marketing"
             value={
               roleCounts.marketing
             }
           />
 
           <RoleStat
-            label="CorpCom"
+            label="Active CorpCom"
             value={
               roleCounts.corpcom
             }
           />
 
           <RoleStat
-            label="Admins"
+            label="Active Admins"
             value={
               roleCounts.admin
             }
@@ -300,7 +286,8 @@ export function UserManagement() {
                   value={search}
                   onChange={(event) =>
                     setSearch(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                   placeholder="Search users..."
@@ -338,7 +325,8 @@ export function UserManagement() {
                 Loading users...
               </p>
             </div>
-          ) : filteredUsers.length === 0 ? (
+          ) : filteredUsers.length ===
+            0 ? (
             <div className="py-16 text-center">
               <Users className="mx-auto mb-3 h-9 w-9 text-gray-300" />
 
@@ -354,9 +342,15 @@ export function UserManagement() {
                     key={
                       user.id
                     }
-                    user={
-                      user
-                    }
+                    user={user}
+                    onStatusChange={() => {
+                      setError("");
+                      setSuccess("");
+
+                      setStatusTarget(
+                        user
+                      );
+                    }}
                   />
                 )
               )}
@@ -394,6 +388,264 @@ export function UserManagement() {
           }}
         />
       )}
+
+      {statusTarget && (
+        <UserStatusModal
+          user={
+            statusTarget
+          }
+          onClose={() =>
+            setStatusTarget(
+              null
+            )
+          }
+          onUpdated={async (
+            active
+          ) => {
+            const userName =
+              statusTarget.fullName ||
+              statusTarget.email;
+
+            setStatusTarget(
+              null
+            );
+
+            setSuccess(
+              `${userName} was ${
+                active
+                  ? "reactivated"
+                  : "deactivated"
+              } successfully.`
+            );
+
+            await loadUsers();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function UserRow({
+  user,
+  onStatusChange,
+}: {
+  user: AdminUser;
+  onStatusChange: () => void;
+}) {
+  const cannotDeactivateSelf =
+    user.isCurrentUser &&
+    user.active;
+
+  return (
+    <div
+      className={`grid gap-4 p-5 md:grid-cols-[1.35fr,1fr,190px,140px,52px] md:items-center ${
+        !user.active
+          ? "bg-gray-50/70"
+          : ""
+      }`}
+    >
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <p
+            className={`font-medium ${
+              user.active
+                ? "text-gray-900"
+                : "text-gray-500"
+            }`}
+          >
+            {user.fullName ||
+              "Unnamed User"}
+          </p>
+
+          {user.isCurrentUser && (
+            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-medium text-blue-700">
+              You
+            </span>
+          )}
+        </div>
+
+        <p className="mt-1 text-sm text-gray-500">
+          {user.email}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-sm text-gray-800">
+          {user.designation ||
+            "—"}
+        </p>
+
+        <p className="mt-1 text-xs text-gray-500">
+          {user.department ||
+            "—"}
+        </p>
+      </div>
+
+      <RoleBadge
+        role={
+          user.role
+        }
+      />
+
+      <StatusBadge
+        active={
+          user.active
+        }
+      />
+
+      <button
+        type="button"
+        onClick={
+          onStatusChange
+        }
+        disabled={
+          cannotDeactivateSelf
+        }
+        title={
+          cannotDeactivateSelf
+            ? "You cannot deactivate your own account"
+            : user.active
+              ? "Deactivate user"
+              : "Reactivate user"
+        }
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+function UserStatusModal({
+  user,
+  onClose,
+  onUpdated,
+}: {
+  user: AdminUser;
+  onClose: () => void;
+  onUpdated: (
+    active: boolean
+  ) => void;
+}) {
+  const [saving, setSaving] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const nextActive =
+    !user.active;
+
+  async function confirm() {
+    try {
+      setSaving(true);
+      setError("");
+
+      await setAdminUserActive({
+        userId:
+          user.id,
+        active:
+          nextActive,
+      });
+
+      onUpdated(
+        nextActive
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to update user access."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <div
+          className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${
+            nextActive
+              ? "bg-green-50"
+              : "bg-amber-50"
+          }`}
+        >
+          {nextActive ? (
+            <UserCheck className="h-5 w-5 text-green-700" />
+          ) : (
+            <UserMinus className="h-5 w-5 text-amber-700" />
+          )}
+        </div>
+
+        <h2 className="text-xl text-gray-900">
+          {nextActive
+            ? "Reactivate User"
+            : "Deactivate User"}
+        </h2>
+
+        <p className="mt-2 text-sm leading-6 text-gray-600">
+          {nextActive
+            ? `Restore platform access for ${
+                user.fullName ||
+                user.email
+              }?`
+            : `Deactivate ${
+                user.fullName ||
+                user.email
+              }? The user will no longer be able to sign in, while their communications, reviews and audit history remain preserved.`}
+        </p>
+
+        {!nextActive && (
+          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
+            This does not delete the user or their historical records.
+          </div>
+        )}
+
+        {error && (
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={
+              onClose
+            }
+            disabled={
+              saving
+            }
+            className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={
+              confirm
+            }
+            disabled={
+              saving
+            }
+            className={`rounded-lg px-4 py-2.5 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50 ${
+              nextActive
+                ? "bg-[#07877B] hover:bg-[#06766a]"
+                : "bg-amber-600 hover:bg-amber-700"
+            }`}
+          >
+            {saving
+              ? "Saving..."
+              : nextActive
+                ? "Reactivate User"
+                : "Deactivate User"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -402,31 +654,20 @@ function AddUserModal({
   onClose,
   onCreated,
 }: {
-  onClose:
-    () => void;
-  onCreated:
-    (
-      user:
-        AdminUser
-    ) => void;
+  onClose: () => void;
+  onCreated: (
+    user: AdminUser
+  ) => void;
 }) {
-  const [
-    form,
-    setForm,
-  ] =
+  const [form, setForm] =
     useState({
-      fullName:
-        "",
-      email:
-        "",
-      designation:
-        "",
-      department:
-        "",
+      fullName: "",
+      email: "",
+      designation: "",
+      department: "",
       role:
         "creator" as UserRole,
-      password:
-        "",
+      password: "",
     });
 
   const [
@@ -435,10 +676,7 @@ function AddUserModal({
   ] =
     useState(false);
 
-  const [
-    error,
-    setError,
-  ] =
+  const [error, setError] =
     useState("");
 
   function update(
@@ -490,7 +728,10 @@ function AddUserModal({
     }
 
     try {
-      setSubmitting(true);
+      setSubmitting(
+        true
+      );
+
       setError("");
 
       const user =
@@ -517,7 +758,9 @@ function AddUserModal({
           : "Unable to create user."
       );
     } finally {
-      setSubmitting(false);
+      setSubmitting(
+        false
+      );
     }
   }
 
@@ -661,9 +904,7 @@ function AddUserModal({
 
                       <div>
                         <p className="text-sm font-medium text-gray-900">
-                          {
-                            option.label
-                          }
+                          {option.label}
                         </p>
 
                         <p className="mt-1 text-xs leading-5 text-gray-500">
@@ -705,10 +946,6 @@ function AddUserModal({
                 )
               }
             />
-
-            <p className="mt-2 text-xs leading-5 text-gray-500">
-              Share this password securely with the user. A password-reset/invite flow can be added next.
-            </p>
           </div>
 
           <div className="mt-7 flex justify-end gap-3 border-t border-gray-100 pt-5">
@@ -749,61 +986,10 @@ function AddUserModal({
   );
 }
 
-function UserRow({
-  user,
-}: {
-  user:
-    AdminUser;
-}) {
-  return (
-    <div className="grid gap-4 p-5 md:grid-cols-[1.4fr,1fr,190px,120px] md:items-center">
-      <div>
-        <p className="font-medium text-gray-900">
-          {user.fullName ||
-            "Unnamed User"}
-        </p>
-
-        <p className="mt-1 text-sm text-gray-500">
-          {user.email}
-        </p>
-      </div>
-
-      <div>
-        <p className="text-sm text-gray-800">
-          {user.designation ||
-            "—"}
-        </p>
-
-        <p className="mt-1 text-xs text-gray-500">
-          {user.department ||
-            "—"}
-        </p>
-      </div>
-
-      <div>
-        <RoleBadge
-          role={
-            user.role
-          }
-        />
-      </div>
-
-      <div className="text-right">
-        <p className="text-xs text-gray-500">
-          {user.lastSignInAt
-            ? "Signed in"
-            : "Not signed in"}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 function RoleBadge({
   role,
 }: {
-  role:
-    UserRole;
+  role: UserRole;
 }) {
   return (
     <span className="inline-flex rounded-full border border-[#b3d9d5] bg-[#e8f5f4] px-3 py-1 text-xs font-medium text-[#07877B]">
@@ -814,14 +1000,28 @@ function RoleBadge({
   );
 }
 
+function StatusBadge({
+  active,
+}: {
+  active: boolean;
+}) {
+  return active ? (
+    <span className="inline-flex w-fit rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+      Active
+    </span>
+  ) : (
+    <span className="inline-flex w-fit rounded-full border border-gray-300 bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+      Deactivated
+    </span>
+  );
+}
+
 function RoleStat({
   label,
   value,
 }: {
-  label:
-    string;
-  value:
-    number;
+  label: string;
+  value: number;
 }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -844,15 +1044,11 @@ function FormField({
   required = false,
   placeholder = "",
 }: {
-  label:
-    string;
-  value:
-    string;
-  onChange:
-    (
-      value:
-        string
-    ) => void;
+  label: string;
+  value: string;
+  onChange: (
+    value: string
+  ) => void;
   type?: string;
   required?: boolean;
   placeholder?: string;
@@ -874,10 +1070,15 @@ function FormField({
         type={type}
         value={value}
         required={required}
-        placeholder={placeholder}
-        onChange={(event) =>
+        placeholder={
+          placeholder
+        }
+        onChange={(
+          event
+        ) =>
           onChange(
-            event.target.value
+            event.target
+              .value
           )
         }
         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
@@ -887,8 +1088,7 @@ function FormField({
 }
 
 function getRoleLabel(
-  role:
-    UserRole
+  role: UserRole
 ) {
   switch (role) {
     case "creator":
