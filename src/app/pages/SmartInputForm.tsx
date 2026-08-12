@@ -33,6 +33,10 @@ import {
 } from "../services/communications";
 
 import {
+  markCreatorRevisionComplete,
+} from "../services/revisionTracking";
+
+import {
   SourceFileMetadata,
   formatFileSize,
   removeCommunicationPdf,
@@ -1286,45 +1290,59 @@ export function SmartInputForm() {
     const inputData =
       buildInputData();
 
-    return updateCommunication(
-      communicationId,
-      {
-        title:
-          formData.title.trim() ||
-          "New Communication",
+    const hadCreatorChanges =
+      hasUnsavedChanges;
 
-        category:
-          databaseCategory,
+    const result =
+      await updateCommunication(
+        communicationId,
+        {
+          title:
+            formData.title.trim() ||
+            "New Communication",
 
-        subcategory:
-          formData.subcategory ||
-          null,
-
-        audience:
-          formData.audience ||
-          null,
-
-        objective:
-          formData.keyMessage ||
-          null,
-
-        status:
-          nextStatus,
-
-        input_data:
-          inputData,
-
-        classification_data: {
           category:
             databaseCategory,
 
           subcategory:
-            formData.subcategory,
+            formData.subcategory ||
+            null,
 
-          inputMethod,
-        },
-      }
-    );
+          audience:
+            formData.audience ||
+            null,
+
+          objective:
+            formData.keyMessage ||
+            null,
+
+          status:
+            nextStatus,
+
+          input_data:
+            inputData,
+
+          classification_data: {
+            category:
+              databaseCategory,
+
+            subcategory:
+              formData.subcategory,
+
+            inputMethod,
+          },
+        }
+      );
+
+    if (
+      hadCreatorChanges
+    ) {
+      await markCreatorRevisionComplete(
+        communicationId
+      );
+    }
+
+    return result;
   }
 
   async function handleSaveDraft() {
