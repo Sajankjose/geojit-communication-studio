@@ -2,18 +2,23 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import {
   ArrowLeft,
+  CheckCircle2,
   Copy,
   Download,
   FileText,
   Lock,
+  MessageSquareText,
   Monitor,
+  RotateCcw,
   Smartphone,
   Tag,
   Users,
+  XCircle,
 } from "lucide-react";
 
 import { TopNavBar } from "../components/TopNavBar";
 import { CategoryTag } from "../components/CategoryTag";
+import { useAuth } from "../auth/useAuth";
 import { StatusBadge } from "../components/StatusBadge";
 import { EmailPreview } from "../components/EmailPreview";
 import { CommunicationStateBar } from "../components/CommunicationStateBar";
@@ -28,6 +33,10 @@ import {
   markCreatorRevisionComplete,
 } from "../services/revisionTracking";
 
+import {
+  submitReviewerDecision,
+} from "../services/reviews";
+
 import { supabase } from "../../lib/supabase";
 
 import { renderEmailHtml } from "../email/renderEmailHtml";
@@ -39,6 +48,15 @@ type Category =
   | "service"
   | "regulatory"
   | "onboarding";
+
+type ReviewerRole =
+  | "marketing_reviewer"
+  | "corpcom_reviewer";
+
+type ReviewDecision =
+  | "approved"
+  | "changes_requested"
+  | "rejected";
 
 interface VariantContentData {
   variant_key?: string;
@@ -115,11 +133,25 @@ export function FullPreview() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const {
+    profile,
+  } = useAuth();
+
   const communicationId = searchParams.get("communicationId");
   const variantId = searchParams.get("variantId");
   const urlCategory = searchParams.get("category") as Category | null;
   const isReviewMode =
     searchParams.get("mode") === "review";
+
+  const reviewerRole =
+    (
+      profile?.role ===
+        "marketing_reviewer" ||
+      profile?.role ===
+        "corpcom_reviewer"
+    )
+      ? profile.role as ReviewerRole
+      : null;
 
   const [category, setCategory] = useState<Category>(
     urlCategory || "research"
@@ -144,6 +176,42 @@ export function FullPreview() {
     previewDirty,
     setPreviewDirty,
   ] = useState(false);
+
+  const [
+    approvalActionId,
+    setApprovalActionId,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+  const [
+    reviewComments,
+    setReviewComments,
+  ] =
+    useState("");
+
+  const [
+    pendingDecision,
+    setPendingDecision,
+  ] =
+    useState<
+      "changes_requested" |
+      "rejected" |
+      null
+    >(null);
+
+  const [
+    decisionError,
+    setDecisionError,
+  ] =
+    useState("");
+
+  const [
+    decisionSaving,
+    setDecisionSaving,
+  ] =
+    useState(false);
 
   useEffect(() => {
     if (!communicationId || !variantId) {
@@ -218,6 +286,73 @@ export function FullPreview() {
         setCtaEnabled(Boolean(cta.enabled));
         setCtaText(cta.label || "");
         setCtaUrl(cta.url || "");
+
+        if (
+          isReviewMode &&
+          reviewerRole
+        ) {
+          const stage =
+            reviewerRole ===
+              "marketing_reviewer"
+              ? "marketing_review"
+              : "corpcom_review";
+
+          const {
+            data:
+              approvalRow,
+            error:
+              approvalError,
+          } =
+            await supabase
+              .from(
+                "approval_actions"
+              )
+              .select(
+                `
+                id,
+                comments
+                `
+              )
+              .eq(
+                "communication_id",
+                communicationId!
+              )
+              .eq(
+                "stage",
+                stage
+              )
+              .eq(
+                "status",
+                "pending"
+              )
+              .order(
+                "created_at",
+                {
+                  ascending:
+                    false,
+                }
+              )
+              .limit(1)
+              .maybeSingle();
+
+          if (
+            approvalError
+          ) {
+            throw new Error(
+              approvalError.message
+            );
+          }
+
+          setApprovalActionId(
+            approvalRow?.id ||
+              null
+          );
+
+          setReviewComments(
+            approvalRow?.comments ||
+              ""
+          );
+        }
       } catch (err) {
         if (cancelled) return;
 
@@ -240,7 +375,12 @@ export function FullPreview() {
     return () => {
       cancelled = true;
     };
-  }, [communicationId, variantId]);
+  }, [
+    communicationId,
+    variantId,
+    isReviewMode,
+    reviewerRole,
+  ]);
 
   async function savePreviewEdits() {
     if (!communicationId || !variantId || !variant) {
@@ -478,6 +618,110 @@ export function FullPreview() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleReviewerDecision(
+    decision:
+      ReviewDecision
+  ) {
+    if (
+      !isReviewMode ||
+      !reviewerRole ||
+      !approvalActionId ||
+      !communicationId ||
+      decisionSaving
+    ) {
+      return;
+    }
+
+    if (
+      (
+        decision ===
+          "changes_requested" ||
+        decision ===
+          "rejected"
+      ) &&
+      !reviewComments.trim()
+    ) {
+      setDecisionError(
+        decision ===
+          "changes_requested"
+          ? "Please explain what needs to be changed before returning this communication to the creator."
+          : "Please add a reason before rejecting this communication."
+      );
+
+      return;
+    }
+
+    try {
+      setDecisionSaving(
+        true
+      );
+
+      setDecisionError(
+        ""
+      );
+
+      setError(
+        ""
+      );
+
+      await submitReviewerDecision({
+        approvalActionId,
+        communicationId,
+        decision,
+        comments:
+          reviewComments,
+        reviewerRole,
+      });
+
+      navigate(
+        "/reviews",
+        {
+          replace:
+            true,
+        }
+      );
+    } catch (err) {
+      console.error(
+        "Unable to save reviewer decision:",
+        err
+      );
+
+      setDecisionError(
+        err instanceof Error
+          ? err.message
+          : "Unable to save review decision."
+      );
+    } finally {
+      setDecisionSaving(
+        false
+      );
+    }
+  }
+
+  function beginReviewerDecision(
+    decision:
+      "changes_requested" |
+      "rejected"
+  ) {
+    setPendingDecision(
+      decision
+    );
+
+    setDecisionError(
+      ""
+    );
+  }
+
+  function cancelReviewerDecision() {
+    setPendingDecision(
+      null
+    );
+
+    setDecisionError(
+      ""
+    );
   }
 
   function handleBack() {
@@ -815,14 +1059,191 @@ export function FullPreview() {
               </button>
 
               {isReviewMode ? (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-3 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Review Queue
-                </button>
+                <>
+                  {reviewerRole &&
+                    approvalActionId ? (
+                    <div className="rounded-xl border border-gray-200 bg-white p-5">
+                      <div className="mb-4">
+                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                          Review decision
+                        </p>
+
+                        <p className="mt-1 text-sm text-gray-600">
+                          {reviewerRole ===
+                          "marketing_reviewer"
+                            ? "Approve this copy to send it to CorpCom for final approval."
+                            : "CorpCom is the final approval stage for this communication."}
+                        </p>
+                      </div>
+
+                      {pendingDecision && (
+                        <div className="mb-4">
+                          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+                            <MessageSquareText className="h-4 w-4" />
+                            {pendingDecision ===
+                            "changes_requested"
+                              ? "Changes required"
+                              : "Reason for rejection"}
+                          </label>
+
+                          <textarea
+                            rows={4}
+                            value={
+                              reviewComments
+                            }
+                            onChange={(
+                              event
+                            ) => {
+                              setReviewComments(
+                                event.target.value
+                              );
+
+                              if (
+                                decisionError
+                              ) {
+                                setDecisionError(
+                                  ""
+                                );
+                              }
+                            }}
+                            placeholder={
+                              pendingDecision ===
+                              "changes_requested"
+                                ? "Explain exactly what the creator should change..."
+                                : "Explain why this communication is being rejected..."
+                            }
+                            className={`w-full rounded-lg border px-3 py-3 text-sm focus:outline-none focus:ring-2 ${
+                              decisionError
+                                ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+                                : "border-gray-300 focus:border-[#07877B] focus:ring-[#07877B]/20"
+                            }`}
+                          />
+
+                          {decisionError && (
+                            <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
+                              {
+                                decisionError
+                              }
+                            </div>
+                          )}
+
+                          <div className="mt-3 flex gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleReviewerDecision(
+                                  pendingDecision
+                                )
+                              }
+                              disabled={
+                                decisionSaving
+                              }
+                              className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
+                                pendingDecision ===
+                                "changes_requested"
+                                  ? "bg-amber-500 text-white hover:bg-amber-600"
+                                  : "bg-red-600 text-white hover:bg-red-700"
+                              }`}
+                            >
+                              {decisionSaving
+                                ? "Saving..."
+                                : pendingDecision ===
+                                    "changes_requested"
+                                  ? "Send Back to Creator"
+                                  : "Confirm Rejection"}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={
+                                cancelReviewerDecision
+                              }
+                              disabled={
+                                decisionSaving
+                              }
+                              className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {!pendingDecision && (
+                        <div className="space-y-3">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleReviewerDecision(
+                                "approved"
+                              )
+                            }
+                            disabled={
+                              decisionSaving
+                            }
+                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-3 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+
+                            {decisionSaving
+                              ? "Saving..."
+                              : reviewerRole ===
+                                  "marketing_reviewer"
+                                ? "Approve & Send to CorpCom"
+                                : "Final Approve"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              beginReviewerDecision(
+                                "changes_requested"
+                              )
+                            }
+                            disabled={
+                              decisionSaving
+                            }
+                            className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                            Request Changes
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              beginReviewerDecision(
+                                "rejected"
+                              )
+                            }
+                            disabled={
+                              decisionSaving
+                            }
+                            className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <XCircle className="h-4 w-4" />
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                      No pending review action was found for this communication. Return to the Review Queue and refresh the workflow.
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={
+                      handleBack
+                    }
+                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 transition-all hover:bg-gray-50"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to Review Queue
+                  </button>
+                </>
               ) : (
                 <>
                   <button
