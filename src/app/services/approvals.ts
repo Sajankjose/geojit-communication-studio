@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabase";
+import { requireCurrentUserRole } from "./requireRole";
 
 export type ApprovalStage =
   | "marketing_review"
@@ -69,20 +70,12 @@ export async function submitCommunicationForApproval({
   comments?: string;
 }): Promise<ApprovalActionRecord> {
   const {
-    data: { user },
-    error: userError,
+    user,
   } =
-    await supabase.auth
-      .getUser();
-
-  if (
-    userError ||
-    !user
-  ) {
-    throw new Error(
-      "Your session has expired. Please sign in again."
-    );
-  }
+    await requireCurrentUserRole([
+      "creator",
+      "admin",
+    ]);
 
   /**
    * Prevent duplicate pending review rows.
