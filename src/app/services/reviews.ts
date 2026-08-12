@@ -44,9 +44,14 @@ export async function getReviewerQueue(
       ? "marketing_review"
       : "corpcom_review";
 
-  const { data, error } =
+  const {
+    data,
+    error,
+  } =
     await supabase
-      .from("approval_actions")
+      .from(
+        "approval_actions"
+      )
       .select(
         `
         id,
@@ -102,45 +107,43 @@ export async function getReviewerQueue(
   return (
     data || []
   ).map(
-    (row: any) => {
-      const communication =
+    (row: any) => ({
+      approval_action_id:
+        row.id,
+
+      communication_id:
+        row.communication_id,
+
+      action:
+        row.action,
+
+      status:
+        row.status,
+
+      stage:
+        row.stage,
+
+      reviewer_role:
+        row.reviewer_role,
+
+      comments:
+        row.comments,
+
+      created_at:
+        row.created_at,
+
+      communication:
         row.communication ||
-        null;
+        null,
 
-      return {
-        approval_action_id:
-          row.id,
-
-        communication_id:
-          row.communication_id,
-
-        action:
-          row.action,
-
-        status:
-          row.status,
-
-        stage:
-          row.stage,
-
-        reviewer_role:
-          row.reviewer_role,
-
-        comments:
-          row.comments,
-
-        created_at:
-          row.created_at,
-
-        communication,
-
-        is_resubmission:
-          Boolean(
-            communication
-              ?.revision_resubmitted_at
-          ),
-      };
-    }
+      is_resubmission:
+        row.action ===
+          "resubmitted" ||
+        Boolean(
+          row.communication
+            ?.revision_resubmitted_at
+        ),
+    })
   ) as ReviewQueueItem[];
 }
 
@@ -185,11 +188,21 @@ export async function submitReviewerDecision({
     comments?.trim() ||
     null;
 
+  /**
+   * Close the CURRENT pending review action.
+   * select().single() verifies that Supabase
+   * actually updated the intended audit row.
+   */
   const {
-    error: closeError,
+    data:
+      closedAction,
+    error:
+      closeError,
   } =
     await supabase
-      .from("approval_actions")
+      .from(
+        "approval_actions"
+      )
       .update({
         status:
           decision ===
@@ -218,11 +231,27 @@ export async function submitReviewerDecision({
       .eq(
         "id",
         approvalActionId
-      );
+      )
+      .eq(
+        "communication_id",
+        communicationId
+      )
+      .eq(
+        "status",
+        "pending"
+      )
+      .select(
+        "id, stage, action, status"
+      )
+      .single();
 
-  if (closeError) {
+  if (
+    closeError ||
+    !closedAction
+  ) {
     throw new Error(
-      closeError.message
+      closeError?.message ||
+        "The pending review action could not be updated."
     );
   }
 
@@ -230,9 +259,13 @@ export async function submitReviewerDecision({
     decision ===
     "changes_requested"
   ) {
-    const { error } =
+    const {
+      error,
+    } =
       await supabase
-        .from("communications")
+        .from(
+          "communications"
+        )
         .update({
           status:
             "changes_requested",
@@ -270,9 +303,13 @@ export async function submitReviewerDecision({
     decision ===
     "rejected"
   ) {
-    const { error } =
+    const {
+      error,
+    } =
       await supabase
-        .from("communications")
+        .from(
+          "communications"
+        )
         .update({
           status:
             "rejected",
@@ -297,15 +334,22 @@ export async function submitReviewerDecision({
     return;
   }
 
+  /**
+   * Marketing approval creates the next pending
+   * CorpCom audit row.
+   */
   if (
     reviewerRole ===
     "marketing_reviewer"
   ) {
     const {
-      error: nextError,
+      error:
+        nextError,
     } =
       await supabase
-        .from("approval_actions")
+        .from(
+          "approval_actions"
+        )
         .insert({
           communication_id:
             communicationId,
@@ -335,18 +379,24 @@ export async function submitReviewerDecision({
             cleanComment,
         });
 
-    if (nextError) {
+    if (
+      nextError
+    ) {
       throw new Error(
         nextError.message
       );
     }
 
     const {
+      data:
+        updatedCommunication,
       error:
         statusError,
     } =
       await supabase
-        .from("communications")
+        .from(
+          "communications"
+        )
         .update({
           status:
             "corpcom_review",
@@ -354,24 +404,46 @@ export async function submitReviewerDecision({
         .eq(
           "id",
           communicationId
-        );
+        )
+        .select(
+          "id, status"
+        )
+        .single();
 
     if (
-      statusError
+      statusError ||
+      updatedCommunication
+        ?.status !==
+        "corpcom_review"
     ) {
       throw new Error(
-        statusError.message
+        statusError?.message ||
+          "Communication did not move to CorpCom review."
       );
     }
 
     return;
   }
 
+  /**
+   * CorpCom approval is FINAL.
+   *
+   * At this point the corpcom_review pending row
+   * has already been changed to:
+   * action=approved, status=completed.
+   * We now also verify the parent communication
+   * moves to approved.
+   */
   const {
-    error: finalError,
+    data:
+      finalCommunication,
+    error:
+      finalError,
   } =
     await supabase
-      .from("communications")
+      .from(
+        "communications"
+      )
       .update({
         status:
           "approved",
@@ -382,11 +454,21 @@ export async function submitReviewerDecision({
       .eq(
         "id",
         communicationId
-      );
+      )
+      .select(
+        "id, status"
+      )
+      .single();
 
-  if (finalError) {
+  if (
+    finalError ||
+    finalCommunication
+      ?.status !==
+      "approved"
+  ) {
     throw new Error(
-      finalError.message
+      finalError?.message ||
+        "Final CorpCom approval was not saved correctly."
     );
   }
 }
