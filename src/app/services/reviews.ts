@@ -41,22 +41,8 @@ export interface ReviewQueueItem {
     latest_review_comment: string | null;
   } | null;
 
-  /**
-   * Person who originally created the communication.
-   * For the first Marketing submission this will
-   * normally be the same as stage_submitter.
-   */
   original_submitter: ReviewPerson | null;
-
-  /**
-   * Person who sent the communication into the
-   * CURRENT review stage.
-   *
-   * Marketing stage -> Creator
-   * CorpCom stage   -> Marketing reviewer
-   */
   stage_submitter: ReviewPerson | null;
-
   is_resubmission: boolean;
 }
 
@@ -140,10 +126,6 @@ export async function getReviewerQueue(
   const rows =
     (data || []) as any[];
 
-  /**
-   * Collect only the profile IDs required to render
-   * the current review queue.
-   */
   const profileIds =
     Array.from(
       new Set(
@@ -164,8 +146,7 @@ export async function getReviewerQueue(
     >();
 
   if (
-    profileIds.length >
-    0
+    profileIds.length > 0
   ) {
     const {
       data: profiles,
@@ -304,13 +285,54 @@ export async function submitReviewerDecision({
     );
   }
 
-  const now =
-    new Date().toISOString();
-
   const cleanComment =
     comments?.trim() ||
     null;
 
+  /**
+   * Marketing approval must be atomic:
+   * close Marketing + move communication +
+   * create CorpCom queue row in ONE DB transaction.
+   */
+  if (
+    reviewerRole ===
+      "marketing_reviewer" &&
+    decision ===
+      "approved"
+  ) {
+    const {
+      error,
+    } =
+      await supabase.rpc(
+        "marketing_send_to_corpcom",
+        {
+          p_approval_action_id:
+            approvalActionId,
+
+          p_communication_id:
+            communicationId,
+
+          p_comments:
+            cleanComment,
+        }
+      );
+
+    if (error) {
+      throw new Error(
+        error.message
+      );
+    }
+
+    return;
+  }
+
+  const now =
+    new Date().toISOString();
+
+  /**
+   * All remaining decisions continue to close
+   * the CURRENT pending review action directly.
+   */
   const {
     data: closedAction,
     error: closeError,
@@ -324,7 +346,8 @@ export async function submitReviewerDecision({
             ? "completed"
             : decision,
 
-        action: decision,
+        action:
+          decision,
 
         actor_id:
           user.id,
@@ -444,67 +467,29 @@ export async function submitReviewerDecision({
   }
 
   /**
-   * Marketing approval creates the CorpCom handoff.
-   * submitted_by is intentionally the Marketing
-   * reviewer here, so CorpCom can see who sent it
-   * to their stage. original_submitter remains
-   * available through communications.created_by.
+   * The only remaining approved case is
+   * CorpCom final approval.
    */
   if (
     reviewerRole ===
-    "marketing_reviewer"
+      "corpcom_reviewer" &&
+    decision ===
+      "approved"
   ) {
     const {
-      error: nextError,
-    } =
-      await supabase
-        .from("approval_actions")
-        .insert({
-          communication_id:
-            communicationId,
-
-          action:
-            "submitted",
-
-          status:
-            "pending",
-
-          stage:
-            "corpcom_review",
-
-          actor_id:
-            user.id,
-
-          submitted_by:
-            user.id,
-
-          reviewer_id:
-            null,
-
-          reviewer_role:
-            "corpcom_reviewer",
-
-          comments:
-            cleanComment,
-        });
-
-    if (nextError) {
-      throw new Error(
-        nextError.message
-      );
-    }
-
-    const {
       data:
-        updatedCommunication,
+        finalCommunication,
       error:
-        statusError,
+        finalError,
     } =
       await supabase
         .from("communications")
         .update({
           status:
-            "corpcom_review",
+            "approved",
+
+          revision_required:
+            false,
         })
         .eq(
           "id",
@@ -516,53 +501,15 @@ export async function submitReviewerDecision({
         .single();
 
     if (
-      statusError ||
-      updatedCommunication
+      finalError ||
+      finalCommunication
         ?.status !==
-        "corpcom_review"
+        "approved"
     ) {
       throw new Error(
-        statusError?.message ||
-          "Communication did not move to CorpCom review."
+        finalError?.message ||
+          "Final CorpCom approval was not saved correctly."
       );
     }
-
-    return;
-  }
-
-  const {
-    data:
-      finalCommunication,
-    error:
-      finalError,
-  } =
-    await supabase
-      .from("communications")
-      .update({
-        status:
-          "approved",
-
-        revision_required:
-          false,
-      })
-      .eq(
-        "id",
-        communicationId
-      )
-      .select(
-        "id, status"
-      )
-      .single();
-
-  if (
-    finalError ||
-    finalCommunication
-      ?.status !==
-      "approved"
-  ) {
-    throw new Error(
-      finalError?.message ||
-        "Final CorpCom approval was not saved correctly."
-    );
   }
 }
