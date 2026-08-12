@@ -137,14 +137,26 @@ export function FullPreview() {
     profile,
   } = useAuth();
 
-  const communicationId = searchParams.get("communicationId");
-  const variantId = searchParams.get("variantId");
-  const urlCategory = searchParams.get("category") as Category | null;
+  const communicationId =
+    searchParams.get("communicationId");
+
+  const variantId =
+    searchParams.get("variantId");
+
+  const urlCategory =
+    searchParams.get("category") as Category | null;
+
   const isReviewMode =
     searchParams.get("mode") === "review";
 
   const isRevisionMode =
     searchParams.get("mode") === "revision";
+
+  const isCreator =
+    profile?.role === "creator";
+
+  const isAdmin =
+    profile?.role === "admin";
 
   const reviewerRole =
     (
@@ -153,23 +165,75 @@ export function FullPreview() {
       profile?.role ===
         "corpcom_reviewer"
     )
-      ? profile.role as ReviewerRole
+      ? (profile.role as ReviewerRole)
       : null;
 
-  const [category, setCategory] = useState<Category>(
-    urlCategory || "research"
-  );
-  const [communicationTitle, setCommunicationTitle] = useState(
-    "New Communication"
-  );
-  const [subcategory, setSubcategory] = useState("");
-  const [audience, setAudience] = useState("");
-  const [variant, setVariant] = useState<StoredVariant | null>(null);
-  const [subject, setSubject] = useState("");
-  const [preheader, setPreheader] = useState("");
-  const [ctaText, setCtaText] = useState("");
-  const [ctaUrl, setCtaUrl] = useState("");
-  const [ctaEnabled, setCtaEnabled] = useState(false);
+  /**
+   * Only the Creator may edit the communication.
+   *
+   * Reviewers are read-only in review mode.
+   * Admin is oversight-only and must not edit or
+   * submit Creator communications.
+   */
+  const canEdit =
+    isCreator &&
+    !isReviewMode;
+
+  const [category, setCategory] =
+    useState<Category>(
+      urlCategory || "research"
+    );
+
+  const [
+    communicationTitle,
+    setCommunicationTitle,
+  ] =
+    useState(
+      "New Communication"
+    );
+
+  const [
+    subcategory,
+    setSubcategory,
+  ] = useState("");
+
+  const [
+    audience,
+    setAudience,
+  ] = useState("");
+
+  const [
+    variant,
+    setVariant,
+  ] =
+    useState<StoredVariant | null>(
+      null
+    );
+
+  const [
+    subject,
+    setSubject,
+  ] = useState("");
+
+  const [
+    preheader,
+    setPreheader,
+  ] = useState("");
+
+  const [
+    ctaText,
+    setCtaText,
+  ] = useState("");
+
+  const [
+    ctaUrl,
+    setCtaUrl,
+  ] = useState("");
+
+  const [
+    ctaEnabled,
+    setCtaEnabled,
+  ] = useState(false);
 
   const [
     editableContentData,
@@ -179,11 +243,35 @@ export function FullPreview() {
       null
     );
 
-  const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [savedMessage, setSavedMessage] = useState("");
+  const [
+    viewMode,
+    setViewMode,
+  ] =
+    useState<
+      "desktop" |
+      "mobile"
+    >("desktop");
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+  const [
+    savedMessage,
+    setSavedMessage,
+  ] = useState("");
+
   const [
     previewDirty,
     setPreviewDirty,
@@ -193,100 +281,173 @@ export function FullPreview() {
     approvalActionId,
     setApprovalActionId,
   ] =
-    useState<string | null>(
-      null
-    );
+    useState<
+      string | null
+    >(null);
 
   const [
     reviewComments,
     setReviewComments,
-  ] =
-    useState("");
+  ] = useState("");
 
   const [
     pendingDecision,
     setPendingDecision,
   ] =
     useState<
-      "changes_requested" |
-      "rejected" |
-      null
+      | "changes_requested"
+      | "rejected"
+      | null
     >(null);
 
   const [
     decisionError,
     setDecisionError,
-  ] =
-    useState("");
+  ] = useState("");
 
   const [
     decisionSaving,
     setDecisionSaving,
-  ] =
-    useState(false);
+  ] = useState(false);
 
   useEffect(() => {
-    if (!communicationId || !variantId) {
-      setError("Communication or selected variant is missing.");
-      setLoading(false);
+    if (
+      !communicationId ||
+      !variantId
+    ) {
+      setError(
+        "Communication or selected variant is missing."
+      );
+
+      setLoading(
+        false
+      );
+
       return;
     }
 
-    let cancelled = false;
+    let cancelled =
+      false;
 
     async function loadPreview() {
       try {
-        setLoading(true);
-        setError("");
+        setLoading(
+          true
+        );
 
-        const communication = await getCommunicationById(communicationId!);
+        setError(
+          ""
+        );
 
-        if (cancelled) return;
+        const communication =
+          await getCommunicationById(
+            communicationId!
+          );
+
+        if (
+          cancelled
+        ) {
+          return;
+        }
 
         setCommunicationTitle(
-          communication.title || "New Communication"
-        );
-        setSubcategory(communication.subcategory || "");
-        setAudience(communication.audience || "");
-
-        const resolvedCategory = mapDatabaseCategoryToUi(
-          communication.category
+          communication.title ||
+            "New Communication"
         );
 
-        if (resolvedCategory) {
-          setCategory(resolvedCategory);
+        setSubcategory(
+          communication.subcategory ||
+            ""
+        );
+
+        setAudience(
+          communication.audience ||
+            ""
+        );
+
+        const resolvedCategory =
+          mapDatabaseCategoryToUi(
+            communication.category
+          );
+
+        if (
+          resolvedCategory
+        ) {
+          setCategory(
+            resolvedCategory
+          );
         }
 
-        const { data: variantRow, error: variantError } = await supabase
-          .from("communication_variants")
-          .select(
-            `
-            id,
-            communication_id,
-            ai_run_id,
-            variant_key,
-            variant_name,
-            subject_lines,
-            preheader,
-            content_data,
-            cta_data,
-            compliance_data,
-            is_selected
-            `
-          )
-          .eq("id", variantId!)
-          .eq("communication_id", communicationId!)
-          .single();
+        /**
+         * Avoid .single() coercion errors.
+         * variant ID should be unique, but a missing / inaccessible
+         * row should become a controlled app error.
+         */
+        const {
+          data:
+            variantRow,
+          error:
+            variantError,
+        } =
+          await supabase
+            .from(
+              "communication_variants"
+            )
+            .select(
+              `
+              id,
+              communication_id,
+              ai_run_id,
+              variant_key,
+              variant_name,
+              subject_lines,
+              preheader,
+              content_data,
+              cta_data,
+              compliance_data,
+              is_selected
+              `
+            )
+            .eq(
+              "id",
+              variantId!
+            )
+            .eq(
+              "communication_id",
+              communicationId!
+            )
+            .limit(1)
+            .maybeSingle();
 
-        if (variantError) {
-          throw new Error(variantError.message);
+        if (
+          variantError
+        ) {
+          throw new Error(
+            variantError.message
+          );
         }
 
-        if (cancelled) return;
+        if (
+          !variantRow
+        ) {
+          throw new Error(
+            "Selected variant was not found or you do not have permission to view it."
+          );
+        }
 
-        const loadedVariant = variantRow as StoredVariant;
+        if (
+          cancelled
+        ) {
+          return;
+        }
 
-        setVariant(loadedVariant);
+        const loadedVariant =
+          variantRow as StoredVariant;
+
+        setVariant(
+          loadedVariant
+        );
+
         setEditableContentData(
           loadedVariant.content_data
             ? structuredClone(
@@ -294,17 +455,40 @@ export function FullPreview() {
               )
             : {}
         );
-        setSubject(loadedVariant.subject_lines?.[0] || "");
-        setPreheader(loadedVariant.preheader || "");
+
+        setSubject(
+          loadedVariant
+            .subject_lines?.[0] ||
+            ""
+        );
+
+        setPreheader(
+          loadedVariant.preheader ||
+            ""
+        );
 
         const cta =
           loadedVariant.cta_data ||
-          loadedVariant.content_data?.cta ||
+          loadedVariant
+            .content_data
+            ?.cta ||
           {};
 
-        setCtaEnabled(Boolean(cta.enabled));
-        setCtaText(cta.label || "");
-        setCtaUrl(cta.url || "");
+        setCtaEnabled(
+          Boolean(
+            cta.enabled
+          )
+        );
+
+        setCtaText(
+          cta.label ||
+            ""
+        );
+
+        setCtaUrl(
+          cta.url ||
+            ""
+        );
 
         if (
           isReviewMode &&
@@ -312,7 +496,7 @@ export function FullPreview() {
         ) {
           const stage =
             reviewerRole ===
-              "marketing_reviewer"
+            "marketing_reviewer"
               ? "marketing_review"
               : "corpcom_review";
 
@@ -373,9 +557,16 @@ export function FullPreview() {
           );
         }
       } catch (err) {
-        if (cancelled) return;
+        if (
+          cancelled
+        ) {
+          return;
+        }
 
-        console.error("Unable to load full preview:", err);
+        console.error(
+          "Unable to load full preview:",
+          err
+        );
 
         setError(
           err instanceof Error
@@ -383,8 +574,12 @@ export function FullPreview() {
             : "Unable to load the selected AI variant."
         );
       } finally {
-        if (!cancelled) {
-          setLoading(false);
+        if (
+          !cancelled
+        ) {
+          setLoading(
+            false
+          );
         }
       }
     }
@@ -392,7 +587,8 @@ export function FullPreview() {
     loadPreview();
 
     return () => {
-      cancelled = true;
+      cancelled =
+        true;
     };
   }, [
     communicationId,
@@ -402,67 +598,141 @@ export function FullPreview() {
   ]);
 
   async function savePreviewEdits() {
-    if (!communicationId || !variantId || !variant) {
-      throw new Error("Communication or variant is missing.");
+    if (!canEdit) {
+      throw new Error(
+        "You do not have permission to edit this communication."
+      );
+    }
+
+    if (
+      !communicationId ||
+      !variantId ||
+      !variant
+    ) {
+      throw new Error(
+        "Communication or variant is missing."
+      );
     }
 
     const nextSubjectLines = [
       subject.trim(),
-      ...(variant.subject_lines || []).slice(1),
+      ...(
+        variant.subject_lines ||
+        []
+      ).slice(1),
     ].filter(Boolean);
 
     const nextCta = {
-      enabled: ctaEnabled,
-      label: ctaText.trim(),
-      url: ctaUrl.trim(),
+      enabled:
+        ctaEnabled,
+
+      label:
+        ctaText.trim(),
+
+      url:
+        ctaUrl.trim(),
     };
 
     const nextContentData = {
-      ...(editableContentData ||
+      ...(
+        editableContentData ||
         variant.content_data ||
-        {}),
-      cta: nextCta,
+        {}
+      ),
+
+      cta:
+        nextCta,
     };
 
-    const { error: updateError } = await supabase
-      .from("communication_variants")
-      .update({
-        subject_lines: nextSubjectLines,
-        preheader,
-        cta_data: nextCta,
-        content_data: nextContentData,
-      })
-      .eq("id", variantId)
-      .eq("communication_id", communicationId);
+    const {
+      data:
+        updatedVariants,
+      error:
+        updateError,
+    } =
+      await supabase
+        .from(
+          "communication_variants"
+        )
+        .update({
+          subject_lines:
+            nextSubjectLines,
 
-    if (updateError) {
-      throw new Error(updateError.message);
+          preheader,
+
+          cta_data:
+            nextCta,
+
+          content_data:
+            nextContentData,
+        })
+        .eq(
+          "id",
+          variantId
+        )
+        .eq(
+          "communication_id",
+          communicationId
+        )
+        .select(
+          "id"
+        );
+
+    if (
+      updateError
+    ) {
+      throw new Error(
+        updateError.message
+      );
     }
 
-    setVariant((current) =>
-      current
-        ? {
-            ...current,
-            subject_lines: nextSubjectLines,
-            preheader,
-            cta_data: nextCta,
-            content_data: nextContentData,
-          }
-        : current
+    if (
+      !updatedVariants ||
+      updatedVariants.length === 0
+    ) {
+      throw new Error(
+        "Variant could not be updated. You may not have permission to edit it in the current workflow stage."
+      );
+    }
+
+    setVariant(
+      (current) =>
+        current
+          ? {
+              ...current,
+
+              subject_lines:
+                nextSubjectLines,
+
+              preheader,
+
+              cta_data:
+                nextCta,
+
+              content_data:
+                nextContentData,
+            }
+          : current
     );
 
     setEditableContentData(
       nextContentData
     );
 
-    await updateCommunication(communicationId, {
-      selected_variant_id: variantId,
-      status: "preview_ready",
-    });
+    await updateCommunication(
+      communicationId,
+      {
+        selected_variant_id:
+          variantId,
+
+        status:
+          "preview_ready",
+      }
+    );
 
     if (
       previewDirty &&
-      !isReviewMode
+      isCreator
     ) {
       await markCreatorRevisionComplete(
         communicationId
@@ -475,20 +745,33 @@ export function FullPreview() {
   }
 
   async function handleSave() {
-    if (isReviewMode) {
+    if (!canEdit) {
       return;
     }
 
     try {
-      setSaving(true);
-      setError("");
-      setSavedMessage("");
+      setSaving(
+        true
+      );
+
+      setError(
+        ""
+      );
+
+      setSavedMessage(
+        ""
+      );
 
       await savePreviewEdits();
 
-      setSavedMessage("Preview changes saved.");
+      setSavedMessage(
+        "Preview changes saved."
+      );
     } catch (err) {
-      console.error("Unable to save preview edits:", err);
+      console.error(
+        "Unable to save preview edits:",
+        err
+      );
 
       setError(
         err instanceof Error
@@ -496,7 +779,9 @@ export function FullPreview() {
           : "Unable to save preview changes."
       );
     } finally {
-      setSaving(false);
+      setSaving(
+        false
+      );
     }
   }
 
@@ -507,35 +792,55 @@ export function FullPreview() {
       preheader,
 
       contentData: {
-        ...(editableContentData ||
+        ...(
+          editableContentData ||
           variant?.content_data ||
-          {}),
+          {}
+        ),
+
         cta: {
-          enabled: ctaEnabled,
-          label: ctaText,
-          url: ctaUrl,
+          enabled:
+            ctaEnabled,
+
+          label:
+            ctaText,
+
+          url:
+            ctaUrl,
         },
       },
 
       cta: {
-        enabled: ctaEnabled,
-        label: ctaText,
-        url: ctaUrl,
+        enabled:
+          ctaEnabled,
+
+        label:
+          ctaText,
+
+        url:
+          ctaUrl,
       },
     });
   }
 
   async function handleCopyHtml() {
     try {
-      setError("");
-      setSavedMessage("");
+      setError(
+        ""
+      );
+
+      setSavedMessage(
+        ""
+      );
 
       const html =
         buildCurrentEmailHtml();
 
-      await navigator.clipboard.writeText(
-        html
-      );
+      await navigator
+        .clipboard
+        .writeText(
+          html
+        );
 
       setSavedMessage(
         "Email HTML copied to clipboard."
@@ -554,8 +859,13 @@ export function FullPreview() {
 
   function handleDownloadHtml() {
     try {
-      setError("");
-      setSavedMessage("");
+      setError(
+        ""
+      );
+
+      setSavedMessage(
+        ""
+      );
 
       const html =
         buildCurrentEmailHtml();
@@ -579,7 +889,9 @@ export function FullPreview() {
           "a"
         );
 
-      anchor.href = url;
+      anchor.href =
+        url;
+
       anchor.download =
         `${slugify(
           communicationTitle ||
@@ -591,6 +903,7 @@ export function FullPreview() {
       );
 
       anchor.click();
+
       anchor.remove();
 
       URL.revokeObjectURL(
@@ -614,7 +927,7 @@ export function FullPreview() {
 
   async function handleSubmit() {
     if (
-      isReviewMode ||
+      !canEdit ||
       !communicationId ||
       !variantId
     ) {
@@ -622,8 +935,13 @@ export function FullPreview() {
     }
 
     try {
-      setSaving(true);
-      setError("");
+      setSaving(
+        true
+      );
+
+      setError(
+        ""
+      );
 
       await savePreviewEdits();
 
@@ -632,10 +950,15 @@ export function FullPreview() {
           communicationId
         )}&variantId=${encodeURIComponent(
           variantId
-        )}&category=${encodeURIComponent(category)}`
+        )}&category=${encodeURIComponent(
+          category
+        )}`
       );
     } catch (err) {
-      console.error("Unable to prepare approval submission:", err);
+      console.error(
+        "Unable to prepare approval submission:",
+        err
+      );
 
       setError(
         err instanceof Error
@@ -643,7 +966,9 @@ export function FullPreview() {
           : "Unable to continue to approval."
       );
     } finally {
-      setSaving(false);
+      setSaving(
+        false
+      );
     }
   }
 
@@ -729,8 +1054,8 @@ export function FullPreview() {
 
   function beginReviewerDecision(
     decision:
-      "changes_requested" |
-      "rejected"
+      | "changes_requested"
+      | "rejected"
   ) {
     setPendingDecision(
       decision
@@ -752,31 +1077,63 @@ export function FullPreview() {
   }
 
   function handleBack() {
-    if (isReviewMode) {
-      navigate("/reviews");
+    if (
+      isReviewMode
+    ) {
+      navigate(
+        "/reviews"
+      );
+
       return;
     }
 
-    if (!communicationId) {
-      navigate("/");
+    if (
+      !communicationId
+    ) {
+      navigate(
+        "/"
+      );
+
+      return;
+    }
+
+    /**
+     * Admin / non-Creator views should return to
+     * dashboard instead of entering Creator variant flow.
+     */
+    if (
+      !isCreator
+    ) {
+      navigate(
+        "/"
+      );
+
       return;
     }
 
     navigate(
       `/create/variants?communicationId=${encodeURIComponent(
         communicationId
-      )}&category=${encodeURIComponent(category)}`
+      )}&category=${encodeURIComponent(
+        category
+      )}`
     );
   }
 
-  if (loading) {
+  if (
+    loading
+  ) {
     return (
       <div className="min-h-screen bg-background">
         <TopNavBar />
+
         <div className="flex min-h-[70vh] items-center justify-center">
           <div className="text-center">
             <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#07877B]" />
-            <p className="text-sm text-gray-600">Loading selected variant...</p>
+
+            <p className="text-sm text-gray-600">
+              Loading selected variant...
+            </p>
           </div>
         </div>
       </div>
@@ -784,74 +1141,116 @@ export function FullPreview() {
   }
 
   const liveContentData = {
-    ...(editableContentData ||
+    ...(
+      editableContentData ||
       variant?.content_data ||
-      {}),
+      {}
+    ),
+
     cta: {
-      enabled: ctaEnabled,
-      label: ctaText,
-      url: ctaUrl,
+      enabled:
+        ctaEnabled,
+
+      label:
+        ctaText,
+
+      url:
+        ctaUrl,
     },
   };
 
-  const disclaimer = liveContentData.disclaimer;
+  const disclaimer =
+    liveContentData.disclaimer;
+
   const compliance =
-    liveContentData.compliance || variant?.compliance_data;
+    liveContentData.compliance ||
+    variant?.compliance_data;
 
   return (
     <div className="min-h-screen bg-background">
       <TopNavBar />
 
       <CommunicationStateBar
-        title={communicationTitle}
-        category={category}
+        title={
+          communicationTitle
+        }
+        category={
+          category
+        }
         status="preview-ready"
         currentStep={5}
         totalSteps={5}
         onSaveDraft={
-          isReviewMode
-            ? undefined
-            : handleSave
+          canEdit
+            ? handleSave
+            : undefined
         }
       />
 
-      <ProgressStepper currentStep={5} />
+      <ProgressStepper
+        currentStep={5}
+      />
 
       <main className="mx-auto max-w-7xl px-8 py-8">
         <div className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div>
             <div className="mb-2 flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl text-gray-900">Full Preview</h1>
-              <CategoryTag category={category} />
-              <StatusBadge status="preview-ready" />
+              <h1 className="text-2xl text-gray-900">
+                Full Preview
+              </h1>
+
+              <CategoryTag
+                category={
+                  category
+                }
+              />
+
+              <StatusBadge
+                status="preview-ready"
+              />
             </div>
 
             {isReviewMode ? (
               <div className="mt-3 rounded-lg border border-[#b3d9d5] bg-[#f3fbfa] px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Lock className="h-4 w-4 text-[#07877B]" />
+
                   <span className="text-sm font-medium text-[#07877B]">
                     Review Mode
                   </span>
                 </div>
 
                 <p className="mt-1 text-sm text-gray-600">
-                  You are viewing the communication submitted for approval.
-                  Record your decision below or return to the Review Queue.
+                  You are viewing the communication submitted for approval. Record your decision below or return to the Review Queue.
                 </p>
               </div>
-            ) : isRevisionMode ? (
+            ) : isAdmin ? (
+              <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-blue-700" />
+
+                  <span className="text-sm font-medium text-blue-800">
+                    Admin View — Read Only
+                  </span>
+                </div>
+
+                <p className="mt-1 text-sm leading-6 text-blue-700">
+                  Administrators can inspect communications but cannot edit copy or submit approval decisions.
+                </p>
+              </div>
+            ) : isRevisionMode &&
+              isCreator ? (
               <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <RotateCcw className="h-4 w-4 text-amber-700" />
+
                   <span className="text-sm font-medium text-amber-800">
                     Revision Mode
                   </span>
                 </div>
 
                 <p className="mt-1 text-sm leading-6 text-amber-700">
-                  A reviewer has requested changes. Update the communication,
-                  save your changes, then resubmit it for Marketing review.
+                  A reviewer has requested changes. Update the communication, save your changes, then resubmit it for Marketing review.
                 </p>
               </div>
             ) : (
@@ -862,7 +1261,14 @@ export function FullPreview() {
 
             {variant && (
               <p className="mt-1 text-xs text-gray-500">
-                Variant {variant.variant_key} — {variant.variant_name}
+                Variant{" "}
+                {
+                  variant.variant_key
+                }{" "}
+                —{" "}
+                {
+                  variant.variant_name
+                }
               </p>
             )}
           </div>
@@ -870,9 +1276,14 @@ export function FullPreview() {
           <div className="flex w-fit gap-2 rounded-lg border border-gray-200 bg-white p-1">
             <button
               type="button"
-              onClick={() => setViewMode("desktop")}
+              onClick={() =>
+                setViewMode(
+                  "desktop"
+                )
+              }
               className={`flex items-center gap-2 rounded px-4 py-2 text-sm transition-all ${
-                viewMode === "desktop"
+                viewMode ===
+                "desktop"
                   ? "bg-[#07877B] text-white"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
@@ -883,9 +1294,14 @@ export function FullPreview() {
 
             <button
               type="button"
-              onClick={() => setViewMode("mobile")}
+              onClick={() =>
+                setViewMode(
+                  "mobile"
+                )
+              }
               className={`flex items-center gap-2 rounded px-4 py-2 text-sm transition-all ${
-                viewMode === "mobile"
+                viewMode ===
+                "mobile"
                   ? "bg-[#07877B] text-white"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
@@ -904,27 +1320,43 @@ export function FullPreview() {
 
         {savedMessage && (
           <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            {savedMessage}
+            {
+              savedMessage
+            }
           </div>
         )}
 
         <div className="grid gap-8 lg:grid-cols-[1fr,380px]">
           <div
             className={
-              viewMode === "mobile"
+              viewMode ===
+              "mobile"
                 ? "mx-auto w-full max-w-[375px]"
                 : ""
             }
           >
             <EmailPreview
-              category={category}
-              subject={subject}
-              preheader={preheader}
-              contentData={liveContentData}
+              category={
+                category
+              }
+              subject={
+                subject
+              }
+              preheader={
+                preheader
+              }
+              contentData={
+                liveContentData
+              }
               cta={{
-                enabled: ctaEnabled,
-                label: ctaText,
-                url: ctaUrl,
+                enabled:
+                  ctaEnabled,
+
+                label:
+                  ctaText,
+
+                url:
+                  ctaUrl,
               }}
             />
           </div>
@@ -937,22 +1369,43 @@ export function FullPreview() {
 
               <div className="space-y-4">
                 <MetadataRow
-                  icon={Tag}
+                  icon={
+                    Tag
+                  }
                   label="Category"
-                  value={getCategoryLabel(category)}
+                  value={
+                    getCategoryLabel(
+                      category
+                    )
+                  }
                 />
+
                 <MetadataRow
-                  icon={FileText}
+                  icon={
+                    FileText
+                  }
                   label="Subcategory"
-                  value={subcategory || "—"}
+                  value={
+                    subcategory ||
+                    "—"
+                  }
                 />
+
                 <MetadataRow
-                  icon={Users}
+                  icon={
+                    Users
+                  }
                   label="Audience"
-                  value={audience || "—"}
+                  value={
+                    audience ||
+                    "—"
+                  }
                 />
+
                 <MetadataRow
-                  icon={Users}
+                  icon={
+                    Users
+                  }
                   label="Variant"
                   value={
                     variant
@@ -960,11 +1413,15 @@ export function FullPreview() {
                       : "—"
                   }
                 />
+
                 <MetadataRow
-                  icon={Lock}
+                  icon={
+                    Lock
+                  }
                   label="Sensitivity"
                   value={
-                    category === "regulatory"
+                    category ===
+                    "regulatory"
                       ? "High — Compliance Required"
                       : "Standard"
                   }
@@ -972,89 +1429,150 @@ export function FullPreview() {
               </div>
             </div>
 
-            {!isReviewMode && (
-              <>
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="mb-5 flex items-center justify-between">
-                <h2>Editable Fields</h2>
-                <span className="text-xs text-gray-500">Live preview</span>
-              </div>
+            {canEdit && (
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div className="mb-5 flex items-center justify-between">
+                  <h2>
+                    Editable Fields
+                  </h2>
 
-              <div className="space-y-4">
-                <EditableField
-                  label="Subject Line"
-                  value={subject}
-                  onChange={(value) => {
-                    setSubject(value);
-                    setPreviewDirty(true);
-                  }}
-                />
-
-                <EditableField
-                  label="Preheader"
-                  value={preheader}
-                  onChange={(value) => {
-                    setPreheader(value);
-                    setPreviewDirty(true);
-                  }}
-                />
-
-                <div className="flex items-center justify-between rounded-lg border border-gray-200 p-3">
-                  <div>
-                    <p className="text-sm text-gray-700">CTA Enabled</p>
-                    <p className="text-xs text-gray-500">
-                      Show primary action in the email
-                    </p>
-                  </div>
-
-                  <input
-                    type="checkbox"
-                    checked={ctaEnabled}
-                    onChange={(event) => {
-                      setCtaEnabled(event.target.checked);
-                      setPreviewDirty(true);
-                    }}
-                    className="h-4 w-4 accent-[#07877B]"
-                  />
+                  <span className="text-xs text-gray-500">
+                    Live preview
+                  </span>
                 </div>
 
-                <EditableField
-                  label="CTA Text"
-                  value={ctaText}
-                  onChange={(value) => {
-                    setCtaText(value);
-                    setPreviewDirty(true);
-                  }}
-                  disabled={!ctaEnabled}
-                />
+                <div className="space-y-4">
+                  <EditableField
+                    label="Subject Line"
+                    value={
+                      subject
+                    }
+                    onChange={(
+                      value
+                    ) => {
+                      setSubject(
+                        value
+                      );
 
-                <EditableField
-                  label="CTA URL"
-                  type="url"
-                  value={ctaUrl}
-                  onChange={(value) => {
-                    setCtaUrl(value);
-                    setPreviewDirty(true);
-                  }}
-                  disabled={!ctaEnabled}
-                />
+                      setPreviewDirty(
+                        true
+                      );
+                    }}
+                  />
 
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="w-full rounded-lg border border-[#07877B] px-4 py-2.5 text-sm text-[#07877B] transition-colors hover:bg-[#f3fbfa] disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {saving ? "Saving..." : "Save Preview Changes"}
-                </button>
+                  <EditableField
+                    label="Preheader"
+                    value={
+                      preheader
+                    }
+                    onChange={(
+                      value
+                    ) => {
+                      setPreheader(
+                        value
+                      );
+
+                      setPreviewDirty(
+                        true
+                      );
+                    }}
+                  />
+
+                  <div className="flex items-center justify-between rounded-lg border border-gray-200 p-3">
+                    <div>
+                      <p className="text-sm text-gray-700">
+                        CTA Enabled
+                      </p>
+
+                      <p className="text-xs text-gray-500">
+                        Show primary action in the email
+                      </p>
+                    </div>
+
+                    <input
+                      type="checkbox"
+                      checked={
+                        ctaEnabled
+                      }
+                      onChange={(
+                        event
+                      ) => {
+                        setCtaEnabled(
+                          event
+                            .target
+                            .checked
+                        );
+
+                        setPreviewDirty(
+                          true
+                        );
+                      }}
+                      className="h-4 w-4 accent-[#07877B]"
+                    />
+                  </div>
+
+                  <EditableField
+                    label="CTA Text"
+                    value={
+                      ctaText
+                    }
+                    onChange={(
+                      value
+                    ) => {
+                      setCtaText(
+                        value
+                      );
+
+                      setPreviewDirty(
+                        true
+                      );
+                    }}
+                    disabled={
+                      !ctaEnabled
+                    }
+                  />
+
+                  <EditableField
+                    label="CTA URL"
+                    type="url"
+                    value={
+                      ctaUrl
+                    }
+                    onChange={(
+                      value
+                    ) => {
+                      setCtaUrl(
+                        value
+                      );
+
+                      setPreviewDirty(
+                        true
+                      );
+                    }}
+                    disabled={
+                      !ctaEnabled
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    onClick={
+                      handleSave
+                    }
+                    disabled={
+                      saving
+                    }
+                    className="w-full rounded-lg border border-[#07877B] px-4 py-2.5 text-sm text-[#07877B] transition-colors hover:bg-[#f3fbfa] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {saving
+                      ? "Saving..."
+                      : "Save Preview Changes"}
+                  </button>
+                </div>
               </div>
-            </div>
-
-              </>
             )}
 
-
-            {!isReviewMode && (
+            {canEdit && (
               <BodyContentEditor
                 contentData={
                   editableContentData
@@ -1080,28 +1598,44 @@ export function FullPreview() {
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-6">
               <div className="mb-4 flex items-center gap-2">
                 <Lock className="h-4 w-4 text-gray-500" />
-                <h3 className="text-sm text-gray-700">Controlled Fields</h3>
+
+                <h3 className="text-sm text-gray-700">
+                  Controlled Fields
+                </h3>
               </div>
 
               <p className="mb-4 text-xs leading-5 text-muted-foreground">
-                Layout, brand styling and approved disclaimer rules remain
-                controlled by Communication Studio.
+                Layout, brand styling and approved disclaimer rules remain controlled by Communication Studio.
               </p>
 
               <div className="space-y-3 text-sm">
-                <ControlledRow label="Layout" value="Controlled" />
-                <ControlledRow label="Brand styling" value="Controlled" />
+                <ControlledRow
+                  label="Layout"
+                  value="Controlled"
+                />
+
+                <ControlledRow
+                  label="Brand styling"
+                  value="Controlled"
+                />
+
                 <ControlledRow
                   label="Disclaimer"
                   value={
-                    disclaimer?.required
+                    disclaimer
+                      ?.required
                       ? `${disclaimer.type || "Required"}`
                       : "Not required"
                   }
                 />
+
                 <ControlledRow
                   label="Compliance"
-                  value={compliance?.status || "Not flagged"}
+                  value={
+                    compliance
+                      ?.status ||
+                    "Not flagged"
+                  }
                 />
               </div>
             </div>
@@ -1109,7 +1643,9 @@ export function FullPreview() {
             <div className="space-y-3">
               <button
                 type="button"
-                onClick={handleCopyHtml}
+                onClick={
+                  handleCopyHtml
+                }
                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 transition-all hover:bg-gray-50"
               >
                 <Copy className="h-4 w-4" />
@@ -1118,7 +1654,9 @@ export function FullPreview() {
 
               <button
                 type="button"
-                onClick={handleDownloadHtml}
+                onClick={
+                  handleDownloadHtml
+                }
                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 transition-all hover:bg-gray-50"
               >
                 <Download className="h-4 w-4" />
@@ -1128,7 +1666,7 @@ export function FullPreview() {
               {isReviewMode ? (
                 <>
                   {reviewerRole &&
-                    approvalActionId ? (
+                  approvalActionId ? (
                     <div className="rounded-xl border border-gray-200 bg-white p-5">
                       <div className="mb-4">
                         <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
@@ -1147,6 +1685,7 @@ export function FullPreview() {
                         <div className="mb-4">
                           <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
                             <MessageSquareText className="h-4 w-4" />
+
                             {pendingDecision ===
                             "changes_requested"
                               ? "Changes required"
@@ -1154,7 +1693,9 @@ export function FullPreview() {
                           </label>
 
                           <textarea
-                            rows={4}
+                            rows={
+                              4
+                            }
                             value={
                               reviewComments
                             }
@@ -1162,7 +1703,9 @@ export function FullPreview() {
                               event
                             ) => {
                               setReviewComments(
-                                event.target.value
+                                event
+                                  .target
+                                  .value
                               );
 
                               if (
@@ -1311,12 +1854,16 @@ export function FullPreview() {
                     Back to Review Queue
                   </button>
                 </>
-              ) : (
+              ) : canEdit ? (
                 <>
                   <button
                     type="button"
-                    onClick={handleSubmit}
-                    disabled={saving}
+                    onClick={
+                      handleSubmit
+                    }
+                    disabled={
+                      saving
+                    }
                     className="w-full rounded-lg bg-[#07877B] px-4 py-3 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {saving
@@ -1328,12 +1875,18 @@ export function FullPreview() {
 
                   <button
                     type="button"
-                    onClick={handleBack}
+                    onClick={
+                      handleBack
+                    }
                     className="w-full text-center text-sm text-gray-600 transition-colors hover:text-[#07877B]"
                   >
                     Back to Variants
                   </button>
                 </>
+              ) : (
+                <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                  This preview is read-only for your current role.
+                </div>
               )}
             </div>
           </div>
@@ -1342,13 +1895,18 @@ export function FullPreview() {
         <div className="mt-8 flex justify-between border-t border-gray-200 pt-6">
           <button
             type="button"
-            onClick={handleBack}
+            onClick={
+              handleBack
+            }
             className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-gray-700 transition-all hover:bg-gray-50"
           >
             <ArrowLeft className="h-4 w-4" />
+
             {isReviewMode
               ? "Back to Review Queue"
-              : "Back"}
+              : isCreator
+                ? "Back"
+                : "Back to Dashboard"}
           </button>
         </div>
       </main>
@@ -1356,36 +1914,40 @@ export function FullPreview() {
   );
 }
 
-
 function BodyContentEditor({
   contentData,
   onChange,
 }: {
   contentData:
     VariantContentData | null;
+
   onChange: (
     next:
       VariantContentData
   ) => void;
 }) {
   const body =
-    contentData?.body || {};
+    contentData?.body ||
+    {};
 
   const sections =
-    body.sections || [];
+    body.sections ||
+    [];
 
   function updateBody(
     patch:
       Partial<
         NonNullable<
-          VariantContentData[
-            "body"
-          ]
+          VariantContentData["body"]
         >
       >
   ) {
     onChange({
-      ...(contentData || {}),
+      ...(
+        contentData ||
+        {}
+      ),
+
       body: {
         ...body,
         ...patch,
@@ -1399,9 +1961,7 @@ function BodyContentEditor({
       Partial<
         NonNullable<
           NonNullable<
-            VariantContentData[
-              "body"
-            ]
+            VariantContentData["body"]
           >["sections"]
         >[number]
       >
@@ -1440,7 +2000,9 @@ function BodyContentEditor({
         sectionIndex
       ];
 
-    if (!section) {
+    if (
+      !section
+    ) {
       return;
     }
 
@@ -1455,7 +2017,8 @@ function BodyContentEditor({
 
     currentItems[
       bulletIndex
-    ] = value;
+    ] =
+      value;
 
     updateSection(
       sectionIndex,
@@ -1655,8 +2218,10 @@ function EditableTextArea({
 }: {
   label:
     string;
+
   value:
     string;
+
   onChange: (
     value:
       string
@@ -1669,13 +2234,18 @@ function EditableTextArea({
       </label>
 
       <textarea
-        rows={4}
-        value={value}
+        rows={
+          4
+        }
+        value={
+          value
+        }
         onChange={(
           event
         ) =>
           onChange(
-            event.target
+            event
+              .target
               .value
           )
         }
@@ -1692,20 +2262,48 @@ function EditableField({
   type = "text",
   disabled = false,
 }: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  disabled?: boolean;
+  label:
+    string;
+
+  value:
+    string;
+
+  onChange: (
+    value:
+      string
+  ) => void;
+
+  type?:
+    string;
+
+  disabled?:
+    boolean;
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm text-gray-700">{label}</label>
+      <label className="mb-2 block text-sm text-gray-700">
+        {label}
+      </label>
+
       <input
-        type={type}
-        value={value}
-        disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
+        type={
+          type
+        }
+        value={
+          value
+        }
+        disabled={
+          disabled
+        }
+        onChange={(
+          event
+        ) =>
+          onChange(
+            event
+              .target
+              .value
+          )
+        }
         className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20 disabled:bg-gray-100 disabled:text-gray-400"
       />
     </div>
@@ -1717,16 +2315,31 @@ function MetadataRow({
   label,
   value,
 }: {
-  icon: typeof Tag;
-  label: string;
-  value: string;
+  icon:
+    typeof Tag;
+
+  label:
+    string;
+
+  value:
+    string;
 }) {
   return (
     <div className="flex items-start gap-3">
       <Icon className="mt-0.5 h-4 w-4 text-gray-400" />
+
       <div>
-        <div className="text-xs text-muted-foreground">{label}</div>
-        <div className="text-sm text-gray-900">{value}</div>
+        <div className="text-xs text-muted-foreground">
+          {
+            label
+          }
+        </div>
+
+        <div className="text-sm text-gray-900">
+          {
+            value
+          }
+        </div>
       </div>
     </div>
   );
@@ -1736,13 +2349,21 @@ function ControlledRow({
   label,
   value,
 }: {
-  label: string;
-  value: string;
+  label:
+    string;
+
+  value:
+    string;
 }) {
   return (
     <div className="flex justify-between gap-4">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right text-gray-700">{value}</span>
+      <span className="text-muted-foreground">
+        {label}
+      </span>
+
+      <span className="text-right text-gray-700">
+        {value}
+      </span>
     </div>
   );
 }
@@ -1750,47 +2371,74 @@ function ControlledRow({
 function slugify(
   value: string
 ) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "") ||
-    "geojit-communication";
+  return (
+    value
+      .toLowerCase()
+      .trim()
+      .replace(
+        /[^a-z0-9]+/g,
+        "-"
+      )
+      .replace(
+        /^-+|-+$/g,
+        ""
+      ) ||
+    "geojit-communication"
+  );
 }
 
-function getCategoryLabel(category: Category) {
-  switch (category) {
+function getCategoryLabel(
+  category:
+    Category
+) {
+  switch (
+    category
+  ) {
     case "research":
       return "Research & Advisory";
+
     case "education":
       return "Investor Education";
+
     case "product":
       return "Product & Sales";
+
     case "service":
       return "Service & Transactional";
+
     case "regulatory":
       return "Regulatory & Compliance";
+
     case "onboarding":
       return "Onboarding & Journey";
   }
 }
 
 function mapDatabaseCategoryToUi(
-  value: string | null
+  value:
+    string | null
 ): Category | null {
-  switch (value) {
+  switch (
+    value
+  ) {
     case "Research & Advisory":
       return "research";
+
     case "Investor Education":
       return "education";
+
     case "Product & Sales":
       return "product";
+
     case "Service & Transactional":
       return "service";
+
     case "Regulatory & Compliance":
       return "regulatory";
+
     case "Onboarding & Journey":
       return "onboarding";
+
     default:
       return null;
   }
