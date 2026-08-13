@@ -24,7 +24,10 @@ export interface ApprovalActionRecord {
 export async function getExistingPendingApproval(
   communicationId: string
 ): Promise<ApprovalActionRecord | null> {
-  const { data, error } =
+  const {
+    data,
+    error,
+  } =
     await supabase
       .from("approval_actions")
       .select("*")
@@ -62,6 +65,20 @@ export async function getExistingPendingApproval(
   ) as ApprovalActionRecord | null;
 }
 
+/**
+ * Submit / resubmit a Creator communication.
+ *
+ * The database RPC performs the full workflow transaction:
+ *
+ * - validates Creator ownership
+ * - prevents duplicate pending rows
+ * - validates requested revisions were actually saved
+ * - creates the Marketing pending approval action
+ * - updates communication workflow state
+ * - writes the central activity log
+ *
+ * Admin is intentionally NOT allowed to submit communications.
+ */
 export async function submitCommunicationForApproval({
   communicationId,
   comments,
@@ -69,157 +86,29 @@ export async function submitCommunicationForApproval({
   communicationId: string;
   comments?: string;
 }): Promise<ApprovalActionRecord> {
-  const {
-    user,
-  } =
-    await requireCurrentUserRole([
-      "creator",
-      "admin",
-    ]);
-
-  /**
-   * Prevent duplicate pending review rows.
-   */
-  const existing =
-    await getExistingPendingApproval(
-      communicationId
-    );
-
-  if (existing) {
-    return existing;
-  }
-
-  /**
-   * Load revision state.
-   */
-  const {
-    data: communication,
-    error: communicationError,
-  } =
-    await supabase
-      .from("communications")
-      .select(
-        `
-        id,
-        revision_required,
-        revision_requested_at,
-        revision_completed_at,
-        revision_resubmitted_at,
-        revision_count,
-        latest_review_comment
-        `
-      )
-      .eq(
-        "id",
-        communicationId
-      )
-      .single();
-
-  if (
-    communicationError ||
-    !communication
-  ) {
-    throw new Error(
-      communicationError?.message ||
-        "Communication not found."
-    );
-  }
-
-  const revisionRequired =
-    Boolean(
-      communication.revision_required
-    );
-
-  /**
-   * A creator may resubmit only after a real
-   * revision has been saved after the reviewer
-   * requested changes.
-   */
-  if (revisionRequired) {
-    const requestedAt =
-      communication.revision_requested_at
-        ? new Date(
-            communication.revision_requested_at
-          ).getTime()
-        : 0;
-
-    const completedAt =
-      communication.revision_completed_at
-        ? new Date(
-            communication.revision_completed_at
-          ).getTime()
-        : 0;
-
-    if (
-      !completedAt ||
-      completedAt <= requestedAt
-    ) {
-      throw new Error(
-        "A reviewer has requested changes. Please make and save the requested changes before resubmitting."
-      );
-    }
-  }
-
-  const submittedAt =
-    new Date().toISOString();
-
-  /**
-   * This is the key UX/audit distinction:
-   *
-   * First submission  → submitted
-   * Revised submission → resubmitted
-   */
-  const approvalAction =
-    revisionRequired
-      ? "resubmitted"
-      : "submitted";
-
-  const cleanComment =
-    comments?.trim() ||
-    null;
+  await requireCurrentUserRole([
+    "creator",
+  ]);
 
   const {
     data,
     error,
   } =
-    await supabase
-      .from(
-        "approval_actions"
-      )
-      .insert({
-        communication_id:
+    await supabase.rpc(
+      "creator_submit_for_approval",
+      {
+        p_communication_id:
           communicationId,
 
-        action:
-          approvalAction,
-
-        status:
-          "pending",
-
-        stage:
-          "marketing_review",
-
-        actor_id:
-          user.id,
-
-        submitted_by:
-          user.id,
-
-        reviewer_id:
+        p_comments:
+          comments?.trim() ||
           null,
-
-        reviewer_role:
-          "marketing_reviewer",
-
-        comments:
-          cleanComment,
-      })
-      .select("*")
-      .single();
+      }
+    );
 
   if (error) {
     console.error(
-      "Submit approval error:",
+      "Submit approval RPC error:",
       error
     );
 
@@ -228,50 +117,10 @@ export async function submitCommunicationForApproval({
     );
   }
 
-  /**
-   * Persist a platform-wide revision state.
-   *
-   * Keep revision_resubmitted_at after this point.
-   * Dashboard / Review Queue / Full Preview can use
-   * it to communicate that this is a revised copy.
-   */
-  if (revisionRequired) {
-    const {
-      error:
-        revisionUpdateError,
-    } =
-      await supabase
-        .from(
-          "communications"
-        )
-        .update({
-          revision_required:
-            false,
-
-          revision_resubmitted_at:
-            submittedAt,
-
-          revision_count:
-            Number(
-              communication.revision_count ||
-                0
-            ) + 1,
-
-          status:
-            "pending_approval",
-        })
-        .eq(
-          "id",
-          communicationId
-        );
-
-    if (
-      revisionUpdateError
-    ) {
-      throw new Error(
-        revisionUpdateError.message
-      );
-    }
+  if (!data) {
+    throw new Error(
+      "Approval submission was not created."
+    );
   }
 
   return data as ApprovalActionRecord;
