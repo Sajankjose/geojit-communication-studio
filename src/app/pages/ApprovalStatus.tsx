@@ -1,5 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  useNavigate,
+  useSearchParams,
+} from "react-router";
+
 import {
   ArrowLeft,
   CheckCircle2,
@@ -7,13 +16,19 @@ import {
   Clock3,
   FilePenLine,
   RotateCcw,
+  ShieldCheck,
+  UserRound,
   XCircle,
 } from "lucide-react";
 
 import { TopNavBar } from "../components/TopNavBar";
 import { CategoryTag } from "../components/CategoryTag";
 import { StatusBadge } from "../components/StatusBadge";
-import { getCommunicationById } from "../services/communications";
+
+import {
+  getCommunicationById,
+} from "../services/communications";
+
 import {
   ApprovalHistoryItem,
   getApprovalHistory,
@@ -34,61 +49,111 @@ type StageState =
   | "failed";
 
 export function ApprovalStatus() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const navigate =
+    useNavigate();
+
+  const [
+    searchParams,
+  ] =
+    useSearchParams();
+
   const communicationId =
-    searchParams.get("communicationId");
+    searchParams.get(
+      "communicationId"
+    );
 
-  const [communication, setCommunication] =
-    useState<any>(null);
+  const [
+    communication,
+    setCommunication,
+  ] =
+    useState<any>(
+      null
+    );
 
-  const [history, setHistory] =
-    useState<ApprovalHistoryItem[]>([]);
+  const [
+    history,
+    setHistory,
+  ] =
+    useState<
+      ApprovalHistoryItem[]
+    >([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(
+      true
+    );
 
-  const [error, setError] =
-    useState("");
+  const [
+    error,
+    setError,
+  ] =
+    useState(
+      ""
+    );
 
   useEffect(() => {
-    if (!communicationId) {
+    if (
+      !communicationId
+    ) {
       setError(
         "Communication ID is missing."
       );
-      setLoading(false);
+
+      setLoading(
+        false
+      );
+
       return;
     }
 
-    let cancelled = false;
+    let cancelled =
+      false;
 
     async function load() {
       try {
-        setLoading(true);
-        setError("");
+        setLoading(
+          true
+        );
 
-        const [comm, items] =
+        setError(
+          ""
+        );
+
+        const [
+          comm,
+          items,
+        ] =
           await Promise.all([
             getCommunicationById(
               communicationId!
             ),
+
             getApprovalHistory(
               communicationId!
             ),
           ]);
 
-        if (cancelled) {
+        if (
+          cancelled
+        ) {
           return;
         }
 
-        setCommunication(comm);
+        setCommunication(
+          comm
+        );
 
-        /**
-         * Keep history explicitly chronological.
-         */
         setHistory(
-          [...items].sort(
-            (a, b) =>
+          [
+            ...items,
+          ].sort(
+            (
+              a,
+              b
+            ) =>
               new Date(
                 a.created_at
               ).getTime() -
@@ -98,7 +163,9 @@ export function ApprovalStatus() {
           )
         );
       } catch (err) {
-        if (cancelled) {
+        if (
+          cancelled
+        ) {
           return;
         }
 
@@ -108,8 +175,12 @@ export function ApprovalStatus() {
             : "Unable to load approval status."
         );
       } finally {
-        if (!cancelled) {
-          setLoading(false);
+        if (
+          !cancelled
+        ) {
+          setLoading(
+            false
+          );
         }
       }
     }
@@ -117,17 +188,23 @@ export function ApprovalStatus() {
     load();
 
     return () => {
-      cancelled = true;
+      cancelled =
+        true;
     };
-  }, [communicationId]);
+  }, [
+    communicationId,
+  ]);
 
   const category =
     useMemo(
       () =>
         mapDatabaseCategory(
-          communication?.category
+          communication
+            ?.category
         ),
-      [communication]
+      [
+        communication,
+      ]
     );
 
   function openSelectedPreview() {
@@ -140,7 +217,8 @@ export function ApprovalStatus() {
     }
 
     const mode =
-      communication.status ===
+      communication
+        .status ===
       "changes_requested"
         ? "&mode=revision"
         : "";
@@ -156,7 +234,9 @@ export function ApprovalStatus() {
     );
   }
 
-  if (loading) {
+  if (
+    loading
+  ) {
     return (
       <div className="min-h-screen bg-background">
         <TopNavBar />
@@ -188,6 +268,18 @@ export function ApprovalStatus() {
       history
     );
 
+  const finalState:
+    StageState =
+      communication
+        ?.status ===
+      "approved"
+        ? "complete"
+        : communication
+              ?.status ===
+            "rejected"
+          ? "failed"
+          : "pending";
+
   return (
     <div className="min-h-screen bg-background">
       <TopNavBar />
@@ -196,7 +288,9 @@ export function ApprovalStatus() {
         <button
           type="button"
           onClick={() =>
-            navigate("/")
+            navigate(
+              "/"
+            )
           }
           className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#07877B]"
         >
@@ -212,19 +306,23 @@ export function ApprovalStatus() {
               </p>
 
               <h1 className="mb-3 text-2xl text-gray-900">
-                {communication?.title ||
+                {communication
+                  ?.title ||
                   "Communication"}
               </h1>
 
               <div className="flex flex-wrap items-center gap-3">
                 <CategoryTag
-                  category={category}
+                  category={
+                    category
+                  }
                   size="sm"
                 />
 
                 <StatusBadge
                   status={
-                    communication?.status ||
+                    communication
+                      ?.status ||
                     "draft"
                   }
                   size="sm"
@@ -254,43 +352,53 @@ export function ApprovalStatus() {
         )}
 
         <div className="mb-8 rounded-xl border border-gray-200 bg-white p-7 shadow-sm">
-          <h2 className="mb-5 text-lg text-gray-900">
-            Current Stage
-          </h2>
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <h2 className="text-lg text-gray-900">
+              Current Stage
+            </h2>
+
+            {communication
+              ?.status ===
+              "approved" && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Workflow completed
+              </span>
+            )}
+          </div>
 
           <div className="grid gap-4 md:grid-cols-3">
             <StageCard
               label="Marketing Review"
-              state={marketingState}
+              state={
+                marketingState
+              }
             />
 
             <StageCard
               label="CorpCom Review"
-              state={corpcomState}
+              state={
+                corpcomState
+              }
             />
 
             <StageCard
               label="Final Approval"
               state={
-                communication?.status ===
-                "approved"
-                  ? "complete"
-                  : communication
-                        ?.status ===
-                      "rejected"
-                    ? "failed"
-                    : "pending"
+                finalState
               }
             />
           </div>
 
           <p className="mt-5 text-sm text-gray-600">
             {resolveCurrentStage(
-              communication?.status
+              communication
+                ?.status
             )}
           </p>
 
-          {communication?.status ===
+          {communication
+            ?.status ===
             "changes_requested" && (
             <button
               type="button"
@@ -306,16 +414,34 @@ export function ApprovalStatus() {
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-7 shadow-sm">
-          <h2 className="mb-1 text-lg text-gray-900">
-            Approval History
-          </h2>
+          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg text-gray-900">
+                Communication Audit Trail
+              </h2>
 
-          <p className="mb-6 text-sm text-gray-500">
-            Complete audit trail of submissions,
-            review decisions and workflow movements.
-          </p>
+              <p className="mt-1 text-sm text-gray-500">
+                Complete record of submissions, reviewer decisions, workflow movements and the people who performed them.
+              </p>
+            </div>
 
-          {history.length === 0 ? (
+            {history.length >
+              0 && (
+              <span className="w-fit rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-600">
+                {
+                  history.length
+                }{" "}
+                activity
+                {history.length ===
+                1
+                  ? ""
+                  : " items"}
+              </span>
+            )}
+          </div>
+
+          {history.length ===
+          0 ? (
             <p className="py-8 text-center text-sm text-gray-500">
               No approval activity yet.
             </p>
@@ -353,17 +479,23 @@ function StageCard({
   label,
   state,
 }: {
-  label: string;
-  state: StageState;
+  label:
+    string;
+
+  state:
+    StageState;
 }) {
   const config = {
     complete: {
       icon:
         CheckCircle2,
+
       wrapper:
         "border-green-200 bg-green-50",
+
       iconClass:
         "text-green-600",
+
       text:
         "Completed",
     },
@@ -371,10 +503,13 @@ function StageCard({
     active: {
       icon:
         Clock3,
+
       wrapper:
         "border-amber-200 bg-amber-50",
+
       iconClass:
         "text-amber-600",
+
       text:
         "In progress",
     },
@@ -382,10 +517,13 @@ function StageCard({
     pending: {
       icon:
         Circle,
+
       wrapper:
         "border-gray-200 bg-gray-50",
+
       iconClass:
         "text-gray-400",
+
       text:
         "Pending",
     },
@@ -393,17 +531,22 @@ function StageCard({
     failed: {
       icon:
         XCircle,
+
       wrapper:
         "border-red-200 bg-red-50",
+
       iconClass:
         "text-red-600",
+
       text:
         "Stopped",
     },
   } as const;
 
   const selected =
-    config[state];
+    config[
+      state
+    ];
 
   const Icon =
     selected.icon;
@@ -421,7 +564,9 @@ function StageCard({
       </p>
 
       <p className="mt-1 text-xs text-gray-500">
-        {selected.text}
+        {
+          selected.text
+        }
       </p>
     </div>
   );
@@ -433,50 +578,81 @@ function HistoryRow({
 }: {
   item:
     ApprovalHistoryItem;
-  last: boolean;
+
+  last:
+    boolean;
 }) {
   const comment =
     item.comments ||
     item.comment;
 
+  const actorName =
+    item.actor_name ||
+    fallbackActorName(
+      item
+    );
+
+  const actorRole =
+    formatRole(
+      item.actor_role ||
+        item.reviewer_role
+    );
+
+  const actorMeta =
+    [
+      item.actor_designation,
+      item.actor_department,
+    ].filter(
+      Boolean
+    );
+
+  const actionConfig =
+    getActionConfig(
+      item
+    );
+
+  const Icon =
+    actionConfig.icon;
+
   return (
     <div className="relative flex gap-4">
       <div className="flex flex-col items-center">
-        <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#e8f5f4]">
-          {item.action ===
-          "approved" ? (
-            <CheckCircle2 className="h-4 w-4 text-[#07877B]" />
-          ) : item.action ===
-            "changes_requested" ? (
-            <RotateCcw className="h-4 w-4 text-amber-600" />
-          ) : item.action ===
-            "rejected" ? (
-            <XCircle className="h-4 w-4 text-red-600" />
-          ) : (
-            <Clock3 className="h-4 w-4 text-[#07877B]" />
-          )}
+        <div
+          className={`mt-1 flex h-9 w-9 items-center justify-center rounded-full ${actionConfig.iconBg}`}
+        >
+          <Icon
+            className={`h-4 w-4 ${actionConfig.iconClass}`}
+          />
         </div>
 
         {!last && (
-          <div className="h-full min-h-12 w-px bg-gray-200" />
+          <div className="h-full min-h-16 w-px bg-gray-200" />
         )}
       </div>
 
       <div
         className={
           last
-            ? "flex-1"
-            : "flex-1 pb-7"
+            ? "min-w-0 flex-1"
+            : "min-w-0 flex-1 pb-8"
         }
       >
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-medium text-gray-900">
-            {formatAction(
-              item
-            )}
-          </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-900">
+              {
+                actionConfig.label
+              }
+            </p>
 
-          <p className="text-xs text-gray-400">
+            <p className="mt-1 text-xs text-gray-500">
+              {formatStage(
+                item.stage
+              )}
+            </p>
+          </div>
+
+          <p className="flex-shrink-0 text-xs text-gray-400">
             {formatDateTime(
               item.updated_at ||
                 item.created_at
@@ -484,15 +660,52 @@ function HistoryRow({
           </p>
         </div>
 
-        <p className="mt-1 text-xs text-gray-500">
-          {formatStage(
-            item.stage
-          )}
-        </p>
+        <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-white ring-1 ring-gray-200">
+              <UserRound className="h-4 w-4 text-gray-500" />
+            </div>
+
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium text-gray-900">
+                  {
+                    actorName
+                  }
+                </p>
+
+                {actorRole && (
+                  <span className="rounded-full border border-[#b3d9d5] bg-[#e8f5f4] px-2 py-0.5 text-[11px] font-medium text-[#07877B]">
+                    {
+                      actorRole
+                    }
+                  </span>
+                )}
+              </div>
+
+              {actorMeta.length >
+                0 && (
+                <p className="mt-1 text-xs text-gray-500">
+                  {actorMeta.join(
+                    " · "
+                  )}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
 
         {comment && (
-          <div className="mt-3 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
-            {comment}
+          <div className="mt-3 rounded-lg border border-gray-200 bg-white px-4 py-3">
+            <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-gray-400">
+              Comment
+            </p>
+
+            <p className="text-sm leading-6 text-gray-700">
+              {
+                comment
+              }
+            </p>
           </div>
         )}
       </div>
@@ -500,16 +713,97 @@ function HistoryRow({
   );
 }
 
-/**
- * IMPORTANT:
- * A historical request for changes must NOT
- * permanently mark a review stage as stopped.
- *
- * We use the latest event for that stage.
- */
+function getActionConfig(
+  item:
+    ApprovalHistoryItem
+) {
+  if (
+    item.action ===
+    "approved"
+  ) {
+    return {
+      icon:
+        CheckCircle2,
+
+      iconBg:
+        "bg-[#e8f5f4]",
+
+      iconClass:
+        "text-[#07877B]",
+
+      label:
+        formatAction(
+          item
+        ),
+    };
+  }
+
+  if (
+    item.action ===
+    "changes_requested"
+  ) {
+    return {
+      icon:
+        RotateCcw,
+
+      iconBg:
+        "bg-amber-50",
+
+      iconClass:
+        "text-amber-600",
+
+      label:
+        formatAction(
+          item
+        ),
+    };
+  }
+
+  if (
+    item.action ===
+    "rejected"
+  ) {
+    return {
+      icon:
+        XCircle,
+
+      iconBg:
+        "bg-red-50",
+
+      iconClass:
+        "text-red-600",
+
+      label:
+        formatAction(
+          item
+        ),
+    };
+  }
+
+  return {
+    icon:
+      Clock3,
+
+    iconBg:
+      "bg-blue-50",
+
+    iconClass:
+      "text-blue-600",
+
+    label:
+      formatAction(
+        item
+      ),
+  };
+}
+
 function getStageState(
-  stage: string,
-  status: string,
+  stage:
+    string,
+
+  status:
+    string,
+
   history:
     ApprovalHistoryItem[]
 ): StageState {
@@ -521,7 +815,10 @@ function getStageState(
           stage
       )
       .sort(
-        (a, b) =>
+        (
+          a,
+          b
+        ) =>
           new Date(
             a.updated_at ||
               a.created_at
@@ -538,11 +835,6 @@ function getStageState(
         1
     ];
 
-  /**
-   * If final communication is approved,
-   * both mandatory reviewer stages have
-   * completed successfully.
-   */
   if (
     status ===
     "approved"
@@ -557,7 +849,9 @@ function getStageState(
     }
   }
 
-  if (!latest) {
+  if (
+    !latest
+  ) {
     if (
       stage ===
         "marketing_review" &&
@@ -608,9 +902,12 @@ function getStageState(
 }
 
 function resolveCurrentStage(
-  status?: string
+  status?:
+    string
 ) {
-  switch (status) {
+  switch (
+    status
+  ) {
     case "pending_approval":
       return "Waiting for Marketing review.";
 
@@ -685,16 +982,89 @@ function formatAction(
   }
 
   return (
-    item.action ||
+    humanize(
+      item.action
+    ) ||
     "Approval activity"
   );
+}
+
+function fallbackActorName(
+  item:
+    ApprovalHistoryItem
+) {
+  const role =
+    item.actor_role ||
+    item.reviewer_role;
+
+  switch (
+    role
+  ) {
+    case "creator":
+      return "Communication Creator";
+
+    case "marketing_reviewer":
+      return "Marketing Reviewer";
+
+    case "corpcom_reviewer":
+      return "CorpCom Reviewer";
+
+    case "admin":
+      return "Administrator";
+
+    default:
+      if (
+        item.stage ===
+          "marketing_review" &&
+        (
+          item.action ===
+            "submitted" ||
+          item.action ===
+            "resubmitted"
+        )
+      ) {
+        return "Communication Creator";
+      }
+
+      return "Workflow User";
+  }
+}
+
+function formatRole(
+  role?:
+    string | null
+) {
+  switch (
+    role
+  ) {
+    case "creator":
+      return "Creator";
+
+    case "marketing_reviewer":
+      return "Marketing Reviewer";
+
+    case "corpcom_reviewer":
+      return "CorpCom Reviewer";
+
+    case "admin":
+      return "Admin";
+
+    default:
+      return role
+        ? humanize(
+            role
+          )
+        : "";
+  }
 }
 
 function formatStage(
   stage?:
     string | null
 ) {
-  switch (stage) {
+  switch (
+    stage
+  ) {
     case "marketing_review":
       return "Marketing Review";
 
@@ -706,14 +1076,18 @@ function formatStage(
 
     default:
       return (
-        stage ||
-        "Workflow"
+        stage
+          ? humanize(
+              stage
+            )
+          : "Workflow"
       );
   }
 }
 
 function formatDateTime(
-  value: string
+  value:
+    string
 ) {
   return new Date(
     value
@@ -722,23 +1096,47 @@ function formatDateTime(
     {
       day:
         "numeric",
+
       month:
         "short",
+
       year:
         "numeric",
+
       hour:
         "numeric",
+
       minute:
         "2-digit",
     }
   );
 }
 
+function humanize(
+  value:
+    string
+) {
+  return value
+    .replace(
+      /_/g,
+      " "
+    )
+    .replace(
+      /\b\w/g,
+      (
+        character
+      ) =>
+        character.toUpperCase()
+    );
+}
+
 function mapDatabaseCategory(
   category?:
     string | null
 ): Category {
-  switch (category) {
+  switch (
+    category
+  ) {
     case "Research & Advisory":
       return "research";
 
