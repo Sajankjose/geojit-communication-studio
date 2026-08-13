@@ -10,6 +10,14 @@ type CommunicationCategory =
   | "regulatory"
   | "onboarding";
 
+type ProductCommunicationType =
+  | "feature_explainer"
+  | "product_launch"
+  | "product_update"
+  | "offer_plan"
+  | "product_benefit"
+  | "cross_sell_adoption";
+
 interface GenerateEmailRequest {
   communicationId: string;
 
@@ -22,6 +30,20 @@ interface GenerateEmailRequest {
   audience?: string | null;
 
   objective?: string | null;
+
+  /**
+   * Optional explicit communication type.
+   *
+   * For Product & Sales this may be:
+   * feature_explainer, product_launch, etc.
+   *
+   * If omitted, we also try to resolve it
+   * from inputData.categorySpecificDetails.
+   */
+  communicationType?:
+    | ProductCommunicationType
+    | string
+    | null;
 
   inputData?: Record<
     string,
@@ -37,6 +59,16 @@ const VALID_CATEGORIES:
     "service",
     "regulatory",
     "onboarding",
+  ];
+
+const VALID_PRODUCT_COMMUNICATION_TYPES:
+  ProductCommunicationType[] = [
+    "feature_explainer",
+    "product_launch",
+    "product_update",
+    "offer_plan",
+    "product_benefit",
+    "cross_sell_adoption",
   ];
 
 function jsonResponse(
@@ -56,13 +88,118 @@ function jsonResponse(
   );
 }
 
+/**
+ * Safely read a nested object.
+ */
+function asRecord(
+  value: unknown
+): Record<
+  string,
+  unknown
+> | null {
+  if (
+    !value ||
+    typeof value !==
+      "object" ||
+    Array.isArray(value)
+  ) {
+    return null;
+  }
+
+  return value as Record<
+    string,
+    unknown
+  >;
+}
+
+/**
+ * Resolve Product & Sales communication type.
+ *
+ * Priority:
+ *
+ * 1. Explicit request body value
+ * 2. inputData.communicationType
+ * 3. inputData.categorySpecificDetails.communicationType
+ *
+ * This supports both the existing input format and
+ * the dedicated Product form we are about to add.
+ */
+function resolveCommunicationType({
+  category,
+  explicitType,
+  inputData,
+}: {
+  category:
+    CommunicationCategory;
+
+  explicitType?:
+    string | null;
+
+  inputData:
+    Record<
+      string,
+      unknown
+    > | null;
+}): string | null {
+  if (
+    category !==
+    "product"
+  ) {
+    return null;
+  }
+
+  if (
+    explicitType &&
+    typeof explicitType ===
+      "string"
+  ) {
+    return explicitType;
+  }
+
+  const directType =
+    inputData
+      ?.communicationType;
+
+  if (
+    typeof directType ===
+      "string" &&
+    directType.trim()
+  ) {
+    return directType.trim();
+  }
+
+  const categoryDetails =
+    asRecord(
+      inputData
+        ?.categorySpecificDetails
+    );
+
+  const nestedType =
+    categoryDetails
+      ?.communicationType;
+
+  if (
+    typeof nestedType ===
+      "string" &&
+    nestedType.trim()
+  ) {
+    return nestedType.trim();
+  }
+
+  return null;
+}
+
 export default async (
   request: Request
 ) => {
-  if (request.method !== "POST") {
+  if (
+    request.method !==
+    "POST"
+  ) {
     return jsonResponse(
       {
         success: false,
+
         error:
           "Method not allowed. Use POST.",
       },
@@ -90,6 +227,7 @@ export default async (
     return jsonResponse(
       {
         success: false,
+
         error:
           "Authentication required.",
       },
@@ -138,6 +276,7 @@ export default async (
       return jsonResponse(
         {
           success: false,
+
           error:
             "Invalid or expired session. Please sign in again.",
         },
@@ -168,6 +307,7 @@ export default async (
       return jsonResponse(
         {
           success: false,
+
           error:
             "communicationId is required.",
         },
@@ -184,6 +324,7 @@ export default async (
       return jsonResponse(
         {
           success: false,
+
           error:
             "A valid communication category is required.",
         },
@@ -201,10 +342,13 @@ export default async (
 
     const {
       data: communication,
-      error: communicationError,
+      error:
+        communicationError,
     } =
       await supabase
-        .from("communications")
+        .from(
+          "communications"
+        )
         .select(
           `
           id,
@@ -222,7 +366,8 @@ export default async (
           "id",
           body.communicationId
         )
-        .single();
+        .limit(1)
+        .maybeSingle();
 
     if (
       communicationError ||
@@ -236,10 +381,79 @@ export default async (
       return jsonResponse(
         {
           success: false,
+
           error:
             "Communication not found or access denied.",
         },
         404
+      );
+    }
+
+    /**
+     * ------------------------------------------------------
+     * Resolve effective input data
+     * ------------------------------------------------------
+     */
+
+    const effectiveInputData =
+      (
+        body.inputData &&
+        typeof body.inputData ===
+          "object" &&
+        !Array.isArray(
+          body.inputData
+        )
+      )
+        ? body.inputData
+        : (
+            asRecord(
+              communication.input_data
+            ) || {}
+          );
+
+    /**
+     * ------------------------------------------------------
+     * Resolve communication type
+     * ------------------------------------------------------
+     */
+
+    const communicationType =
+      resolveCommunicationType(
+        {
+          category:
+            body.category,
+
+          explicitType:
+            body.communicationType,
+
+          inputData:
+            effectiveInputData,
+        }
+      );
+
+    /**
+     * Product communication type validation.
+     *
+     * We intentionally allow null for existing Product
+     * communications so the current generic Product flow
+     * continues working.
+     */
+    if (
+      body.category ===
+        "product" &&
+      communicationType &&
+      !VALID_PRODUCT_COMMUNICATION_TYPES.includes(
+        communicationType as ProductCommunicationType
+      )
+    ) {
+      return jsonResponse(
+        {
+          success: false,
+
+          error:
+            `Unsupported Product & Sales communication type: ${communicationType}`,
+        },
+        400
       );
     }
 
@@ -251,10 +465,13 @@ export default async (
 
     const {
       data: activeRuns,
-      error: activeRunsError,
+      error:
+        activeRunsError,
     } =
       await supabase
-        .from("ai_runs")
+        .from(
+          "ai_runs"
+        )
         .select(
           "id,status,created_at"
         )
@@ -272,12 +489,15 @@ export default async (
         .order(
           "created_at",
           {
-            ascending: false,
+            ascending:
+              false,
           }
         )
         .limit(1);
 
-    if (activeRunsError) {
+    if (
+      activeRunsError
+    ) {
       console.error(
         "Unable to check active AI runs:",
         activeRunsError
@@ -286,6 +506,7 @@ export default async (
       return jsonResponse(
         {
           success: false,
+
           error:
             "Unable to check generation status.",
         },
@@ -295,20 +516,25 @@ export default async (
 
     if (
       activeRuns &&
-      activeRuns.length > 0
+      activeRuns.length >
+        0
     ) {
       return jsonResponse(
         {
           success: true,
 
           status:
-            activeRuns[0].status,
+            activeRuns[0]
+              .status,
 
           communicationId:
             body.communicationId,
 
           aiRunId:
-            activeRuns[0].id,
+            activeRuns[0]
+              .id,
+
+          communicationType,
 
           message:
             "Generation is already in progress.",
@@ -321,6 +547,14 @@ export default async (
      * ------------------------------------------------------
      * Build payload for background worker
      * ------------------------------------------------------
+     *
+     * communicationType is now explicitly included.
+     *
+     * The background worker will use this to choose:
+     *
+     * product + feature_explainer
+     *              ↓
+     * PRODUCT_FEATURE_EXPLAINER_RULES
      */
 
     const workerPayload = {
@@ -329,6 +563,8 @@ export default async (
 
       category:
         body.category,
+
+      communicationType,
 
       title:
         body.title ||
@@ -347,8 +583,7 @@ export default async (
         communication.objective,
 
       inputData:
-        body.inputData ||
-        communication.input_data,
+        effectiveInputData,
     };
 
     /**
@@ -371,7 +606,8 @@ export default async (
       await fetch(
         workerUrl.toString(),
         {
-          method: "POST",
+          method:
+            "POST",
 
           headers: {
             "Content-Type":
@@ -413,6 +649,7 @@ export default async (
       return jsonResponse(
         {
           success: false,
+
           error:
             "Unable to start AI generation.",
         },
@@ -427,10 +664,13 @@ export default async (
      */
 
     const {
-      error: statusError,
+      error:
+        statusError,
     } =
       await supabase
-        .from("communications")
+        .from(
+          "communications"
+        )
         .update({
           status:
             "generating",
@@ -440,7 +680,9 @@ export default async (
           body.communicationId
         );
 
-    if (statusError) {
+    if (
+      statusError
+    ) {
       console.error(
         "Unable to set generating status:",
         statusError
@@ -458,6 +700,8 @@ export default async (
 
         category:
           body.category,
+
+        communicationType,
       }
     );
 
@@ -477,12 +721,16 @@ export default async (
         communicationId:
           body.communicationId,
 
+        communicationType,
+
         message:
-          "AI generation started.",
+          communicationType ===
+          "feature_explainer"
+            ? "Feature Explainer generation started."
+            : "AI generation started.",
       },
       202
     );
-
   } catch (error) {
     console.error(
       "Generate starter error:",
