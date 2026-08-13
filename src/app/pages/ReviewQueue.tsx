@@ -472,7 +472,7 @@ export function ReviewQueue() {
               item
             ) =>
               navigate(
-                `/approval-status?communicationId=${encodeURIComponent(
+                `/approval/status?communicationId=${encodeURIComponent(
                   item.communication_id
                 )}`
               )
