@@ -845,11 +845,11 @@ function ActivityView({
         <History className="mx-auto mb-4 h-10 w-10 text-gray-300" />
 
         <h2 className="mb-2 text-xl text-gray-900">
-          No review activity yet
+          No activity yet
         </h2>
 
         <p className="text-sm text-gray-500">
-          Your approved, change-requested and rejected reviews will appear here.
+          Your completed review actions will appear here.
         </p>
       </div>
     );
@@ -859,11 +859,11 @@ function ActivityView({
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-200 px-6 py-5">
         <h2 className="text-lg font-medium text-gray-900">
-          My Review Activity
+          My Activity
         </h2>
 
         <p className="mt-1 text-sm text-gray-500">
-          Decisions you have completed across communications.
+          Your review actions captured in the central activity audit trail.
         </p>
       </div>
 
@@ -883,7 +883,7 @@ function ActivityView({
             return (
               <div
                 key={
-                  item.approval_action_id
+                  item.activity_id
                 }
                 className="grid gap-4 px-6 py-5 md:grid-cols-[44px,1fr,180px]"
               >
@@ -898,9 +898,8 @@ function ActivityView({
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-medium text-gray-900">
-                      {
-                        item.title
-                      }
+                      {item.communication_title ||
+                        "Communication"}
                     </h3>
 
                     {item.category && (
@@ -926,50 +925,67 @@ function ActivityView({
 
                     {" · "}
 
-                    {formatStage(
-                      item.stage
+                    {formatActivityStage(
+                      item.user_role
                     )}
                   </p>
 
                   <p className="mt-1 text-xs text-gray-500">
-                    Creator:{" "}
-                    {item.original_creator_name ||
-                      "Unknown user"}
-                    {" · "}
-                    Current status:{" "}
-                    {humanize(
-                      item.communication_status
+                    Performed by:{" "}
+                    {item.user_name ||
+                      "Current user"}
+
+                    {item.communication_status && (
+                      <>
+                        {" · "}
+                        Current status:{" "}
+                        {humanize(
+                          item.communication_status
+                        )}
+                      </>
                     )}
                   </p>
 
-                  {item.comments && (
-                    <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                  {item.description && (
+                    <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700">
                       {
-                        item.comments
+                        item.description
                       }
                     </div>
                   )}
+
+                  {typeof item.metadata?.comment ===
+                    "string" &&
+                    item.metadata.comment && (
+                      <div className="mt-2 text-xs text-gray-500">
+                        Comment:{" "}
+                        {
+                          item.metadata.comment
+                        }
+                      </div>
+                    )}
                 </div>
 
                 <div className="flex flex-col items-start gap-3 md:items-end">
                   <p className="text-xs text-gray-400">
                     {formatFullDate(
-                      item.updated_at ||
-                        item.created_at
+                      item.created_at
                     )}
                   </p>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onOpen(
-                        item
-                      )
-                    }
-                    className="text-sm font-medium text-[#07877B] hover:text-[#06766a]"
-                  >
-                    View Audit Trail
-                  </button>
+                  {item.communication_id && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onOpen(
+                          item
+                        )
+                      }
+                      className="text-sm font-medium text-[#07877B] hover:text-[#06766a]"
+                    >
+                      View Audit Trail
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -1194,8 +1210,8 @@ function activityConfig(
     string
 ) {
   if (
-    action ===
-    "approved"
+    action === "marketing_approved" ||
+    action === "corpcom_approved"
   ) {
     return {
       icon:
@@ -1207,13 +1223,15 @@ function activityConfig(
       textClass:
         "font-medium text-green-700",
       label:
-        "Approved",
+        action === "corpcom_approved"
+          ? "Final approved"
+          : "Approved & sent to CorpCom",
     };
   }
 
   if (
-    action ===
-    "changes_requested"
+    action === "marketing_changes_requested" ||
+    action === "corpcom_changes_requested"
   ) {
     return {
       icon:
@@ -1229,18 +1247,61 @@ function activityConfig(
     };
   }
 
+  if (
+    action === "marketing_rejected" ||
+    action === "corpcom_rejected"
+  ) {
+    return {
+      icon:
+        XCircle,
+      bg:
+        "bg-red-50",
+      iconClass:
+        "text-red-600",
+      textClass:
+        "font-medium text-red-700",
+      label:
+        "Rejected",
+    };
+  }
+
   return {
     icon:
-      XCircle,
+      Clock3,
     bg:
-      "bg-red-50",
+      "bg-blue-50",
     iconClass:
-      "text-red-600",
+      "text-blue-600",
     textClass:
-      "font-medium text-red-700",
+      "font-medium text-blue-700",
     label:
-      "Rejected",
+      humanize(
+        action
+      ),
   };
+}
+
+function formatActivityStage(
+  role:
+    string
+) {
+  if (
+    role ===
+    "marketing_reviewer"
+  ) {
+    return "Marketing Review";
+  }
+
+  if (
+    role ===
+    "corpcom_reviewer"
+  ) {
+    return "CorpCom Review";
+  }
+
+  return humanize(
+    role
+  );
 }
 
 function personName(
