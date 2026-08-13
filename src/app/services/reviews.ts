@@ -46,21 +46,18 @@ export interface ReviewQueueItem {
 }
 
 export interface ReviewerActivityItem {
-  approval_action_id: string;
-  communication_id: string;
-  title: string;
-  category: string | null;
-  audience: string | null;
-  communication_status: string;
-  selected_variant_id: string | null;
-  stage: string;
+  activity_id: string;
+  user_id: string | null;
+  user_name: string | null;
+  user_role: string;
   action: string;
-  action_status: string;
-  comments: string | null;
+  description: string;
+  communication_id: string | null;
+  communication_title: string | null;
+  category: string | null;
+  communication_status: string | null;
+  metadata: Record<string, any>;
   created_at: string;
-  updated_at: string;
-  original_creator_id: string | null;
-  original_creator_name: string | null;
 }
 
 export async function getReviewerQueue(
@@ -68,24 +65,32 @@ export async function getReviewerQueue(
     | "marketing_reviewer"
     | "corpcom_reviewer"
 ): Promise<ReviewQueueItem[]> {
-  const { role: actualRole } =
+  const {
+    role: actualRole,
+  } =
     await requireCurrentUserRole([
       "marketing_reviewer",
       "corpcom_reviewer",
     ]);
 
-  if (actualRole !== reviewerRole) {
+  if (
+    actualRole !== reviewerRole
+  ) {
     throw new Error(
       "Reviewer role mismatch. Access denied."
     );
   }
 
   const stage =
-    reviewerRole === "marketing_reviewer"
+    reviewerRole ===
+    "marketing_reviewer"
       ? "marketing_review"
       : "corpcom_review";
 
-  const { data, error } =
+  const {
+    data,
+    error,
+  } =
     await supabase
       .from("approval_actions")
       .select(
@@ -120,14 +125,25 @@ export async function getReviewerQueue(
         )
         `
       )
-      .eq("stage", stage)
-      .eq("status", "pending")
-      .order("created_at", {
-        ascending: true,
-      });
+      .eq(
+        "stage",
+        stage
+      )
+      .eq(
+        "status",
+        "pending"
+      )
+      .order(
+        "created_at",
+        {
+          ascending: true,
+        }
+      );
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error(
+      error.message
+    );
   }
 
   const rows =
@@ -137,73 +153,59 @@ export async function getReviewerQueue(
     Array.from(
       new Set(
         rows
-          .flatMap((row) => [
-            row.submitted_by,
-            row.communication?.created_by,
-          ])
+          .flatMap(
+            (row) => [
+              row.submitted_by,
+              row.communication
+                ?.created_by,
+            ]
+          )
           .filter(Boolean)
       )
     ) as string[];
 
   const profileMap =
-    new Map<string, ReviewPerson>();
+    new Map<
+      string,
+      ReviewPerson
+    >();
 
-  if (profileIds.length > 0) {
+  if (
+    profileIds.length > 0
+  ) {
     /**
-     * Prefer restricted RPC when installed.
-     * Fall back to profiles SELECT only for older environments.
+     * Restricted submitter-profile RPC.
      */
-    const rpcResult =
+    const {
+      data:
+        profiles,
+      error:
+        profileError,
+    } =
       await supabase.rpc(
         "get_review_people",
         {
-          p_user_ids: profileIds,
+          p_user_ids:
+            profileIds,
         }
       );
 
-    if (!rpcResult.error) {
+    if (
+      profileError
+    ) {
+      console.error(
+        "Unable to load review people:",
+        profileError
+      );
+    } else {
       for (
         const profile of
-        rpcResult.data || []
+        profiles || []
       ) {
         profileMap.set(
           profile.id,
           profile as ReviewPerson
         );
-      }
-    } else {
-      const {
-        data: profiles,
-        error: profileError,
-      } =
-        await supabase
-          .from("profiles")
-          .select(
-            `
-            id,
-            full_name,
-            designation,
-            department,
-            role
-            `
-          )
-          .in("id", profileIds);
-
-      if (profileError) {
-        console.error(
-          "Unable to load submitter profiles:",
-          profileError
-        );
-      } else {
-        for (
-          const profile of
-          profiles || []
-        ) {
-          profileMap.set(
-            profile.id,
-            profile as ReviewPerson
-          );
-        }
       }
     }
   }
@@ -238,12 +240,15 @@ export async function getReviewerQueue(
         row.created_at,
 
       communication:
-        row.communication || null,
+        row.communication ||
+        null,
 
       original_submitter:
-        row.communication?.created_by
+        row.communication
+          ?.created_by
           ? profileMap.get(
-              row.communication.created_by
+              row.communication
+                .created_by
             ) || null
           : null,
 
@@ -255,7 +260,8 @@ export async function getReviewerQueue(
           : null,
 
       is_resubmission:
-        row.action === "resubmitted" ||
+        row.action ===
+          "resubmitted" ||
         Boolean(
           row.communication
             ?.revision_resubmitted_at
@@ -264,19 +270,32 @@ export async function getReviewerQueue(
   ) as ReviewQueueItem[];
 }
 
+/**
+ * Reviewer "My Activity"
+ *
+ * Uses the new central activity_logs architecture through
+ * get_my_activity(). This replaces the retired
+ * get_my_review_activity() function.
+ */
 export async function getReviewerActivity(
-  limit = 50
-): Promise<ReviewerActivityItem[]> {
+  limit = 100
+): Promise<
+  ReviewerActivityItem[]
+> {
   await requireCurrentUserRole([
     "marketing_reviewer",
     "corpcom_reviewer",
   ]);
 
-  const { data, error } =
+  const {
+    data,
+    error,
+  } =
     await supabase.rpc(
-      "get_my_review_activity",
+      "get_my_activity",
       {
-        p_limit: limit,
+        p_limit:
+          limit,
       }
     );
 
@@ -286,7 +305,9 @@ export async function getReviewerActivity(
       error
     );
 
-    throw new Error(error.message);
+    throw new Error(
+      error.message
+    );
   }
 
   return (
@@ -320,109 +341,120 @@ export async function submitReviewerDecision({
       "corpcom_reviewer",
     ]);
 
-  if (actualRole !== reviewerRole) {
+  if (
+    actualRole !== reviewerRole
+  ) {
     throw new Error(
       "Reviewer role mismatch. Access denied."
     );
   }
 
   const cleanComment =
-    comments?.trim() || null;
+    comments?.trim() ||
+    null;
 
-  /**
-   * Marketing approval:
-   * Marketing completed -> communication moves ->
-   * CorpCom pending row created atomically.
-   */
   if (
     reviewerRole ===
       "marketing_reviewer" &&
-    decision === "approved"
+    decision ===
+      "approved"
   ) {
-    const { error } =
+    const {
+      error,
+    } =
       await supabase.rpc(
         "marketing_send_to_corpcom",
         {
           p_approval_action_id:
             approvalActionId,
+
           p_communication_id:
             communicationId,
+
           p_comments:
             cleanComment,
         }
       );
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(
+        error.message
+      );
     }
 
     return;
   }
 
-  /**
-   * CorpCom final approval:
-   * CorpCom action + final communication state
-   * are written in one transaction.
-   */
   if (
     reviewerRole ===
       "corpcom_reviewer" &&
-    decision === "approved"
+    decision ===
+      "approved"
   ) {
-    const { error } =
+    const {
+      error,
+    } =
       await supabase.rpc(
         "corpcom_final_approve",
         {
           p_approval_action_id:
             approvalActionId,
+
           p_communication_id:
             communicationId,
+
           p_comments:
             cleanComment,
         }
       );
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(
+        error.message
+      );
     }
 
     return;
   }
 
-  /**
-   * Request Changes / Reject:
-   * both reviewer roles use the atomic RPC.
-   * This eliminates direct browser UPDATEs on
-   * communications that were being blocked by RLS.
-   */
   if (
     decision ===
       "changes_requested" ||
-    decision === "rejected"
+    decision ===
+      "rejected"
   ) {
-    if (!cleanComment) {
+    if (
+      !cleanComment
+    ) {
       throw new Error(
         "A reviewer comment is required."
       );
     }
 
-    const { error } =
+    const {
+      error,
+    } =
       await supabase.rpc(
         "reviewer_return_or_reject",
         {
           p_approval_action_id:
             approvalActionId,
+
           p_communication_id:
             communicationId,
+
           p_decision:
             decision,
+
           p_comments:
             cleanComment,
         }
       );
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(
+        error.message
+      );
     }
 
     return;
