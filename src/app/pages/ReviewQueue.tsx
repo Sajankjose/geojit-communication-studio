@@ -4,28 +4,39 @@ import {
   useState,
 } from "react";
 
-import { useNavigate } from "react-router";
+import {
+  useNavigate,
+} from "react-router";
 
 import {
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  FileCheck2,
+  Clock3,
   FileText,
+  History,
   MessageSquareText,
+  RefreshCw,
   RotateCcw,
-  ShieldCheck,
   Sparkles,
   UserRound,
   XCircle,
 } from "lucide-react";
 
-import { TopNavBar } from "../components/TopNavBar";
-import { CategoryTag } from "../components/CategoryTag";
-import { useAuth } from "../auth/useAuth";
+import {
+  TopNavBar,
+} from "../components/TopNavBar";
 
 import {
+  CategoryTag,
+} from "../components/CategoryTag";
+
+import {
+  useAuth,
+} from "../auth/useAuth";
+
+import {
+  getReviewerActivity,
   getReviewerQueue,
+  ReviewerActivityItem,
   ReviewPerson,
   ReviewQueueItem,
   submitReviewerDecision,
@@ -35,46 +46,95 @@ type ReviewerRole =
   | "marketing_reviewer"
   | "corpcom_reviewer";
 
+type QueueTab =
+  | "pending"
+  | "activity";
+
 export function ReviewQueue() {
-  const navigate = useNavigate();
-  const { profile } = useAuth();
+  const navigate =
+    useNavigate();
+
+  const {
+    profile,
+  } =
+    useAuth();
 
   const reviewerRole =
     profile?.role as
       | ReviewerRole
       | undefined;
 
-  const [items, setItems] =
-    useState<ReviewQueueItem[]>([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
-
-  const [selected, setSelected] =
-    useState<ReviewQueueItem | null>(
-      null
+  const [
+    activeTab,
+    setActiveTab,
+  ] =
+    useState<QueueTab>(
+      "pending"
     );
 
-  const [comments, setComments] =
-    useState("");
+  const [
+    items,
+    setItems,
+  ] =
+    useState<
+      ReviewQueueItem[]
+    >([]);
+
+  const [
+    activity,
+    setActivity,
+  ] =
+    useState<
+      ReviewerActivityItem[]
+    >([]);
+
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(
+      true
+    );
+
+  const [
+    error,
+    setError,
+  ] =
+    useState(
+      ""
+    );
+
+  const [
+    selected,
+    setSelected,
+  ] =
+    useState<
+      ReviewQueueItem | null
+    >(null);
+
+  const [
+    comments,
+    setComments,
+  ] =
+    useState(
+      ""
+    );
 
   const [
     decisionError,
     setDecisionError,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     submitting,
     setSubmitting,
-  ] = useState(false);
-
-  const [
-    showAllFacts,
-    setShowAllFacts,
-  ] = useState(false);
+  ] =
+    useState(
+      false
+    );
 
   const canReview =
     reviewerRole ===
@@ -83,33 +143,89 @@ export function ReviewQueue() {
       "corpcom_reviewer";
 
   useEffect(() => {
-    if (!canReview) {
-      setLoading(false);
+    if (
+      !canReview
+    ) {
+      setLoading(
+        false
+      );
+
       return;
     }
 
-    loadQueue();
-  }, [reviewerRole]);
+    loadAll();
+  }, [
+    reviewerRole,
+  ]);
 
-  async function loadQueue() {
+  async function loadAll() {
+    if (
+      !reviewerRole
+    ) {
+      return;
+    }
+
     try {
-      setLoading(true);
-      setError("");
+      setLoading(
+        true
+      );
 
-      const data =
-        await getReviewerQueue(
-          reviewerRole!
+      setError(
+        ""
+      );
+
+      const [
+        queueData,
+        activityData,
+      ] =
+        await Promise.all([
+          getReviewerQueue(
+            reviewerRole
+          ),
+
+          getReviewerActivity(
+            50
+          ),
+        ]);
+
+      setItems(
+        queueData
+      );
+
+      setActivity(
+        activityData
+      );
+
+      /**
+       * Keep selected item valid after refresh.
+       */
+      if (
+        selected
+      ) {
+        const refreshed =
+          queueData.find(
+            (
+              item
+            ) =>
+              item.approval_action_id ===
+              selected.approval_action_id
+          );
+
+        setSelected(
+          refreshed ||
+            null
         );
-
-      setItems(data);
+      }
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to load review queue."
+          : "Unable to load reviewer dashboard."
       );
     } finally {
-      setLoading(false);
+      setLoading(
+        false
+      );
     }
   }
 
@@ -128,9 +244,12 @@ export function ReviewQueue() {
     }
 
     if (
-      (decision ===
-        "changes_requested" ||
-        decision === "rejected") &&
+      (
+        decision ===
+          "changes_requested" ||
+        decision ===
+          "rejected"
+      ) &&
       !comments.trim()
     ) {
       setDecisionError(
@@ -139,28 +258,54 @@ export function ReviewQueue() {
           ? "Please explain what needs to be changed before sending this back to the creator."
           : "Please add a reason before rejecting this communication."
       );
+
       return;
     }
 
     try {
-      setSubmitting(true);
-      setError("");
-      setDecisionError("");
+      setSubmitting(
+        true
+      );
+
+      setError(
+        ""
+      );
+
+      setDecisionError(
+        ""
+      );
 
       await submitReviewerDecision({
         approvalActionId:
           selected.approval_action_id,
+
         communicationId:
           selected.communication_id,
+
         decision,
+
         comments,
+
         reviewerRole,
       });
 
-      setSelected(null);
-      setComments("");
+      setSelected(
+        null
+      );
 
-      await loadQueue();
+      setComments(
+        ""
+      );
+
+      await loadAll();
+
+      /**
+       * After a decision, show My Activity so the reviewer
+       * immediately sees that their action was recorded.
+       */
+      setActiveTab(
+        "activity"
+      );
     } catch (err) {
       setError(
         err instanceof Error
@@ -168,20 +313,27 @@ export function ReviewQueue() {
           : "Unable to save review decision."
       );
     } finally {
-      setSubmitting(false);
+      setSubmitting(
+        false
+      );
     }
   }
 
-  const heading = useMemo(
-    () =>
-      reviewerRole ===
-      "corpcom_reviewer"
-        ? "CorpCom Review Queue"
-        : "Marketing Review Queue",
-    [reviewerRole]
-  );
+  const heading =
+    useMemo(
+      () =>
+        reviewerRole ===
+        "corpcom_reviewer"
+          ? "CorpCom Review"
+          : "Marketing Review",
+      [
+        reviewerRole,
+      ]
+    );
 
-  if (!canReview) {
+  if (
+    !canReview
+  ) {
     return (
       <div className="min-h-screen bg-background">
         <TopNavBar />
@@ -204,27 +356,130 @@ export function ReviewQueue() {
       <TopNavBar />
 
       <main className="mx-auto max-w-6xl px-8 py-12">
-        <div className="mb-8">
-          <h1 className="mb-2 text-3xl text-gray-900">
-            {heading}
-          </h1>
+        <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h1 className="mb-2 text-3xl text-gray-900">
+              {
+                heading
+              }
+            </h1>
 
-          <p className="text-gray-600">
-            Review communications waiting for your action.
-          </p>
+            <p className="text-gray-600">
+              Review pending communications and keep track of your completed decisions.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={
+              loadAll
+            }
+            disabled={
+              loading
+            }
+            className="inline-flex w-fit items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`h-4 w-4 ${
+                loading
+                  ? "animate-spin"
+                  : ""
+              }`}
+            />
+            Refresh
+          </button>
+        </div>
+
+        <div className="mb-7 flex w-fit rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() =>
+              setActiveTab(
+                "pending"
+              )
+            }
+            className={`rounded-lg px-5 py-2.5 text-sm font-medium transition-colors ${
+              activeTab ===
+              "pending"
+                ? "bg-[#07877B] text-white"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            Pending Reviews
+            <span
+              className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
+                activeTab ===
+                "pending"
+                  ? "bg-white/20 text-white"
+                  : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {
+                items.length
+              }
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              setActiveTab(
+                "activity"
+              )
+            }
+            className={`rounded-lg px-5 py-2.5 text-sm font-medium transition-colors ${
+              activeTab ===
+              "activity"
+                ? "bg-[#07877B] text-white"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            My Activity
+            <span
+              className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
+                activeTab ===
+                "activity"
+                  ? "bg-white/20 text-white"
+                  : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {
+                activity.length
+              }
+            </span>
+          </button>
         </div>
 
         {error && (
           <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
+            {
+              error
+            }
           </div>
         )}
 
         {loading ? (
-          <div className="py-16 text-center text-gray-500">
-            Loading review queue...
+          <div className="rounded-xl border border-gray-200 bg-white py-16 text-center text-sm text-gray-500 shadow-sm">
+            Loading reviewer dashboard...
           </div>
-        ) : items.length === 0 ? (
+        ) : activeTab ===
+          "activity" ? (
+          <ActivityView
+            items={
+              activity
+            }
+            onOpen={(
+              item
+            ) =>
+              navigate(
+                `/approval-status?communicationId=${encodeURIComponent(
+                  item.communication_id
+                )}`
+              )
+            }
+          />
+        ) : items.length ===
+          0 ? (
           <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
             <CheckCircle2 className="mx-auto mb-4 h-10 w-10 text-green-500" />
 
@@ -235,90 +490,119 @@ export function ReviewQueue() {
             <p className="text-sm text-gray-500">
               There are no communications waiting for your review.
             </p>
+
+            {activity.length >
+              0 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveTab(
+                    "activity"
+                  )
+                }
+                className="mt-5 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <History className="h-4 w-4" />
+                View My Activity
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-[1fr,420px]">
             <div className="space-y-3">
-              {items.map((item) => (
-                <button
-                  key={
-                    item.approval_action_id
-                  }
-                  type="button"
-                  onClick={() => {
-                    setSelected(item);
-                    setComments(
-                      item.comments || ""
-                    );
-                    setDecisionError("");
-                    setShowAllFacts(false);
-                  }}
-                  className={`w-full rounded-xl border bg-white p-5 text-left shadow-sm transition-all ${
-                    selected?.approval_action_id ===
-                    item.approval_action_id
-                      ? "border-[#07877B] ring-2 ring-[#07877B]/10"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="mb-3 flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-base text-gray-900">
-                        {item.communication
-                          ?.title ||
-                          "Untitled Communication"}
-                      </h3>
+              {items.map(
+                (
+                  item
+                ) => (
+                  <button
+                    key={
+                      item.approval_action_id
+                    }
+                    type="button"
+                    onClick={() => {
+                      setSelected(
+                        item
+                      );
 
-                      <div className="mt-1 flex flex-wrap items-center gap-2">
-                        <p className="text-xs text-gray-500">
-                          Submitted{" "}
-                          {formatDate(
-                            item.created_at
+                      setComments(
+                        item.comments ||
+                          ""
+                      );
+
+                      setDecisionError(
+                        ""
+                      );
+                    }}
+                    className={`w-full rounded-xl border bg-white p-5 text-left shadow-sm transition-all ${
+                      selected?.approval_action_id ===
+                      item.approval_action_id
+                        ? "border-[#07877B] ring-2 ring-[#07877B]/10"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="text-base font-medium text-gray-900">
+                          {item.communication
+                            ?.title ||
+                            "Untitled Communication"}
+                        </h3>
+
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <p className="text-xs text-gray-500">
+                            Submitted{" "}
+                            {formatDate(
+                              item.created_at
+                            )}
+                          </p>
+
+                          {item.is_resubmission && (
+                            <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                              Revised &amp; resubmitted
+                            </span>
                           )}
-                        </p>
+                        </div>
 
-                        {item.is_resubmission && (
-                          <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
-                            Revised &amp; resubmitted
-                          </span>
-                        )}
+                        <SubmitterInline
+                          item={
+                            item
+                          }
+                          reviewerRole={
+                            reviewerRole!
+                          }
+                        />
                       </div>
 
-                      <SubmitterInline
-                        item={item}
-                        reviewerRole={
-                          reviewerRole!
-                        }
-                      />
+                      {item.communication
+                        ?.category && (
+                        <CategoryTag
+                          category={mapDatabaseCategory(
+                            item.communication
+                              .category
+                          )}
+                          size="sm"
+                        />
+                      )}
                     </div>
 
-                    {item.communication
-                      ?.category && (
-                      <CategoryTag
-                        category={mapDatabaseCategory(
-                          item.communication
-                            .category
+                    <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-600">
+                      <span>
+                        Audience:{" "}
+                        {item.communication
+                          ?.audience ||
+                          "—"}
+                      </span>
+
+                      <span>
+                        Stage:{" "}
+                        {formatStage(
+                          item.stage
                         )}
-                        size="sm"
-                      />
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-600">
-                    <span>
-                      Audience:{" "}
-                      {item.communication
-                        ?.audience || "—"}
-                    </span>
-
-                    <span>
-                      Stage:{" "}
-                      {formatStage(
-                        item.stage
-                      )}
-                    </span>
-                  </div>
-                </button>
-              ))}
+                      </span>
+                    </div>
+                  </button>
+                )
+              )}
             </div>
 
             <aside className="h-fit rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -362,26 +646,11 @@ export function ReviewQueue() {
                   </div>
 
                   <SubmissionIdentity
-                    item={selected}
+                    item={
+                      selected
+                    }
                     reviewerRole={
                       reviewerRole!
-                    }
-                  />
-
-                  <ReviewBrief
-                    item={selected}
-                  />
-
-                  <VerifiedSourceFacts
-                    item={selected}
-                    expanded={
-                      showAllFacts
-                    }
-                    onToggle={() =>
-                      setShowAllFacts(
-                        (current) =>
-                          !current
-                      )
                     }
                   />
 
@@ -425,7 +694,7 @@ export function ReviewQueue() {
                             )}&mode=review`
                           );
                         }}
-                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:border-[#07877B] hover:text-[#07877B]"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:border-[#07877B] hover:text-[#07877B]"
                       >
                         <FileText className="h-4 w-4" />
                         Open Full Preview
@@ -446,9 +715,15 @@ export function ReviewQueue() {
                     </label>
 
                     <textarea
-                      rows={5}
-                      value={comments}
-                      onChange={(event) => {
+                      rows={
+                        5
+                      }
+                      value={
+                        comments
+                      }
+                      onChange={(
+                        event
+                      ) => {
                         setComments(
                           event.target
                             .value
@@ -516,7 +791,7 @@ export function ReviewQueue() {
                       disabled={
                         submitting
                       }
-                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800 hover:bg-amber-100 disabled:opacity-50"
                     >
                       <RotateCcw className="h-4 w-4" />
                       Request Changes
@@ -532,7 +807,7 @@ export function ReviewQueue() {
                       disabled={
                         submitting
                       }
-                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700 hover:bg-red-100 disabled:opacity-50"
                     >
                       <XCircle className="h-4 w-4" />
                       Reject
@@ -548,12 +823,172 @@ export function ReviewQueue() {
   );
 }
 
+function ActivityView({
+  items,
+  onOpen,
+}: {
+  items:
+    ReviewerActivityItem[];
+
+  onOpen:
+    (
+      item:
+        ReviewerActivityItem
+    ) => void;
+}) {
+  if (
+    items.length ===
+    0
+  ) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
+        <History className="mx-auto mb-4 h-10 w-10 text-gray-300" />
+
+        <h2 className="mb-2 text-xl text-gray-900">
+          No review activity yet
+        </h2>
+
+        <p className="text-sm text-gray-500">
+          Your approved, change-requested and rejected reviews will appear here.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-200 px-6 py-5">
+        <h2 className="text-lg font-medium text-gray-900">
+          My Review Activity
+        </h2>
+
+        <p className="mt-1 text-sm text-gray-500">
+          Decisions you have completed across communications.
+        </p>
+      </div>
+
+      <div className="divide-y divide-gray-100">
+        {items.map(
+          (
+            item
+          ) => {
+            const config =
+              activityConfig(
+                item.action
+              );
+
+            const Icon =
+              config.icon;
+
+            return (
+              <div
+                key={
+                  item.approval_action_id
+                }
+                className="grid gap-4 px-6 py-5 md:grid-cols-[44px,1fr,180px]"
+              >
+                <div
+                  className={`flex h-10 w-10 items-center justify-center rounded-full ${config.bg}`}
+                >
+                  <Icon
+                    className={`h-4 w-4 ${config.iconClass}`}
+                  />
+                </div>
+
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-medium text-gray-900">
+                      {
+                        item.title
+                      }
+                    </h3>
+
+                    {item.category && (
+                      <CategoryTag
+                        category={mapDatabaseCategory(
+                          item.category
+                        )}
+                        size="sm"
+                      />
+                    )}
+                  </div>
+
+                  <p className="mt-1 text-sm text-gray-700">
+                    <span
+                      className={
+                        config.textClass
+                      }
+                    >
+                      {
+                        config.label
+                      }
+                    </span>
+
+                    {" · "}
+
+                    {formatStage(
+                      item.stage
+                    )}
+                  </p>
+
+                  <p className="mt-1 text-xs text-gray-500">
+                    Creator:{" "}
+                    {item.original_creator_name ||
+                      "Unknown user"}
+                    {" · "}
+                    Current status:{" "}
+                    {humanize(
+                      item.communication_status
+                    )}
+                  </p>
+
+                  {item.comments && (
+                    <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                      {
+                        item.comments
+                      }
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col items-start gap-3 md:items-end">
+                  <p className="text-xs text-gray-400">
+                    {formatFullDate(
+                      item.updated_at ||
+                        item.created_at
+                    )}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onOpen(
+                        item
+                      )
+                    }
+                    className="text-sm font-medium text-[#07877B] hover:text-[#06766a]"
+                  >
+                    View Audit Trail
+                  </button>
+                </div>
+              </div>
+            );
+          }
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SubmitterInline({
   item,
   reviewerRole,
 }: {
-  item: ReviewQueueItem;
-  reviewerRole: ReviewerRole;
+  item:
+    ReviewQueueItem;
+
+  reviewerRole:
+    ReviewerRole;
 }) {
   const original =
     item.original_submitter;
@@ -568,7 +1003,7 @@ function SubmitterInline({
     return null;
   }
 
-  const isSamePerson =
+  const samePerson =
     original?.id &&
     stage?.id &&
     original.id ===
@@ -577,24 +1012,23 @@ function SubmitterInline({
   if (
     reviewerRole ===
       "marketing_reviewer" ||
-    isSamePerson
+    samePerson
   ) {
     const person =
-      original || stage;
+      original ||
+      stage;
 
     return (
       <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-600">
         <UserRound className="h-3.5 w-3.5 text-gray-400" />
+
         <span>
           Submitted by{" "}
           <strong className="font-medium text-gray-800">
-            {formatPersonName(
+            {personName(
               person
             )}
           </strong>
-          {formatPersonMeta(
-            person
-          )}
         </span>
       </div>
     );
@@ -605,10 +1039,11 @@ function SubmitterInline({
       {original && (
         <div className="flex items-center gap-1.5">
           <UserRound className="h-3.5 w-3.5 text-gray-400" />
+
           <span>
             Originally submitted by{" "}
             <strong className="font-medium text-gray-800">
-              {formatPersonName(
+              {personName(
                 original
               )}
             </strong>
@@ -619,10 +1054,11 @@ function SubmitterInline({
       {stage && (
         <div className="flex items-center gap-1.5">
           <UserRound className="h-3.5 w-3.5 text-gray-400" />
+
           <span>
             Sent to CorpCom by{" "}
             <strong className="font-medium text-gray-800">
-              {formatPersonName(
+              {personName(
                 stage
               )}
             </strong>
@@ -637,8 +1073,11 @@ function SubmissionIdentity({
   item,
   reviewerRole,
 }: {
-  item: ReviewQueueItem;
-  reviewerRole: ReviewerRole;
+  item:
+    ReviewQueueItem;
+
+  reviewerRole:
+    ReviewerRole;
 }) {
   const original =
     item.original_submitter;
@@ -710,19 +1149,23 @@ function PersonRow({
   label,
   person,
 }: {
-  label: string;
+  label:
+    string;
+
   person:
     ReviewPerson | null;
 }) {
   return (
     <div className="grid grid-cols-[125px,1fr] gap-3 text-xs">
       <span className="text-gray-500">
-        {label}
+        {
+          label
+        }
       </span>
 
       <div>
         <p className="font-medium text-gray-900">
-          {formatPersonName(
+          {personName(
             person
           )}
         </p>
@@ -732,12 +1175,13 @@ function PersonRow({
             {[
               person.designation,
               person.department,
-              formatRoleLabel(
-                person.role
-              ),
             ]
-              .filter(Boolean)
-              .join(" · ")}
+              .filter(
+                Boolean
+              )
+              .join(
+                " · "
+              )}
           </p>
         )}
       </div>
@@ -745,492 +1189,73 @@ function PersonRow({
   );
 }
 
-function ReviewBrief({
-  item,
-}: {
-  item: ReviewQueueItem;
-}) {
-  const communication =
-    item.communication;
-
-  const inputData =
-    getInputData(
-      communication
-    );
-
-  const sourceFile =
-    inputData?.sourceFile as
-      | Record<string, any>
-      | undefined;
-
-  const rows = [
-    {
-      label: "Category",
-      value:
-        communication?.category,
-    },
-    {
-      label: "Audience",
-      value:
-        communication?.audience,
-    },
-    {
-      label: "Objective",
-      value:
-        communication?.objective,
-    },
-    {
-      label: "Source",
-      value:
-        sourceFile?.name ||
-        inputData?.sourceFileName ||
-        inputData?.fileName,
-    },
-  ].filter((row) =>
-    Boolean(row.value)
-  );
-
-  if (
-    rows.length === 0
-  ) {
-    return null;
-  }
-
-  return (
-    <section className="mb-6">
-      <div className="mb-3 flex items-center gap-2">
-        <FileCheck2 className="h-4 w-4 text-gray-500" />
-
-        <h3 className="text-sm font-medium text-gray-900">
-          Communication brief
-        </h3>
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-gray-200">
-        {rows.map(
-          (row, index) => (
-            <div
-              key={row.label}
-              className={`grid grid-cols-[105px,1fr] gap-3 px-4 py-3 text-xs ${
-                index !==
-                rows.length - 1
-                  ? "border-b border-gray-100"
-                  : ""
-              }`}
-            >
-              <span className="text-gray-500">
-                {row.label}
-              </span>
-
-              <span className="break-words font-medium text-gray-800">
-                {String(
-                  row.value
-                )}
-              </span>
-            </div>
-          )
-        )}
-      </div>
-    </section>
-  );
-}
-
-function VerifiedSourceFacts({
-  item,
-  expanded,
-  onToggle,
-}: {
-  item: ReviewQueueItem;
-  expanded: boolean;
-  onToggle: () => void;
-}) {
-  const inputData =
-    getInputData(
-      item.communication
-    );
-
-  const facts =
-    inputData
-      ?.verifiedSourceFacts;
-
-  if (
-    !facts ||
-    typeof facts !== "object" ||
-    Array.isArray(facts) ||
-    Object.keys(facts)
-      .length === 0
-  ) {
-    return null;
-  }
-
-  const entries =
-    Object.entries(facts).filter(
-      ([key, value]) =>
-        key !==
-          "sourceWarnings" &&
-        hasFactValue(value)
-    );
-
-  if (
-    entries.length === 0
-  ) {
-    return null;
-  }
-
-  const visible =
-    expanded
-      ? entries
-      : entries.slice(
-          0,
-          6
-        );
-
-  return (
-    <section className="mb-6 rounded-xl border border-[#b3d9d5] bg-[#f7fbfa] p-4">
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex gap-2">
-          <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#07877B]" />
-
-          <div>
-            <h3 className="text-sm font-medium text-gray-900">
-              Verified source facts
-            </h3>
-
-            <p className="mt-1 text-xs leading-5 text-gray-500">
-              Facts reviewed by the creator before copy generation.
-            </p>
-          </div>
-        </div>
-
-        <span className="flex-shrink-0 rounded-full bg-[#e8f5f4] px-2 py-1 text-[11px] font-medium text-[#07877B]">
-          Human verified
-        </span>
-      </div>
-
-      <div className="space-y-3">
-        {visible.map(
-          ([key, value]) => (
-            <FactRow
-              key={key}
-              label={formatFactLabel(
-                key
-              )}
-              value={
-                value
-              }
-            />
-          )
-        )}
-      </div>
-
-      {entries.length >
-        6 && (
-        <button
-          type="button"
-          onClick={
-            onToggle
-          }
-          className="mt-4 flex items-center gap-1 text-xs font-medium text-[#07877B] hover:text-[#06766a]"
-        >
-          {expanded ? (
-            <>
-              <ChevronUp className="h-3.5 w-3.5" />
-              Show less
-            </>
-          ) : (
-            <>
-              <ChevronDown className="h-3.5 w-3.5" />
-              View all{" "}
-              {
-                entries.length
-              }{" "}
-              facts
-            </>
-          )}
-        </button>
-      )}
-
-      {Array.isArray(
-        facts.sourceWarnings
-      ) &&
-        facts.sourceWarnings
-          .length > 0 && (
-          <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-3">
-            <p className="mb-1 text-xs font-medium text-amber-800">
-              Source notes
-            </p>
-
-            {facts.sourceWarnings.map(
-              (
-                warning:
-                  string,
-                index:
-                  number
-              ) => (
-                <p
-                  key={
-                    index
-                  }
-                  className="text-xs leading-5 text-amber-700"
-                >
-                  {
-                    warning
-                  }
-                </p>
-              )
-            )}
-          </div>
-        )}
-    </section>
-  );
-}
-
-function FactRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: any;
-}) {
-  if (
-    Array.isArray(value)
-  ) {
-    return (
-      <div>
-        <p className="mb-1 text-xs text-gray-500">
-          {label}
-        </p>
-
-        <ul className="space-y-1">
-          {value
-            .filter(
-              Boolean
-            )
-            .map(
-              (
-                item: any,
-                index: number
-              ) => (
-                <li
-                  key={
-                    index
-                  }
-                  className="flex gap-2 text-xs leading-5 text-gray-800"
-                >
-                  <span className="mt-[7px] h-1 w-1 flex-shrink-0 rounded-full bg-[#07877B]" />
-
-                  <span>
-                    {String(
-                      item
-                    )}
-                  </span>
-                </li>
-              )
-            )}
-        </ul>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-[115px,1fr] gap-3 text-xs">
-      <span className="text-gray-500">
-        {label}
-      </span>
-
-      <span className="break-words font-medium leading-5 text-gray-800">
-        {String(value)}
-      </span>
-    </div>
-  );
-}
-
-function getInputData(
-  communication:
-    ReviewQueueItem["communication"]
-) {
-  if (!communication) {
-    return null;
-  }
-
-  const data =
-    (
-      communication as any
-    ).input_data;
-
-  if (
-    !data ||
-    typeof data !==
-      "object" ||
-    Array.isArray(data)
-  ) {
-    return null;
-  }
-
-  return data as Record<
-    string,
-    any
-  >;
-}
-
-function hasFactValue(
-  value: any
+function activityConfig(
+  action:
+    string
 ) {
   if (
-    value === null ||
-    value ===
-      undefined ||
-    value === ""
+    action ===
+    "approved"
   ) {
-    return false;
-  }
-
-  if (
-    Array.isArray(value)
-  ) {
-    return (
-      value.filter(
-        Boolean
-      ).length > 0
-    );
-  }
-
-  return true;
-}
-
-function formatFactLabel(
-  key: string
-) {
-  const labels:
-    Record<
-      string,
-      string
-    > = {
-      documentType:
-        "Document Type",
-      securityOrCompany:
-        "Company / Security",
-      reportDate:
-        "Report Date",
-      recommendation:
-        "Recommendation",
-      currentPrice:
-        "CMP / Current Price",
-      targetPrice:
-        "Target Price",
-      timeHorizon:
-        "Time Horizon",
-      valuation:
-        "Valuation",
-      keyRationale:
-        "Key Rationale",
-      riskFactors:
-        "Risk Factors",
-      keyFacts:
-        "Key Facts",
-      authority:
-        "Authority",
-      circularOrReferenceNumber:
-        "Circular / Ref.",
-      subject:
-        "Subject",
-      issueDate:
-        "Issue Date",
-      effectiveDate:
-        "Effective Date",
-      applicability:
-        "Applicability",
-      affectedProductsOrUsers:
-        "Affected Users",
-      requiredActions:
-        "Required Actions",
-      deadlines:
-        "Deadlines",
-      topicOrProduct:
-        "Topic / Product",
-      dateOrTimeline:
-        "Date / Timeline",
-      audienceOrApplicability:
-        "Audience",
-      keyMessage:
-        "Key Message",
-      riskOrLimitations:
-        "Risks / Limitations",
+    return {
+      icon:
+        CheckCircle2,
+      bg:
+        "bg-green-50",
+      iconClass:
+        "text-green-600",
+      textClass:
+        "font-medium text-green-700",
+      label:
+        "Approved",
     };
+  }
 
-  return (
-    labels[key] ||
-    key
-      .replace(
-        /([A-Z])/g,
-        " $1"
-      )
-      .replace(
-        /^./,
-        (character) =>
-          character.toUpperCase()
-      )
-  );
+  if (
+    action ===
+    "changes_requested"
+  ) {
+    return {
+      icon:
+        RotateCcw,
+      bg:
+        "bg-amber-50",
+      iconClass:
+        "text-amber-600",
+      textClass:
+        "font-medium text-amber-700",
+      label:
+        "Changes requested",
+    };
+  }
+
+  return {
+    icon:
+      XCircle,
+    bg:
+      "bg-red-50",
+    iconClass:
+      "text-red-600",
+    textClass:
+      "font-medium text-red-700",
+    label:
+      "Rejected",
+  };
 }
 
-function formatPersonName(
+function personName(
   person:
     ReviewPerson | null
 ) {
-  if (!person) {
-    return "Unknown user";
-  }
-
   return (
-    person.full_name ||
+    person?.full_name ||
     "Unknown user"
   );
 }
 
-function formatPersonMeta(
-  person:
-    ReviewPerson | null
-) {
-  if (!person) {
-    return "";
-  }
-
-  const meta = [
-    person.designation,
-    person.department,
-  ].filter(Boolean);
-
-  if (
-    meta.length === 0
-  ) {
-    return "";
-  }
-
-  return ` · ${meta.join(
-    " · "
-  )}`;
-}
-
-function formatRoleLabel(
-  role:
-    string | null
-) {
-  switch (role) {
-    case "creator":
-      return "Creator";
-    case "marketing_reviewer":
-      return "Marketing Reviewer";
-    case "corpcom_reviewer":
-      return "CorpCom Reviewer";
-    case "admin":
-      return "Admin";
-    default:
-      return role || "";
-  }
-}
-
 function mapDatabaseCategory(
-  category: string
+  category:
+    string
 ):
   | "research"
   | "education"
@@ -1238,7 +1263,9 @@ function mapDatabaseCategory(
   | "service"
   | "regulatory"
   | "onboarding" {
-  switch (category) {
+  switch (
+    category
+  ) {
     case "Research & Advisory":
       return "research";
 
@@ -1262,27 +1289,13 @@ function mapDatabaseCategory(
   }
 }
 
-function formatDate(
-  value: string
-) {
-  return new Date(
-    value
-  ).toLocaleString(
-    "en-IN",
-    {
-      day: "numeric",
-      month: "short",
-      hour: "numeric",
-      minute:
-        "2-digit",
-    }
-  );
-}
-
 function formatStage(
-  stage: string
+  stage:
+    string
 ) {
-  switch (stage) {
+  switch (
+    stage
+  ) {
     case "marketing_review":
       return "Marketing Review";
 
@@ -1290,6 +1303,70 @@ function formatStage(
       return "CorpCom Review";
 
     default:
-      return stage;
+      return humanize(
+        stage
+      );
   }
+}
+
+function formatDate(
+  value:
+    string
+) {
+  return new Date(
+    value
+  ).toLocaleString(
+    "en-IN",
+    {
+      day:
+        "numeric",
+      month:
+        "short",
+      hour:
+        "numeric",
+      minute:
+        "2-digit",
+    }
+  );
+}
+
+function formatFullDate(
+  value:
+    string
+) {
+  return new Date(
+    value
+  ).toLocaleString(
+    "en-IN",
+    {
+      day:
+        "numeric",
+      month:
+        "short",
+      year:
+        "numeric",
+      hour:
+        "numeric",
+      minute:
+        "2-digit",
+    }
+  );
+}
+
+function humanize(
+  value:
+    string
+) {
+  return value
+    .replace(
+      /_/g,
+      " "
+    )
+    .replace(
+      /\b\w/g,
+      (
+        c
+      ) =>
+        c.toUpperCase()
+    );
 }
