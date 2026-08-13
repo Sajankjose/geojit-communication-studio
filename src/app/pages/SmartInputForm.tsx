@@ -419,11 +419,12 @@ export function SmartInputForm() {
     ],
 
     product: [
-      "New Product Launch",
-      "Product Update",
-      "Limited Offer",
-      "Feature Announcement",
-      "Pricing Change",
+      "Trading Platform",
+      "Trading Feature / Tool",
+      "Investment Product",
+      "Pricing / Plan",
+      "Offer / Campaign",
+      "General Product Communication",
     ],
 
     service: [
@@ -591,6 +592,37 @@ export function SmartInputForm() {
   function buildInputData(
     nextSourceFile: SourceFileMetadata | null = sourceFile
   ) {
+    const communicationType =
+      category === "product"
+        ? formData.details.communicationType || null
+        : null;
+
+    const sourceExtraction =
+      extractionResult
+        ? {
+            pageCount:
+              extractionResult.extraction.pageCount,
+            fileSize:
+              extractionResult.extraction.fileSize,
+            rawCharacters:
+              extractionResult.extraction.rawCharacters,
+            cleanedCharacters:
+              extractionResult.extraction.cleanedCharacters,
+            truncated:
+              extractionResult.extraction.truncated,
+            requiresOcr:
+              extractionResult.extraction.requiresOcr,
+            relevant:
+              extractionResult.relevance.relevant,
+            relevanceScore:
+              extractionResult.relevance.score,
+            matchedSignals:
+              extractionResult.relevance.matchedSignals,
+            reason:
+              extractionResult.relevance.reason,
+          }
+        : null;
+
     return {
       inputMethod,
       title: formData.title,
@@ -600,8 +632,32 @@ export function SmartInputForm() {
       supportingPoints: formData.supportingPoints,
       ctaText: formData.ctaText,
       ctaUrl: formData.ctaUrl,
-      categorySpecificDetails: formData.details,
-      sourceFile: nextSourceFile,
+
+      /**
+       * Kept both at the top level and inside
+       * categorySpecificDetails so the generation starter /
+       * worker can resolve Product communication intent
+       * reliably while remaining backwards compatible.
+       */
+      communicationType,
+
+      categorySpecificDetails:
+        formData.details,
+
+      sourceFile:
+        nextSourceFile,
+
+      sourceExtraction,
+
+      verifiedSourceFacts:
+        Object.keys(
+          verifiedFacts
+        ).length > 0
+          ? verifiedFacts
+          : null,
+
+      sourceFactsApplied:
+        factsApplied,
     };
   }
 
@@ -1330,6 +1386,11 @@ export function SmartInputForm() {
               formData.subcategory,
 
             inputMethod,
+
+            communicationType:
+              category === "product"
+                ? formData.details.communicationType || null
+                : null,
           },
         }
       );
@@ -1425,6 +1486,33 @@ export function SmartInputForm() {
         "Please review the extracted facts and click “Use these facts” before generating communication options."
       );
       return;
+    }
+
+    if (
+      category === "product" &&
+      formData.details.communicationType ===
+        "feature_explainer"
+    ) {
+      const featureIssues =
+        getFeatureExplainerInputIssues({
+          inputMethod,
+          details:
+            formData.details,
+          pastedContent:
+            formData.details.pastedContent ||
+            "",
+          verifiedFacts,
+          factsApplied,
+        });
+
+      if (
+        featureIssues.length > 0
+      ) {
+        setError(
+          featureIssues[0]
+        );
+        return;
+      }
     }
 
     if (!communicationId) {
@@ -2802,6 +2890,73 @@ function getFactFields(
   ];
 }
 
+function getFeatureExplainerInputIssues({
+  inputMethod,
+  details,
+  pastedContent,
+  verifiedFacts,
+  factsApplied,
+}: {
+  inputMethod: string;
+  details: Record<string, string>;
+  pastedContent: string;
+  verifiedFacts: Record<string, any>;
+  factsApplied: boolean;
+}) {
+  const issues:
+    string[] = [];
+
+  const hasStructuredCore =
+    Boolean(
+      details.featureName?.trim()
+    ) &&
+    Boolean(
+      details.featureExplanation?.trim()
+    ) &&
+    Boolean(
+      details.howItWorks?.trim()
+    ) &&
+    Boolean(
+      details.keyBenefits?.trim()
+    );
+
+  const hasSubstantialPaste =
+    inputMethod === "paste" &&
+    pastedContent.trim().length >=
+      220;
+
+  const hasVerifiedUploadFacts =
+    inputMethod === "upload" &&
+    factsApplied &&
+    Object.keys(
+      verifiedFacts
+    ).length > 0;
+
+  if (
+    inputMethod === "url" &&
+    !hasStructuredCore
+  ) {
+    issues.push(
+      "A source URL alone is not enough for a Feature Explainer. Add the verified feature facts below — what the feature is, how it works and its key benefits — or paste/upload the supporting content."
+    );
+
+    return issues;
+  }
+
+  if (
+    !hasStructuredCore &&
+    !hasSubstantialPaste &&
+    !hasVerifiedUploadFacts
+  ) {
+    issues.push(
+      "Please provide enough verified information for the Feature Explainer. At minimum add the Feature Name, What is the feature?, How does it work? and Key benefits / capabilities, or provide substantial pasted/uploaded source content."
+    );
+  }
+
+  return issues;
+}
+
+
 function normalizeDateForInput(
   value: string
 ) {
@@ -3037,94 +3192,364 @@ function CategorySpecificFields({
   }
 
   if (category === "product") {
+    const communicationType =
+      details.communicationType ||
+      "";
+
+    const isFeatureExplainer =
+      communicationType ===
+      "feature_explainer";
+
     return (
-      <FormSection title="Product Details">
+      <FormSection title="Product & Sales Details">
 
-        <TextField
-          label="Launch Date / Availability"
-          type="date"
-          value={
-            details.launchDate ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "launchDate",
-              value
-            )
-          }
-        />
+        <div className="rounded-xl border border-[#b3d9d5] bg-[#f7fbfa] p-4">
+          <div className="mb-1 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-[#07877B]" />
 
-        <SelectField
-          label="Target Segment"
-          value={
-            details.targetSegment ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "targetSegment",
-              value
-            )
-          }
-          options={[
-            "All Customers",
-            "New Customers",
-            "Premium Segment",
-            "Active Traders",
-            "Investors",
-          ]}
-        />
+            <p className="text-sm font-medium text-gray-900">
+              Communication intent
+            </p>
+          </div>
 
-        <TextAreaField
-          label="Key Features & Benefits"
-          value={
-            details.features ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "features",
-              value
-            )
-          }
-          rows={3}
-          placeholder="List the main features and benefits."
-        />
+          <p className="mb-4 text-xs leading-5 text-gray-500">
+            Tell Communication Studio what kind of product email you want to create. This controls the content architecture used by AI.
+          </p>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-
-          <TextField
-            label="Pricing Information"
+          <ValueSelectField
+            label="Communication Type"
             value={
-              details.pricing ||
-              ""
+              communicationType
             }
             onChange={(value) =>
               updateDetail(
-                "pricing",
+                "communicationType",
                 value
               )
             }
-            placeholder="e.g., ₹999/month"
+            placeholder="Select communication type"
+            options={[
+              {
+                value:
+                  "feature_explainer",
+                label:
+                  "Feature Explainer",
+              },
+              {
+                value:
+                  "product_launch",
+                label:
+                  "Product Launch",
+              },
+              {
+                value:
+                  "product_update",
+                label:
+                  "Product Update",
+              },
+              {
+                value:
+                  "offer_plan",
+                label:
+                  "Offer / Plan",
+              },
+              {
+                value:
+                  "product_benefit",
+                label:
+                  "Product Benefit",
+              },
+              {
+                value:
+                  "cross_sell_adoption",
+                label:
+                  "Cross-sell / Adoption",
+              },
+            ]}
           />
-
-          <TextField
-            label="Offer Validity"
-            value={
-              details.offerValidity ||
-              ""
-            }
-            onChange={(value) =>
-              updateDetail(
-                "offerValidity",
-                value
-              )
-            }
-            placeholder="e.g., Until 31 March"
-          />
-
         </div>
+
+        {isFeatureExplainer ? (
+          <>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+              <p className="text-sm font-medium text-blue-900">
+                Provide the facts, not the email copy
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-blue-700">
+                The final email should explain the feature on its own. Add enough verified information for AI to explain what the feature is, why it matters, how it works and how customers can use it.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Feature Name *"
+                value={
+                  details.featureName ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "featureName",
+                    value
+                  )
+                }
+                placeholder="e.g., One-Cancel-Other (OCO) Orders"
+              />
+
+              <TextField
+                label="Product / Platform *"
+                value={
+                  details.productPlatform ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "productPlatform",
+                    value
+                  )
+                }
+                placeholder="e.g., Flip"
+              />
+            </div>
+
+            <TextAreaField
+              label="What is the feature? *"
+              value={
+                details.featureExplanation ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "featureExplanation",
+                  value
+                )
+              }
+              rows={4}
+              placeholder="Explain the feature factually in simple terms. What does it enable the customer to do?"
+            />
+
+            <TextAreaField
+              label="Customer need / problem it addresses"
+              value={
+                details.customerProblem ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "customerProblem",
+                  value
+                )
+              }
+              rows={3}
+              placeholder="What customer situation, task or problem makes this feature useful?"
+            />
+
+            <TextAreaField
+              label="How does it work? *"
+              value={
+                details.howItWorks ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "howItWorks",
+                  value
+                )
+              }
+              rows={4}
+              placeholder="Describe the verified mechanism or workflow. Do not add steps that are not supported."
+            />
+
+            <TextAreaField
+              label="Key benefits / capabilities *"
+              value={
+                details.keyBenefits ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "keyBenefits",
+                  value
+                )
+              }
+              rows={4}
+              placeholder={"One benefit per line, for example:\nManage two related orders together\nReduce manual order monitoring"}
+            />
+
+            <TextAreaField
+              label="Practical example / use case"
+              value={
+                details.practicalExample ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "practicalExample",
+                  value
+                )
+              }
+              rows={4}
+              placeholder="Add a verified example or scenario that helps explain the feature. Leave blank if the source does not support one."
+            />
+
+            <TextAreaField
+              label="How to access / use the feature"
+              value={
+                details.usageGuidance ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "usageGuidance",
+                  value
+                )
+              }
+              rows={4}
+              placeholder="Where is the feature available and what should the customer do? Add only verified steps."
+            />
+
+            <TextAreaField
+              label="Important conditions / limitations"
+              value={
+                details.conditionsLimitations ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "conditionsLimitations",
+                  value
+                )
+              }
+              rows={4}
+              placeholder="Eligibility, operational conditions, limitations, risks or other points customers should know."
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Launch Date / Availability"
+                type="date"
+                value={
+                  details.launchDate ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "launchDate",
+                    value
+                  )
+                }
+              />
+
+              <SelectField
+                label="Target Segment"
+                value={
+                  details.targetSegment ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "targetSegment",
+                    value
+                  )
+                }
+                options={[
+                  "All Customers",
+                  "New Customers",
+                  "Premium Segment",
+                  "Active Traders",
+                  "Investors",
+                ]}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <TextField
+              label="Launch Date / Availability"
+              type="date"
+              value={
+                details.launchDate ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "launchDate",
+                  value
+                )
+              }
+            />
+
+            <SelectField
+              label="Target Segment"
+              value={
+                details.targetSegment ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "targetSegment",
+                  value
+                )
+              }
+              options={[
+                "All Customers",
+                "New Customers",
+                "Premium Segment",
+                "Active Traders",
+                "Investors",
+              ]}
+            />
+
+            <TextAreaField
+              label="Key Features & Benefits"
+              value={
+                details.features ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "features",
+                  value
+                )
+              }
+              rows={3}
+              placeholder="List the main features and benefits."
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Pricing Information"
+                value={
+                  details.pricing ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "pricing",
+                    value
+                  )
+                }
+                placeholder="e.g., ₹999/month"
+              />
+
+              <TextField
+                label="Offer Validity"
+                value={
+                  details.offerValidity ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "offerValidity",
+                    value
+                  )
+                }
+                placeholder="e.g., Until 31 March"
+              />
+            </div>
+          </>
+        )}
 
       </FormSection>
     );
@@ -3580,6 +4005,69 @@ function SelectField({
 }
 
 
+function ValueSelectField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = "Select",
+}: {
+  label: string;
+  value: string;
+  onChange: (
+    value: string
+  ) => void;
+  options: Array<{
+    value: string;
+    label: string;
+  }>;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+
+      <label className="mb-2 block text-sm text-gray-700">
+        {label}
+      </label>
+
+      <select
+        value={value}
+        onChange={(event) =>
+          onChange(
+            event.target.value
+          )
+        }
+        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 transition-all focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
+      >
+
+        <option value="">
+          {placeholder}
+        </option>
+
+        {options.map(
+          (option) => (
+            <option
+              key={
+                option.value
+              }
+              value={
+                option.value
+              }
+            >
+              {
+                option.label
+              }
+            </option>
+          )
+        )}
+
+      </select>
+
+    </div>
+  );
+}
+
+
 /* =========================================================
    LABEL / HELP TEXT
    ========================================================= */
@@ -3595,7 +4083,7 @@ function getTitlePlaceholder(
       return "e.g., Understanding Mutual Funds";
 
     case "product":
-      return "e.g., Introducing New Trading Platform";
+      return "e.g., OCO Orders on Flip";
 
     case "service":
       return "e.g., Platform Maintenance Notification";
@@ -3620,7 +4108,7 @@ function getTopicLabel(
       return "Learning Topic";
 
     case "product":
-      return "Product Name";
+      return "Product / Feature Name";
 
     case "service":
       return "Service / Update Type";
@@ -3645,7 +4133,7 @@ function getTopicPlaceholder(
       return "e.g., What are Mutual Funds?";
 
     case "product":
-      return "e.g., Geojit Trading App";
+      return "e.g., Flip — OCO Orders";
 
     case "service":
       return "e.g., Platform Maintenance";
@@ -3720,7 +4208,7 @@ function getAiTip(
       return "Focus on the learning objective and provide enough context for AI to simplify the topic without changing its meaning.";
 
     case "product":
-      return "Provide factual features and benefits. AI can improve presentation, but it should not invent product capabilities.";
+      return "Choose the communication intent first. For a Feature Explainer, provide enough verified facts for the email to explain the feature on its own — what it is, why it matters, how it works, key benefits, usage guidance and important conditions.";
 
     case "service":
       return "Include exact timelines, affected services and required actions.";
