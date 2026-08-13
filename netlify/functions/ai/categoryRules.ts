@@ -6,6 +6,14 @@ export type CommunicationCategory =
   | "regulatory"
   | "onboarding";
 
+export type ProductCommunicationType =
+  | "feature_explainer"
+  | "product_launch"
+  | "product_update"
+  | "offer_plan"
+  | "product_benefit"
+  | "cross_sell_adoption";
+
 export const CATEGORY_RULES: Record<
   CommunicationCategory,
   string
@@ -140,7 +148,7 @@ Recommended section types:
 - note
 
 Variant behavior:
-A — Clarity First
+A — Clity First
 - very simple
 - concise
 - strong scanability
@@ -504,8 +512,467 @@ Compliance flags to consider:
 `,
 };
 
+
+/**
+ * ============================================================
+ * PRODUCT FEATURE EXPLAINER
+ * ============================================================
+ *
+ * This is intentionally separate from the generic Product &
+ * Sales rules.
+ *
+ * It is used only when:
+ *
+ * category === "product"
+ * communicationType === "feature_explainer"
+ *
+ * This prevents changes here from affecting Research or other
+ * communication categories.
+ */
+export const PRODUCT_FEATURE_EXPLAINER_RULES = `
+COMMUNICATION TYPE: PRODUCT FEATURE EXPLAINER
+
+PRIMARY PURPOSE:
+
+Create a complete, useful customer email that explains a
+verified product/platform feature.
+
+The recipient should understand the feature even if they
+DO NOT click the CTA.
+
+The supporting source is factual evidence for the email.
+The supporting source is NOT the subject of the email.
+
+
+============================================================
+CORE CONTENT PRINCIPLE
+============================================================
+
+DO NOT create a teaser email.
+
+DO NOT merely tell the recipient that more information is
+available in an article, guide, page, PDF, video or link.
+
+The email itself must communicate meaningful understanding.
+
+
+============================================================
+MANDATORY READER QUESTIONS
+============================================================
+
+Where supported by supplied facts, the email should answer:
+
+1. What is this feature?
+
+2. Why might this feature be useful to the customer?
+
+3. What customer need, task or problem does it address?
+
+4. How does the feature work?
+
+5. What are the important capabilities or benefits?
+
+6. What would a realistic use case look like?
+
+7. How can the customer access or use the feature?
+
+8. Are there important conditions, limitations, eligibility
+   requirements, risks or operational points the customer
+   should know?
+
+9. What is the appropriate next action?
+
+
+============================================================
+FACTUAL DISCIPLINE
+============================================================
+
+Treat supplied feature facts as locked.
+
+Never invent:
+
+- feature behaviour
+- platform functionality
+- order behaviour
+- execution behaviour
+- product capability
+- eligibility
+- availability
+- pricing
+- charges
+- savings
+- limits
+- dates
+- conditions
+- workflow steps
+- app navigation
+- risk controls
+- regulatory implications
+
+If information required for a section is not supplied:
+
+- do not fabricate it
+- omit the unsupported detail
+- or use an appropriate compliance warning when the missing
+  information materially affects the communication
+
+Never infer technical functionality merely from the feature
+name.
+
+
+============================================================
+FORBIDDEN CONTENT PATTERNS
+============================================================
+
+Do NOT write sections or sentences such as:
+
+- "What to expect in the article"
+- "Open the linked article"
+- "Read the article to understand"
+- "Read the full article to learn more"
+- "Refer to the article for details"
+- "This email is a concise pointer"
+- "This email is a brief introduction"
+- "The article explains..."
+- "The linked page covers..."
+- "Visit the page to understand how it works"
+
+Do not make "reading the source" one of the steps in the
+feature explanation.
+
+The CTA may point to a supplied source URL, but the body
+must stand on its own.
+
+
+============================================================
+PREFERRED EMAIL ARCHITECTURE
+============================================================
+
+Build a coherent customer journey rather than disconnected
+generic sections.
+
+Preferred order:
+
+1. HERO / CONTEXT
+
+Introduce the feature and its strongest supported customer
+value.
+
+Keep this concise.
+
+The headline should normally communicate either:
+- what the feature enables, or
+- the customer problem it helps address.
+
+Avoid empty promotional headlines.
+
+
+2. WHY IT MATTERS
+
+Briefly establish the customer situation, task or problem
+that makes the feature relevant.
+
+Do not manufacture a customer pain point if one is not
+supported.
+
+
+3. WHAT THE FEATURE IS
+
+Explain the feature in simple customer language.
+
+A reader unfamiliar with the feature should understand the
+basic concept after reading this section.
+
+Avoid merely repeating the feature name.
+
+
+4. HOW IT WORKS
+
+Explain the mechanism or workflow using supplied facts.
+
+Use:
+- concise text,
+- bullets,
+- or steps
+
+depending on what best explains the feature.
+
+Do not invent missing operational steps.
+
+
+5. KEY BENEFITS / CAPABILITIES
+
+Surface the strongest verified benefits.
+
+Prefer 2–4 meaningful points.
+
+Each point should explain customer value, not merely repeat
+a feature label.
+
+Avoid repeating the same benefit in different wording.
+
+
+6. PRACTICAL EXAMPLE / USE CASE
+
+Include a realistic example only when the supplied facts
+support one.
+
+The example should clarify the feature.
+
+Do NOT invent:
+- prices
+- quantities
+- returns
+- execution outcomes
+- savings
+- market movements
+- customer circumstances
+
+unless these are explicitly supplied.
+
+If a safe factual example cannot be created, omit this
+section rather than fabricate one.
+
+
+7. HOW TO ACCESS / USE
+
+If supplied information explains where or how the customer
+can use the feature, provide concise actionable guidance.
+
+For example:
+- platform
+- menu/location
+- eligibility
+- activation
+- workflow
+
+Never invent app navigation or activation steps.
+
+
+8. IMPORTANT TO KNOW
+
+Where relevant, clearly surface:
+- conditions
+- limitations
+- eligibility
+- operational behaviour
+- risks
+- dependencies
+
+Do not hide material conditions inside promotional copy.
+
+
+9. CTA
+
+Use one primary CTA.
+
+The CTA should represent the natural next action.
+
+Examples:
+- Explore the Feature
+- Try on Flip
+- Know More
+- View Details
+- Get Started
+
+Use ONLY a supplied URL.
+
+Do not invent a destination.
+
+
+============================================================
+SECTION GUIDANCE
+============================================================
+
+Recommended section types:
+
+- highlight
+- text
+- bullets
+- steps
+- snapshot
+- note
+
+Use the smallest number of sections needed to explain the
+feature well.
+
+Do not create sections simply to fill the template.
+
+Every section must add new information.
+
+
+============================================================
+WRITING STYLE
+============================================================
+
+Write for a customer, not an internal product team.
+
+Use:
+- plain language
+- short paragraphs
+- meaningful subheads
+- concrete benefits
+- strong scanability
+- active voice where appropriate
+
+Avoid:
+- excessive jargon
+- generic marketing filler
+- exaggerated adjectives
+- repeated claims
+- unnecessary introductory copy
+- article-summary language
+
+When technical terminology is necessary, explain it simply.
+
+
+============================================================
+VARIANT BEHAVIOUR
+============================================================
+
+RETURN EXACTLY 3 VARIANTS.
+
+All three variants must contain the SAME verified facts.
+
+They may differ in framing and hierarchy, not factual
+content.
+
+
+VARIANT A — CLARITY FIRST
+
+Objective:
+Make the feature immediately understandable.
+
+Characteristics:
+- direct headline
+- concise explanation
+- strongest information hierarchy
+- highly scannable
+- minimal promotional language
+
+
+VARIANT B — BENEFIT + EXPLANATION
+
+Objective:
+Balance customer benefit with sufficient explanation.
+
+Characteristics:
+- may lead with the customer need
+- explains what the feature does
+- connects capability to customer value
+- slightly richer context than A
+
+
+VARIANT C — PRACTICAL USE
+
+Objective:
+Help the reader understand how the feature fits into a
+real situation.
+
+Characteristics:
+- practical framing
+- may foreground a supported use case
+- stronger "how it works" emphasis
+- remains factual and responsible
+
+
+============================================================
+QUALITY CONTRACT
+============================================================
+
+Before returning each variant, internally verify:
+
+FEATURE UNDERSTANDING
+- Can the reader explain what the feature is after reading
+  the email?
+
+CUSTOMER VALUE
+- Is the main benefit clear and supported?
+
+MECHANISM
+- Does the email explain how it works where facts are
+  available?
+
+PRACTICALITY
+- Is there useful application/access guidance where
+  supplied?
+
+FACTUAL SAFETY
+- Is every specific capability supported by input?
+
+NO TEASER BEHAVIOUR
+- Does the email stand on its own without requiring the
+  recipient to open another article?
+
+NO REPETITION
+- Does each section contribute distinct information?
+
+CTA
+- Is there one clear next action using a supplied URL?
+
+If any answer fails:
+revise the variant before returning it.
+
+
+============================================================
+COMPLIANCE FLAGS TO CONSIDER
+============================================================
+
+- UNSUPPORTED_CLAIM
+- MISSING_CTA_URL
+- MISSING_FEATURE_EXPLANATION
+- MISSING_FEATURE_BENEFIT
+- MISSING_HOW_IT_WORKS
+- MISSING_USAGE_GUIDANCE
+- MISSING_PRODUCT_CONDITION
+- EXAGGERATED_PRODUCT_CLAIM
+- ARTICLE_TEASER_CONTENT
+- CONFLICTING_FACTS
+`;
+
+
+/**
+ * Existing category-level accessor.
+ *
+ * Keep this because other parts of the application may
+ * already use it.
+ */
 export function getCategoryRules(
   category: CommunicationCategory
 ): string {
   return CATEGORY_RULES[category];
+}
+
+
+/**
+ * Generation-level accessor.
+ *
+ * generate-email.ts should use this instead of calling
+ * getCategoryRules() directly.
+ *
+ * This keeps specialised communication types additive.
+ */
+export function getGenerationRules({
+  category,
+  communicationType,
+}: {
+  category: CommunicationCategory;
+  communicationType?: string | null;
+}): string {
+  const baseRules =
+    getCategoryRules(category);
+
+  if (
+    category === "product" &&
+    communicationType ===
+      "feature_explainer"
+  ) {
+    return `
+${baseRules}
+
+${PRODUCT_FEATURE_EXPLAINER_RULES}
+`;
+  }
+
+  return baseRules;
 }
