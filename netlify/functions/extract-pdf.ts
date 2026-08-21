@@ -416,217 +416,212 @@ function cleanPdfText(value: string) {
     .trim();
 }
 
+type WeightedSignal = {
+  label: string;
+  weight: number;
+  patterns: RegExp[];
+};
+
+const CATEGORY_SIGNALS: Record<
+  Category,
+  WeightedSignal[]
+> = {
+  research: [
+    { label: "recommendation", weight: 4, patterns: [/\brecommendation\b/i, /\bbuy\b/i, /\bsell\b/i, /\bhold\b/i, /\baccumulate\b/i] },
+    { label: "price-target", weight: 4, patterns: [/\btarget price\b/i, /\bprice target\b/i, /\bcurrent market price\b/i, /\bcmp\b/i] },
+    { label: "valuation", weight: 3, patterns: [/\bvaluation\b/i, /\bmultiple\b/i, /\bearnings\b/i, /\bpe\b/i, /\bp\/e\b/i] },
+    { label: "investment-rationale", weight: 3, patterns: [/\binvestment rationale\b/i, /\brationale\b/i, /\boutlook\b/i, /\bkey drivers?\b/i, /\bcatalysts?\b/i] },
+    { label: "risk", weight: 2, patterns: [/\brisk\b/i, /\brisks\b/i, /\bdownside\b/i, /\bconcerns?\b/i] },
+    { label: "research-document", weight: 1, patterns: [/\bresearch report\b/i, /\bequity research\b/i, /\bresearch\b/i] },
+  ],
+  regulatory: [
+    { label: "authority", weight: 4, patterns: [/\bsebi\b/i, /\brbi\b/i, /\bnse\b/i, /\bbse\b/i] },
+    { label: "reference", weight: 4, patterns: [/\bcircular\b/i, /\breference no\b/i, /\breference number\b/i, /\bnotification\b/i] },
+    { label: "obligation", weight: 3, patterns: [/\brequired action\b/i, /\bshall\b/i, /\bmandatory\b/i, /\bcompliance\b/i] },
+    { label: "timeline", weight: 3, patterns: [/\beffective date\b/i, /\bdeadline\b/i, /\bwith effect from\b/i] },
+    { label: "applicability", weight: 2, patterns: [/\bapplicability\b/i, /\bapplicable to\b/i, /\baffected\b/i] },
+  ],
+  product: [
+    { label: "feature", weight: 4, patterns: [/\bfeature\b/i, /\bfunctionality\b/i, /\bcapability\b/i] },
+    { label: "customer-benefit", weight: 3, patterns: [/\bbenefit\b/i, /\benables?\b/i, /\bhelps?\b/i] },
+    { label: "usage", weight: 3, patterns: [/\bhow to\b/i, /\bsteps?\b/i, /\bavailable on\b/i, /\baccess\b/i] },
+    { label: "commercial", weight: 2, patterns: [/\bpricing\b/i, /\boffer\b/i, /\bplan\b/i, /\bcharges?\b/i] },
+    { label: "availability", weight: 2, patterns: [/\blaunch\b/i, /\bavailability\b/i, /\beligib/i] },
+  ],
+  service: [
+    { label: "service-event", weight: 4, patterns: [/\bmaintenance\b/i, /\bdowntime\b/i, /\bservice update\b/i, /\bsystem upgrade\b/i] },
+    { label: "impact", weight: 3, patterns: [/\baffected\b/i, /\bimpact\b/i, /\bunavailable\b/i] },
+    { label: "timing", weight: 3, patterns: [/\beffective\b/i, /\bduration\b/i, /\bfrom\b.*\bto\b/i] },
+    { label: "customer-action", weight: 2, patterns: [/\baction required\b/i, /\bcustomer action\b/i, /\bplease\b/i] },
+  ],
+  education: [
+    { label: "learning", weight: 4, patterns: [/\blearn\b/i, /\bunderstand\b/i, /\bguide\b/i, /\bexplains?\b/i] },
+    { label: "example", weight: 2, patterns: [/\bexample\b/i, /\bfor instance\b/i, /\bscenario\b/i] },
+    { label: "investment-context", weight: 2, patterns: [/\binvestment\b/i, /\btrading\b/i, /\bportfolio\b/i, /\brisk\b/i] },
+  ],
+  onboarding: [
+    { label: "journey", weight: 4, patterns: [/\bwelcome\b/i, /\bonboarding\b/i, /\bgetting started\b/i] },
+    { label: "setup", weight: 3, patterns: [/\baccount setup\b/i, /\bactivate\b/i, /\bregistration\b/i, /\bverification\b/i] },
+    { label: "next-step", weight: 3, patterns: [/\bnext step\b/i, /\bcomplete\b/i, /\bcontinue\b/i] },
+  ],
+};
+
 function checkRelevance(
   text: string,
   category: Category
 ): RelevanceResult {
-  const lower = text.toLowerCase();
+  const signals = CATEGORY_SIGNALS[category];
+  let earnedWeight = 0;
 
-  const signals: Record<Category, string[]> = {
-    research: [
-      "recommendation",
-      "target price",
-      "current market price",
-      "cmp",
-      "buy",
-      "sell",
-      "hold",
-      "valuation",
-      "investment rationale",
-      "outlook",
-      "risk",
-      "research",
-    ],
-    regulatory: [
-      "sebi",
-      "nse",
-      "bse",
-      "rbi",
-      "circular",
-      "regulation",
-      "compliance",
-      "effective date",
-      "applicability",
-      "required action",
-      "deadline",
-    ],
-    product: [
-      "product",
-      "feature",
-      "benefit",
-      "pricing",
-      "offer",
-      "plan",
-      "launch",
-      "availability",
-    ],
-    service: [
-      "service",
-      "maintenance",
-      "downtime",
-      "system",
-      "platform",
-      "effective",
-      "affected",
-      "customer impact",
-      "upgrade",
-    ],
-    education: [
-      "learn",
-      "education",
-      "guide",
-      "understand",
-      "example",
-      "risk",
-      "investment",
-      "trading",
-    ],
-    onboarding: [
-      "welcome",
-      "onboarding",
-      "getting started",
-      "account",
-      "registration",
-      "activate",
-      "setup",
-      "next step",
-    ],
-  };
+  const totalPossibleWeight =
+    signals.reduce(
+      (sum, signal) => sum + signal.weight,
+      0
+    );
 
-  const matched = signals[category].filter(
-    (signal) => lower.includes(signal)
-  );
+  const matchedGroups: string[] = [];
+
+  for (const signal of signals) {
+    const matched =
+      signal.patterns.some(
+        (pattern) => pattern.test(text)
+      );
+
+    if (matched) {
+      earnedWeight += signal.weight;
+      matchedGroups.push(signal.label);
+    }
+  }
 
   const score = Math.min(
     100,
     Math.round(
-      (matched.length /
-        Math.max(
-          4,
-          signals[category].length * 0.45
-        )) *
+      (earnedWeight /
+        Math.max(1, totalPossibleWeight)) *
         100
     )
   );
 
   const relevant =
-    matched.length >= 2 ||
-    score >= 35;
+    score >= 32 &&
+    matchedGroups.length >= 2;
 
   return {
     relevant,
     score,
-    matchedSignals: matched.slice(0, 8),
+    matchedSignals: matchedGroups.slice(0, 8),
     reason: relevant
-      ? "The document contains signals consistent with the selected communication category."
-      : "The document does not contain enough signals for the selected communication category.",
+      ? `The document contains multiple independent signals relevant to ${getCategoryName(category)}: ${matchedGroups.join(", ")}.`
+      : `The document does not contain enough independent evidence for ${getCategoryName(category)}.`,
   };
+}
+
+function getCategoryName(
+  category: Category
+) {
+  switch (category) {
+    case "research":
+      return "Research & Advisory";
+    case "education":
+      return "Investor Education";
+    case "product":
+      return "Product & Sales";
+    case "service":
+      return "Service & Transactional";
+    case "regulatory":
+      return "Regulatory & Compliance";
+    case "onboarding":
+      return "Onboarding & Journey";
+  }
 }
 
 function buildRelevantExcerpt(
   text: string,
   category: Category
 ) {
-  const keywords: Record<Category, string[]> = {
-    research: [
-      "recommendation",
-      "target",
-      "cmp",
-      "valuation",
-      "rationale",
-      "outlook",
-      "risk",
-      "conclusion",
-    ],
-    regulatory: [
-      "circular",
-      "subject",
-      "effective",
-      "applicability",
-      "deadline",
-      "required",
-      "compliance",
-      "action",
-    ],
-    product: [
-      "feature",
-      "benefit",
-      "pricing",
-      "offer",
-      "launch",
-    ],
-    service: [
-      "service",
-      "maintenance",
-      "affected",
-      "impact",
-      "timeline",
-    ],
-    education: [
-      "objective",
-      "learn",
-      "example",
-      "key",
-      "risk",
-    ],
-    onboarding: [
-      "welcome",
-      "getting started",
-      "account",
-      "setup",
-      "next",
-    ],
-  };
-
   const paragraphs = text
     .split(/\n{1,2}/)
     .map((item) => item.trim())
-    .filter((item) => item.length >= 30);
+    .filter((item) => item.length >= 25);
 
-  const scored = paragraphs.map(
-    (paragraph, index) => {
-      const lower = paragraph.toLowerCase();
-
-      const keywordHits =
-        keywords[category].reduce(
-          (total, keyword) =>
-            total +
-            (lower.includes(keyword)
-              ? 1
-              : 0),
-          0
-        );
-
-      const openingBoost =
-        index < 8
-          ? 2
-          : 0;
-
-      return {
-        paragraph,
-        score:
-          keywordHits * 3 +
-          openingBoost,
-        index,
-      };
-    }
-  );
-
-  const selected = scored
-    .filter((item) => item.score > 0)
-    .sort(
-      (a, b) =>
-        b.score -
-          a.score ||
-        a.index -
-          b.index
-    )
-    .slice(0, 30)
-    .sort(
-      (a, b) =>
-        a.index -
-        b.index
+  const signalPatterns =
+    CATEGORY_SIGNALS[category].flatMap(
+      (group) =>
+        group.patterns.map(
+          (pattern) => ({
+            pattern,
+            weight: group.weight,
+          })
+        )
     );
+
+  const scored =
+    paragraphs.map(
+      (paragraph, index) => {
+        let score = 0;
+
+        for (const signal of signalPatterns) {
+          if (signal.pattern.test(paragraph)) {
+            score += signal.weight;
+          }
+        }
+
+        if (index < 8) {
+          score += 2;
+        }
+
+        return {
+          index,
+          paragraph,
+          score,
+        };
+      }
+    );
+
+  const seeds =
+    scored
+      .filter((item) => item.score > 0)
+      .sort(
+        (a, b) =>
+          b.score -
+            a.score ||
+          a.index -
+            b.index
+      )
+      .slice(0, 18);
+
+  const selectedIndexes =
+    new Set<number>();
+
+  for (const seed of seeds) {
+    for (const index of [
+      seed.index - 1,
+      seed.index,
+      seed.index + 1,
+    ]) {
+      if (
+        index >= 0 &&
+        index < paragraphs.length
+      ) {
+        selectedIndexes.add(index);
+      }
+    }
+  }
+
+  for (
+    let index = 0;
+    index < Math.min(6, paragraphs.length);
+    index++
+  ) {
+    selectedIndexes.add(index);
+  }
+
+  const selected =
+    [...selectedIndexes]
+      .sort((a, b) => a - b)
+      .map(
+        (index) => paragraphs[index]
+      );
 
   if (selected.length === 0) {
     return text.slice(
@@ -636,8 +631,11 @@ function buildRelevantExcerpt(
   }
 
   return selected
-    .map((item) => item.paragraph)
-    .join("\n\n");
+    .join("\n\n")
+    .slice(
+      0,
+      RELEVANT_TEXT_LIMIT
+    );
 }
 
 function jsonResponse(
