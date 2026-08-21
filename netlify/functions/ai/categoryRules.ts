@@ -22,7 +22,7 @@ export const CATEGORY_RULES: Record<
 CATEGORY: RESEARCH & ADVISORY
 
 Purpose:
-Transform verified research inputs into a concise, structured research communication.
+Transform verified research inputs into a concise, structured research communication that an ordinary customer can understand without losing the meaning, caution, or analytical value of the source.
 
 Tone:
 - analytical
@@ -30,7 +30,14 @@ Tone:
 - restrained
 - professional
 - clear
+- explanatory
+- customer-friendly
 - non-promotional
+
+Core principle:
+SIMPLIFY THE LANGUAGE, NOT THE RESEARCH.
+
+The final email should explain the research view clearly enough for a non-specialist reader while preserving the exact recommendation, figures, estimates, risks, time horizons, valuation context, and source meaning.
 
 Required factual discipline:
 Treat the following as locked if supplied:
@@ -44,6 +51,10 @@ Treat the following as locked if supplied:
 - analyst/source
 - rationale
 - risks
+- valuation
+- financial figures
+- estimates
+- actual reported values
 - report URL
 
 Never:
@@ -55,35 +66,236 @@ Never:
 - weaken "Sell" into neutral language
 - convert a research view into guaranteed-return language
 - imply certainty about future price movement
+- convert an estimate into an actual figure
+- remove a material risk or qualifying statement
+- hide an important condition because it is difficult to explain
+- simplify in a way that changes the analytical meaning
 
-Preferred structure:
+============================================================
+PLAIN-LANGUAGE RESEARCH RULE
+============================================================
+
+Write for an ordinary investor, not for a research analyst.
+
+Prefer:
+- short sentences
+- familiar words
+- clear explanations
+- short paragraphs
+- useful subheadings
+- bullets for parallel points
+- snapshot sections for important figures
+- one idea at a time
+
+Avoid:
+- unexplained financial jargon
+- analyst shorthand where a clearer equivalent exists
+- dense strings of figures
+- long semicolon-separated data
+- internal research terminology unless it is necessary
+- complex wording that makes the email sound like a research report extract
+
+Where a technical term is necessary:
+1. retain the correct term;
+2. explain it briefly in plain customer language where useful.
+
+Preferred customer-facing terminology:
+- PAT -> Profit After Tax
+- EPS -> Earnings Per Share
+- D/E -> Debt-to-Equity Ratio
+- CMP -> Current Market Price, with CMP retained in brackets if useful
+- Rs. -> ₹
+- Rs. cr / Rs.cr -> ₹ crore
+
+Examples of acceptable labels:
+- "Adjusted Profit After Tax"
+- "Adjusted Earnings Per Share"
+- "Debt-to-Equity Ratio"
+- "Current Market Price (CMP)"
+- "Target Price"
+
+Do NOT alter the source value when changing the label.
+
+============================================================
+FINANCIAL FIGURE PRESENTATION
+============================================================
+
+When multiple financial figures are supplied:
+
+DO NOT present them as one dense sentence such as:
+
+"FY26A: 4,292; FY27E: 1,886; FY28E: 127.5; Q1FY27: 1,262"
+
+Instead, organise them into a readable snapshot or clearly separated items where the output schema permits.
+
+Use:
+- one financial measure per label;
+- period/value grouping;
+- meaningful labels;
+- readable currency symbols and units;
+- short explanations only where useful.
+
+Example presentation logic:
+
+Adjusted Profit After Tax
+- FY26A: ₹4,292 crore
+- FY27E: ₹1,886 crore
+- FY28E: ₹127.5 crore
+
+Adjusted Earnings Per Share
+- FY26A: ₹6.50 per share
+- FY27E: ₹2.90 per share
+
+Debt-to-Equity Ratio
+- FY26A: 0.3x
+
+This example describes presentation only.
+NEVER substitute these example values for source values.
+
+============================================================
+ACTUAL VS ESTIMATE
+============================================================
+
+If source periods use suffixes such as:
+- A = Actual
+- E = Estimate
+
+retain the original period label.
+
+When useful for customer understanding, briefly explain:
+
+"A" refers to actual reported figures.
+"E" refers to estimates.
+
+Do not change:
+FY26A -> FY26
+FY27E -> FY27
+
+because the suffix carries factual meaning.
+
+Never present estimated figures as reported actual results.
+
+============================================================
+EXPLANATORY RESEARCH WRITING
+============================================================
+
+Where supported by the source, help the customer understand:
+
+- what the recommendation is;
+- what the key investment rationale means;
+- what the important financial figures show;
+- what the main risks are;
+- what the time horizon is;
+- what should be read as an estimate versus an actual result.
+
+Do not simply copy research-report language into the email.
+
+Translate difficult wording into simpler language while preserving the original meaning.
+
+For example:
+
+Source-style wording:
+"Margin expansion is expected to support earnings growth."
+
+Customer-friendly style:
+"Improving margins are expected to support profit growth."
+
+Only make such simplification when the meaning remains equivalent.
+
+Do not add interpretation that is absent from the source.
+
+============================================================
+RECOMMENDATION SNAPSHOT
+============================================================
+
+When the source supports it, the most important research facts should be easy to find.
+
+Prefer a concise snapshot containing only supported items such as:
+- Recommendation
+- Current Market Price
+- Target Price
+- Time Horizon
+- Report Date
+
+Do not force a field when the source does not contain it.
+
+Do not calculate missing upside.
+
+============================================================
+RATIONALE
+============================================================
+
+Key rationale should:
+- use 2–4 distinct source-supported points where available;
+- explain why each point matters in clear language;
+- avoid generic phrases such as "strong fundamentals" unless supported and explained;
+- avoid repeating the same rationale in multiple sections.
+
+Where the source contains difficult financial terminology, simplify the wording without changing the analytical conclusion.
+
+============================================================
+RISKS / WATCH-OUTS
+============================================================
+
+Risk information must be visible and understandable.
+
+Use plain language where possible.
+
+Do not:
+- hide risks in the disclaimer;
+- weaken risk language;
+- omit a major source-supported risk to keep the email positive.
+
+Prefer direct wording such as:
+- "Key risks to watch"
+- "What could affect the view"
+- "Important risks"
+
+only when consistent with the source.
+
+============================================================
+PREFERRED STRUCTURE
+============================================================
+
 1. Research context / hero
 2. Recommendation snapshot
-3. Key rationale
-4. Risks / watch-outs
-5. CTA to full report if URL exists
-6. Research disclaimer family
+3. What supports the view / key rationale
+4. Key financial figures, when useful
+5. Risks / watch-outs
+6. CTA to full report if URL exists
+7. Research disclaimer family
+
+Use only the sections that add meaningful information.
 
 Recommended section types:
 - snapshot
 - bullets
 - text
+- highlight
 - note
 
 Variant behavior:
+
 A — Clarity First
 - compact
 - factual
 - strongest snapshot hierarchy
+- easiest to scan
+- minimal jargon
 
 B — Balanced
-- adds concise context around the recommendation
+- adds concise explanation around the recommendation
+- explains important figures or rationale more clearly
 - still strongly analytical
 
 C — Reader Context
 - slightly more explanatory
 - may frame "what investors should know"
+- may explain technical terminology where useful
 - must remain non-promotional
+- must not alter the research view
+
+All variants must contain the same verified facts.
 
 CTA:
 Prefer one CTA:
@@ -100,6 +312,20 @@ Disclaimer:
 disclaimer.required should normally be true.
 disclaimer.type should normally be "research".
 
+Research readability self-check:
+Before returning each variant, verify:
+
+- Is the recommendation immediately clear?
+- Are important figures easy to scan?
+- Have unnecessary abbreviations been expanded?
+- Are ₹ and readable units used appropriately?
+- Are actual and estimated periods still clearly distinguishable?
+- Can a non-specialist understand the key rationale?
+- Are important risks understandable and visible?
+- Has any number, recommendation, estimate, date, target, or analytical meaning changed during simplification?
+
+If not, revise the variant.
+
 Compliance flags to consider:
 - MISSING_RESEARCH_TARGET
 - MISSING_RESEARCH_RECOMMENDATION
@@ -107,6 +333,9 @@ Compliance flags to consider:
 - MISSING_CTA_URL
 - CONFLICTING_FACTS
 - UNSUPPORTED_CLAIM
+- RESEARCH_MEANING_RISK
+- ESTIMATE_PRESENTED_AS_ACTUAL
+- UNEXPLAINED_RESEARCH_JARGON
 `,
 
   education: `
@@ -132,6 +361,8 @@ Writing principles:
 - avoid oversimplification that changes meaning
 - do not turn education into product promotion unless explicitly requested
 - do not create investment recommendations
+- write for a reader who may have limited financial knowledge
+- prefer everyday language over textbook-style explanations
 
 Preferred structure:
 1. Topic / learning context
@@ -148,7 +379,7 @@ Recommended section types:
 - note
 
 Variant behavior:
-A — Clity First
+A — Clarity First
 - very simple
 - concise
 - strong scanability
@@ -215,6 +446,13 @@ Never:
 - invent offer dates
 - invent savings or performance claims
 - create urgency not present in the source
+
+Writing principle:
+Explain the product in language a normal customer can understand.
+
+When a technical product term is necessary:
+- retain the correct term;
+- explain what it means or what it enables where supported.
 
 Preferred structure:
 1. Product / feature announcement
@@ -295,6 +533,15 @@ Never:
 - understate impact
 - create urgency unless the source requires it
 - use promotional language
+
+Writing principle:
+The reader should immediately understand:
+- what happened or will happen;
+- whether they are affected;
+- when it applies;
+- what they need to do.
+
+Avoid operational jargon when a simpler explanation is possible.
 
 Preferred structure:
 1. What is changing / happening
@@ -377,6 +624,19 @@ Never:
 - invent affected scope
 - add promotional content
 - create urgency beyond the actual regulatory requirement
+
+Plain-language rule:
+Use the simplest language possible without changing regulatory meaning.
+
+If a legal or regulatory term is material:
+- retain it;
+- explain it briefly only where the supplied information supports a safe explanation.
+
+Never simplify:
+- "shall" into optional language;
+- mandatory action into a suggestion;
+- a deadline into an approximate date;
+- affected scope into a broader or narrower group.
 
 If critical regulatory information is missing:
 Use compliance.status "warning" or "fail" depending on severity.
@@ -468,6 +728,11 @@ Never:
 - invent rewards or benefits
 - create urgency unless supported
 
+Writing principle:
+Use simple step-by-step language.
+
+Avoid internal onboarding terminology if a normal customer would not understand it.
+
 Preferred structure:
 1. Welcome / stage context
 2. What has been completed
@@ -518,16 +783,10 @@ Compliance flags to consider:
  * PRODUCT FEATURE EXPLAINER
  * ============================================================
  *
- * This is intentionally separate from the generic Product &
- * Sales rules.
- *
- * It is used only when:
+ * Used only when:
  *
  * category === "product"
  * communicationType === "feature_explainer"
- *
- * This prevents changes here from affecting Research or other
- * communication categories.
  */
 export const PRODUCT_FEATURE_EXPLAINER_RULES = `
 COMMUNICATION TYPE: PRODUCT FEATURE EXPLAINER
@@ -554,6 +813,11 @@ DO NOT merely tell the recipient that more information is
 available in an article, guide, page, PDF, video or link.
 
 The email itself must communicate meaningful understanding.
+
+WRITE FOR A CUSTOMER, NOT A PRODUCT EXPERT.
+
+Use the simplest wording that preserves the verified feature
+meaning.
 
 
 ============================================================
@@ -814,6 +1078,7 @@ Use:
 - concrete benefits
 - strong scanability
 - active voice where appropriate
+- familiar words whenever possible
 
 Avoid:
 - excessive jargon
@@ -822,6 +1087,7 @@ Avoid:
 - repeated claims
 - unnecessary introductory copy
 - article-summary language
+- technical wording when a simpler accurate explanation is available
 
 When technical terminology is necessary, explain it simply.
 
@@ -897,6 +1163,11 @@ PRACTICALITY
 - Is there useful application/access guidance where
   supplied?
 
+PLAIN LANGUAGE
+- Could a non-specialist customer understand the message?
+- Have avoidable technical terms been simplified?
+- Have important technical terms been explained where useful?
+
 FACTUAL SAFETY
 - Is every specific capability supported by input?
 
@@ -933,9 +1204,6 @@ COMPLIANCE FLAGS TO CONSIDER
 
 /**
  * Existing category-level accessor.
- *
- * Keep this because other parts of the application may
- * already use it.
  */
 export function getCategoryRules(
   category: CommunicationCategory
@@ -947,10 +1215,7 @@ export function getCategoryRules(
 /**
  * Generation-level accessor.
  *
- * generate-email.ts should use this instead of calling
- * getCategoryRules() directly.
- *
- * This keeps specialised communication types additive.
+ * Specialised communication-type rules are additive.
  */
 export function getGenerationRules({
   category,
