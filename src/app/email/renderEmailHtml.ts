@@ -60,6 +60,12 @@ const BRAND = {
   footer: "#F7F8FA",
 };
 
+const GEOJIT_LOGO_URL =
+  "https://www.geojit.com/HomeDesign/images/logo.png";
+
+const GEOJIT_DISCLAIMER_URL =
+  "https://www.geojit.com/gil/disclaimer";
+
 export function renderEmailHtml(
   input: RenderEmailInput
 ): string {
@@ -73,35 +79,45 @@ export function renderEmailHtml(
 
   const hero = contentData?.hero;
   const body = contentData?.body;
-  const disclaimer = contentData?.disclaimer;
 
   const sectionsHtml = (body?.sections || [])
+    .filter(
+      (section) =>
+        !shouldHideBodyDisclaimer(
+          section
+        )
+    )
     .map(renderSection)
     .join("");
 
+  const heroEyebrow =
+    category === "research"
+      ? "GEOJIT IDEAS"
+      : hero?.eyebrow || "";
+
   const heroHtml =
-    hero?.eyebrow ||
+    heroEyebrow ||
     hero?.title ||
     hero?.subtitle
       ? `
         <tr>
-          <td style="padding:0 32px 24px 32px;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${BRAND.soft};border-radius:12px;">
+          <td style="padding:14px 32px 28px 32px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${BRAND.soft};border-radius:14px;">
               <tr>
-                <td style="padding:24px;">
+                <td style="padding:34px 30px 32px 30px;">
                   ${
-                    hero?.eyebrow
-                      ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${BRAND.teal};margin:0 0 8px 0;">${escapeHtml(hero.eyebrow)}</div>`
+                    heroEyebrow
+                      ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:${BRAND.teal};margin:0 0 16px 0;">${escapeHtml(heroEyebrow)}</div>`
                       : ""
                   }
                   ${
                     hero?.title
-                      ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:30px;font-weight:700;color:${BRAND.text};margin:0 0 6px 0;">${escapeHtml(hero.title)}</div>`
+                      ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:24px;line-height:32px;font-weight:700;color:${BRAND.text};margin:0 0 10px 0;">${escapeHtml(hero.title)}</div>`
                       : ""
                   }
                   ${
                     hero?.subtitle
-                      ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:${BRAND.muted};margin:0;">${escapeHtml(hero.subtitle)}</div>`
+                      ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:${BRAND.muted};margin:0;">${escapeHtml(normalizeResearchInlineText(hero.subtitle))}</div>`
                       : ""
                   }
                 </td>
@@ -143,27 +159,6 @@ export function renderEmailHtml(
         </tr>`
       : "";
 
-  const disclaimerHtml =
-    disclaimer?.required
-      ? `
-        <tr>
-          <td style="padding:0 32px 28px 32px;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#FFF8E7;border:1px solid #F3D58A;border-radius:8px;">
-              <tr>
-                <td style="padding:14px 16px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:18px;color:#6B5416;">
-                  <strong>Disclaimer:</strong>
-                  ${escapeHtml(
-                    disclaimer.text ||
-                      getDisclaimerPlaceholder(
-                        disclaimer.type
-                      )
-                  )}
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>`
-      : "";
 
   return `<!doctype html>
 <html lang="en">
@@ -189,10 +184,10 @@ export function renderEmailHtml(
                 <tr>
                   <td valign="middle" align="left">
                     <img
-                      src="https://www.geojit.com/HomeDesign/images/logo.png"
+                      src="${escapeAttribute(GEOJIT_LOGO_URL)}"
                       width="150"
                       alt="Geojit Financial Services"
-                      style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;"
+                      style="display:block;width:150px;max-width:150px;height:auto;min-height:1px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;"
                     >
                   </td>
                   <td valign="middle" align="right" style="padding-left:20px;">
@@ -210,15 +205,40 @@ export function renderEmailHtml(
           ${sectionsHtml}
           ${closingHtml}
           ${ctaHtml}
-          ${disclaimerHtml}
 
           <tr>
-            <td style="background:${BRAND.footer};border-top:1px solid ${BRAND.border};padding:22px 32px;text-align:center;">
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:18px;color:${BRAND.muted};">
-                Geojit Financial Services Ltd.<br>
-                34/659-P, Civil Line Road, Padivattom, Kochi - 682024
+            <td style="background:${BRAND.footer};border-top:1px solid ${BRAND.border};padding:24px 32px;text-align:left;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:19px;color:${BRAND.muted};">
+                <strong style="color:${BRAND.text};">Our Customer Care Numbers:</strong>
+                <br>
+                <strong>Toll Free:</strong>
+                1800 571 5501 / 1800 103 5501,
+                <strong>Paid Line:</strong>
+                0484 6193200
+
+                <br><br>
+
+                <strong>E-mail:</strong>
+                <a
+                  href="mailto:customercare@geojit.com"
+                  style="color:${BRAND.teal};text-decoration:none;font-weight:700;"
+                >
+                  customercare@geojit.com
+                </a>
+
+                <br><br>
+
+                <a
+                  href="${escapeAttribute(GEOJIT_DISCLAIMER_URL)}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style="color:${BRAND.teal};text-decoration:underline;font-weight:700;"
+                >
+                  Disclaimer
+                </a>
               </div>
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:16px;color:#98A2B3;margin-top:8px;">
+
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:16px;color:#98A2B3;margin-top:14px;">
                 © 2026 Geojit Financial Services. All rights reserved.
               </div>
             </td>
@@ -319,7 +339,7 @@ function renderSection(
               }
             </td>
             <td style="padding:4px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:${BRAND.text};">
-              ${escapeHtml(item)}
+              ${escapeHtml(cleanListItem(item))}
             </td>
           </tr>`
       )
@@ -345,7 +365,7 @@ function renderSection(
               <td style="padding:16px 18px;">
                 ${title}
                 <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:${BRAND.text};">
-                  ${escapeHtml(section.content || "")}
+                  ${escapeHtml(normalizeResearchInlineText(section.content || ""))}
                 </div>
               </td>
             </tr>
@@ -363,7 +383,7 @@ function renderSection(
               <td style="padding:14px 16px;">
                 ${title}
                 <div style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:21px;color:${BRAND.muted};">
-                  ${escapeHtml(section.content || "")}
+                  ${escapeHtml(normalizeResearchInlineText(section.content || ""))}
                 </div>
               </td>
             </tr>
@@ -377,7 +397,7 @@ function renderSection(
       <td style="padding:4px 32px 24px 32px;">
         ${title}
         <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:${BRAND.text};">
-          ${escapeHtml(section.content || "")}
+          ${escapeHtml(normalizeResearchInlineText(section.content || ""))}
         </div>
       </td>
     </tr>`;
@@ -698,6 +718,117 @@ function formatPeriodLabel(
 }
 
 
+function cleanListItem(
+  value: string
+): string {
+  let clean =
+    value.trim();
+
+  /**
+   * The renderer owns list numbering.
+   * Remove numbering accidentally generated by AI.
+   *
+   * Examples:
+   * 1) Text
+   * 1. Text
+   * (1) Text
+   * 1 - Text
+   */
+  for (let i = 0; i < 3; i++) {
+    clean = clean
+      .replace(
+        /^\s*\(\d+\)\s*/i,
+        ""
+      )
+      .replace(
+        /^\s*\d+\s*[\)\.\-:]\s*/i,
+        ""
+      )
+      .trim();
+  }
+
+  return normalizeResearchInlineText(
+    clean
+  );
+}
+
+
+function shouldHideBodyDisclaimer(
+  section: EmailSection
+): boolean {
+  const title =
+    String(
+      section.title || ""
+    ).toLowerCase();
+
+  const content =
+    String(
+      section.content || ""
+    ).toLowerCase();
+
+  const stringItems =
+    (section.items || [])
+      .filter(
+        (item): item is string =>
+          typeof item === "string"
+      )
+      .join(" ")
+      .toLowerCase();
+
+  const combined =
+    `${title} ${content} ${stringItems}`;
+
+  return (
+    title.includes(
+      "disclaimer"
+    ) ||
+    title.includes(
+      "risk disclaimer"
+    ) ||
+    combined.includes(
+      "approved research disclaimer text will be inserted"
+    ) ||
+    combined.includes(
+      "approved disclaimer text will be inserted"
+    ) ||
+    combined.includes(
+      "communication studio rules engine"
+    )
+  );
+}
+
+
+function normalizeResearchInlineText(
+  value: string
+): string {
+  return value
+    .replace(
+      /\bCMP\b/g,
+      "Current Market Price"
+    )
+    .replace(
+      /\bTP\b/g,
+      "Target Price"
+    )
+    .replace(
+      /\bRs\.?\s*/gi,
+      "₹"
+    )
+    .replace(
+      /\bPAT\b/g,
+      "Profit After Tax"
+    )
+    .replace(
+      /\bEPS\b/g,
+      "Earnings Per Share"
+    )
+    .replace(
+      /\bD\/E\b/g,
+      "Debt-to-Equity Ratio"
+    );
+}
+
+
 function escapeHtml(
   value: string
 ): string {
@@ -721,7 +852,7 @@ function getCategoryLabel(
 ) {
   switch (category) {
     case "research":
-      return "Research & Advisory";
+      return "Research";
     case "education":
       return "Investor Education";
     case "product":
@@ -734,20 +865,5 @@ function getCategoryLabel(
       return "Onboarding & Journey";
     default:
       return "Communication";
-  }
-}
-
-function getDisclaimerPlaceholder(
-  type?: string
-) {
-  switch (type) {
-    case "research":
-      return "Approved research disclaimer text will be inserted by the Communication Studio rules engine.";
-    case "regulatory":
-      return "Approved regulatory disclaimer text will be inserted by the Communication Studio rules engine.";
-    case "promotional":
-      return "Approved promotional disclaimer text will be inserted by the Communication Studio rules engine.";
-    default:
-      return "Approved disclaimer text will be inserted by the Communication Studio rules engine.";
   }
 }
