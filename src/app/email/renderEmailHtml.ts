@@ -60,17 +60,6 @@ const BRAND = {
   footer: "#F7F8FA",
 };
 
-/**
- * Keep the logo on an absolute HTTPS URL.
- * This is important because the same rendered HTML is used
- * inside the application preview and later by email clients.
- */
-const GEOJIT_LOGO_URL =
-  "https://www.geojit.com/HomeDesign/images/logo.png";
-
-const GEOJIT_DISCLAIMER_URL =
-  "https://www.geojit.com/gil/disclaimer";
-
 export function renderEmailHtml(
   input: RenderEmailInput
 ): string {
@@ -200,10 +189,10 @@ export function renderEmailHtml(
                 <tr>
                   <td valign="middle" align="left">
                     <img
-                      src="${escapeAttribute(GEOJIT_LOGO_URL)}"
+                      src="https://www.geojit.com/HomeDesign/images/logo.png"
                       width="150"
                       alt="Geojit Financial Services"
-                      style="display:block;width:150px;max-width:150px;height:auto;min-height:1px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;"
+                      style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;"
                     >
                   </td>
                   <td valign="middle" align="right" style="padding-left:20px;">
@@ -224,38 +213,12 @@ export function renderEmailHtml(
           ${disclaimerHtml}
 
           <tr>
-            <td style="background:${BRAND.footer};border-top:1px solid ${BRAND.border};padding:22px 32px;text-align:left;">
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:19px;color:${BRAND.muted};">
-                <strong style="color:${BRAND.text};">Our Customer Care Numbers:</strong>
-                <br>
-                <strong>Toll Free:</strong>
-                1800 571 5501 / 1800 103 5501,
-                <strong>Paid Line:</strong>
-                0484 6193200
-
-                <br><br>
-
-                <strong>E-mail:</strong>
-                <a
-                  href="mailto:customercare@geojit.com"
-                  style="color:${BRAND.teal};text-decoration:none;font-weight:700;"
-                >
-                  customercare@geojit.com
-                </a>
-
-                <br><br>
-
-                <a
-                  href="${escapeAttribute(GEOJIT_DISCLAIMER_URL)}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style="color:${BRAND.teal};text-decoration:underline;font-weight:700;"
-                >
-                  Disclaimer
-                </a>
+            <td style="background:${BRAND.footer};border-top:1px solid ${BRAND.border};padding:22px 32px;text-align:center;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:18px;color:${BRAND.muted};">
+                Geojit Financial Services Ltd.<br>
+                34/659-P, Civil Line Road, Padivattom, Kochi - 682024
               </div>
-
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:16px;color:#98A2B3;margin-top:14px;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:16px;color:#98A2B3;margin-top:8px;">
                 © 2026 Geojit Financial Services. All rights reserved.
               </div>
             </td>
@@ -272,8 +235,13 @@ export function renderEmailHtml(
 function renderSection(
   section: EmailSection
 ): string {
-  const title = section.title
-    ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;font-weight:700;color:${BRAND.text};margin:0 0 10px 0;">${escapeHtml(section.title)}</div>`
+  const readableSectionTitle =
+    getReadableSectionTitle(
+      section.title || ""
+    );
+
+  const title = readableSectionTitle
+    ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;font-weight:700;color:${BRAND.text};margin:0 0 10px 0;">${escapeHtml(readableSectionTitle)}</div>`
     : "";
 
   if (section.type === "snapshot") {
@@ -287,15 +255,34 @@ function renderSection(
 
     const cells = items
       .map(
-        (item) => `
+        (item) => {
+          const readableLabel =
+            getReadableFinancialLabel(
+              item.label
+            );
+
+          return `
           <tr>
-            <td style="padding:9px 12px;border-bottom:1px solid ${BRAND.border};font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:${BRAND.muted};width:42%;">
-              ${escapeHtml(item.label)}
+            <td valign="top" style="padding:12px;border-bottom:1px solid ${BRAND.border};font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:${BRAND.muted};width:38%;">
+              <div style="font-weight:700;color:${BRAND.text};">
+                ${escapeHtml(readableLabel.label)}
+              </div>
+              ${
+                readableLabel.explanation
+                  ? `<div style="margin-top:3px;font-size:10px;line-height:15px;color:#98A2B3;">${escapeHtml(
+                      readableLabel.explanation
+                    )}</div>`
+                  : ""
+              }
             </td>
-            <td style="padding:9px 12px;border-bottom:1px solid ${BRAND.border};font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:18px;font-weight:700;color:${BRAND.text};">
-              ${escapeHtml(item.value)}
+            <td valign="top" style="padding:12px;border-bottom:1px solid ${BRAND.border};font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:19px;color:${BRAND.text};">
+              ${renderReadableSnapshotValue(
+                item.label,
+                item.value
+              )}
             </td>
-          </tr>`
+          </tr>`;
+        }
       )
       .join("");
 
@@ -395,6 +382,321 @@ function renderSection(
       </td>
     </tr>`;
 }
+
+function getReadableSectionTitle(
+  title: string
+): string {
+  const normalized =
+    title
+      .trim()
+      .toLowerCase();
+
+  if (
+    normalized.includes(
+      "reported figures"
+    ) ||
+    normalized.includes(
+      "select reported figures"
+    ) ||
+    normalized.includes(
+      "source figures"
+    )
+  ) {
+    return "Key Financial Figures";
+  }
+
+  return title;
+}
+
+
+function getReadableFinancialLabel(
+  label: string
+): {
+  label: string;
+  explanation: string;
+} {
+  const normalized =
+    label
+      .trim()
+      .toLowerCase();
+
+  if (
+    normalized.includes(
+      "d/e"
+    ) ||
+    normalized.includes(
+      "debt-to-equity"
+    )
+  ) {
+    return {
+      label:
+        "Debt-to-Equity Ratio",
+      explanation:
+        "Shows the company's debt compared with shareholders' equity.",
+    };
+  }
+
+  if (
+    normalized.includes(
+      "adjusted pat"
+    ) ||
+    normalized === "pat"
+  ) {
+    return {
+      label:
+        "Adjusted Profit After Tax",
+      explanation:
+        "Profit remaining after tax, adjusted for specified items.",
+    };
+  }
+
+  if (
+    normalized.includes(
+      "adjusted eps"
+    ) ||
+    normalized === "eps"
+  ) {
+    return {
+      label:
+        "Adjusted Earnings Per Share",
+      explanation:
+        "Adjusted profit attributable to each share.",
+    };
+  }
+
+  if (
+    normalized.includes(
+      "pat"
+    )
+  ) {
+    return {
+      label:
+        label.replace(
+          /\bPAT\b/gi,
+          "Profit After Tax"
+        ),
+      explanation:
+        "",
+    };
+  }
+
+  if (
+    normalized.includes(
+      "eps"
+    )
+  ) {
+    return {
+      label:
+        label.replace(
+          /\bEPS\b/gi,
+          "Earnings Per Share"
+        ),
+      explanation:
+        "",
+    };
+  }
+
+  return {
+    label:
+      label
+        .replace(
+          /\(rs\.?\s*cr\.?\)/gi,
+          ""
+        )
+        .replace(
+          /\(rs\.?\)/gi,
+          ""
+        )
+        .trim(),
+    explanation:
+      "",
+  };
+}
+
+
+function renderReadableSnapshotValue(
+  label: string,
+  value: string
+): string {
+  const parts =
+    value
+      .split(";")
+      .map(
+        (item) =>
+          item.trim()
+      )
+      .filter(Boolean);
+
+  /**
+   * Convert dense source strings such as:
+   * FY26A: 4,292; FY27E: 1,886; FY28E: 127.5
+   *
+   * into clear period/value rows.
+   *
+   * This changes presentation only — not the source values.
+   */
+  const periodRows =
+    parts
+      .map((part) => {
+        const match =
+          part.match(
+            /^([^:]{2,24}):\s*(.+)$/
+          );
+
+        if (!match) {
+          return null;
+        }
+
+        return {
+          period:
+            formatPeriodLabel(
+              match[1].trim()
+            ),
+          value:
+            formatFinancialValue(
+              label,
+              match[2].trim()
+            ),
+        };
+      })
+      .filter(
+        (
+          row
+        ): row is {
+          period: string;
+          value: string;
+        } =>
+          Boolean(row)
+      );
+
+  if (
+    periodRows.length >= 2
+  ) {
+    const rows =
+      periodRows
+        .map(
+          (row) => `
+            <tr>
+              <td style="padding:3px 12px 3px 0;font-size:12px;line-height:18px;color:${BRAND.muted};white-space:nowrap;">
+                ${escapeHtml(row.period)}
+              </td>
+              <td style="padding:3px 0;font-size:13px;line-height:18px;font-weight:700;color:${BRAND.text};">
+                ${escapeHtml(row.value)}
+              </td>
+            </tr>`
+        )
+        .join("");
+
+    return `
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+        ${rows}
+      </table>`;
+  }
+
+  return escapeHtml(
+    formatFinancialValue(
+      label,
+      value
+    )
+  );
+}
+
+
+function formatFinancialValue(
+  label: string,
+  value: string
+): string {
+  const clean =
+    value.trim();
+
+  if (!clean) {
+    return clean;
+  }
+
+  /**
+   * Keep values that already include an explicit
+   * currency/unit exactly as supplied.
+   */
+  if (
+    /₹|rs\.?|inr|crore|cr\.?|%|x\b/i.test(
+      clean
+    )
+  ) {
+    return clean
+      .replace(
+        /\bRs\.?\s*/gi,
+        "₹"
+      )
+      .replace(
+        /\bcr\.?\b/gi,
+        "crore"
+      );
+  }
+
+  const normalized =
+    label.toLowerCase();
+
+  if (
+    normalized.includes(
+      "pat"
+    ) ||
+    normalized.includes(
+      "profit after tax"
+    ) ||
+    normalized.includes(
+      "rs.cr"
+    ) ||
+    normalized.includes(
+      "rs. cr"
+    )
+  ) {
+    return `₹${clean} crore`;
+  }
+
+  if (
+    normalized.includes(
+      "eps"
+    ) ||
+    normalized.includes(
+      "earnings per share"
+    )
+  ) {
+    return `₹${clean} per share`;
+  }
+
+  if (
+    normalized.includes(
+      "d/e"
+    ) ||
+    normalized.includes(
+      "debt-to-equity"
+    )
+  ) {
+    return clean.endsWith(
+      "x"
+    )
+      ? clean
+      : `${clean}x`;
+  }
+
+  return clean;
+}
+
+
+function formatPeriodLabel(
+  value: string
+): string {
+  return value
+    .replace(
+      /Q([1-4])FY(\d{2})/gi,
+      "Q$1 FY$2"
+    )
+    .replace(
+      /FY(\d{2})([AE])/gi,
+      "FY$1$2"
+    );
+}
+
 
 function escapeHtml(
   value: string
