@@ -60,6 +60,17 @@ const BRAND = {
   footer: "#F7F8FA",
 };
 
+/**
+ * Keep the logo on an absolute HTTPS URL.
+ * This is important because the same rendered HTML is used
+ * inside the application preview and later by email clients.
+ */
+const GEOJIT_LOGO_URL =
+  "https://www.geojit.com/HomeDesign/images/logo.png";
+
+const GEOJIT_DISCLAIMER_URL =
+  "https://www.geojit.com/gil/disclaimer";
+
 export function renderEmailHtml(
   input: RenderEmailInput
 ): string {
@@ -189,10 +200,10 @@ export function renderEmailHtml(
                 <tr>
                   <td valign="middle" align="left">
                     <img
-                      src="https://www.geojit.com/HomeDesign/images/logo.png"
+                      src="${escapeAttribute(GEOJIT_LOGO_URL)}"
                       width="150"
                       alt="Geojit Financial Services"
-                      style="display:block;width:150px;max-width:150px;height:auto;border:0;outline:none;text-decoration:none;"
+                      style="display:block;width:150px;max-width:150px;height:auto;min-height:1px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;"
                     >
                   </td>
                   <td valign="middle" align="right" style="padding-left:20px;">
@@ -213,12 +224,38 @@ export function renderEmailHtml(
           ${disclaimerHtml}
 
           <tr>
-            <td style="background:${BRAND.footer};border-top:1px solid ${BRAND.border};padding:22px 32px;text-align:center;">
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:18px;color:${BRAND.muted};">
-                Geojit Financial Services Ltd.<br>
-                34/659-P, Civil Line Road, Padivattom, Kochi - 682024
+            <td style="background:${BRAND.footer};border-top:1px solid ${BRAND.border};padding:22px 32px;text-align:left;">
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:19px;color:${BRAND.muted};">
+                <strong style="color:${BRAND.text};">Our Customer Care Numbers:</strong>
+                <br>
+                <strong>Toll Free:</strong>
+                1800 571 5501 / 1800 103 5501,
+                <strong>Paid Line:</strong>
+                0484 6193200
+
+                <br><br>
+
+                <strong>E-mail:</strong>
+                <a
+                  href="mailto:customercare@geojit.com"
+                  style="color:${BRAND.teal};text-decoration:none;font-weight:700;"
+                >
+                  customercare@geojit.com
+                </a>
+
+                <br><br>
+
+                <a
+                  href="${escapeAttribute(GEOJIT_DISCLAIMER_URL)}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style="color:${BRAND.teal};text-decoration:underline;font-weight:700;"
+                >
+                  Disclaimer
+                </a>
               </div>
-              <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:16px;color:#98A2B3;margin-top:8px;">
+
+              <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:16px;color:#98A2B3;margin-top:14px;">
                 © 2026 Geojit Financial Services. All rights reserved.
               </div>
             </td>
