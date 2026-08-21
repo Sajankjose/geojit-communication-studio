@@ -95,6 +95,21 @@ export function renderEmailHtml(
       ? "GEOJIT IDEAS"
       : hero?.eyebrow || "";
 
+  const researchHero =
+    category === "research"
+      ? parseResearchHero(
+          hero?.title,
+          hero?.subtitle
+        )
+      : null;
+
+  const recommendationStyle =
+    researchHero?.recommendation
+      ? getRecommendationStyle(
+          researchHero.recommendation
+        )
+      : null;
+
   const heroHtml =
     heroEyebrow ||
     hero?.title ||
@@ -104,21 +119,96 @@ export function renderEmailHtml(
           <td style="padding:14px 32px 28px 32px;">
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${BRAND.soft};border-radius:14px;">
               <tr>
-                <td style="padding:34px 30px 32px 30px;">
+                <td style="padding:38px 30px 34px 30px;">
                   ${
                     heroEyebrow
-                      ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:${BRAND.teal};margin:0 0 16px 0;">${escapeHtml(heroEyebrow)}</div>`
+                      ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:${BRAND.teal};margin:0 0 18px 0;">${escapeHtml(heroEyebrow)}</div>`
                       : ""
                   }
+
                   ${
-                    hero?.title
-                      ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:24px;line-height:32px;font-weight:700;color:${BRAND.text};margin:0 0 10px 0;">${escapeHtml(hero.title)}</div>`
-                      : ""
-                  }
-                  ${
-                    hero?.subtitle
-                      ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:${BRAND.muted};margin:0;">${escapeHtml(normalizeResearchInlineText(hero.subtitle))}</div>`
-                      : ""
+                    category === "research" &&
+                    researchHero
+                      ? `
+                        <div style="font-family:Arial,Helvetica,sans-serif;font-size:24px;line-height:32px;font-weight:700;color:${BRAND.text};margin:0 0 16px 0;">
+                          ${escapeHtml(researchHero.companyTitle)}
+                        </div>
+
+                        ${
+                          researchHero.recommendation &&
+                          recommendationStyle
+                            ? `
+                              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 18px 0;">
+                                <tr>
+                                  <td style="background:${recommendationStyle.background};border:1px solid ${recommendationStyle.border};border-radius:999px;padding:7px 14px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:800;letter-spacing:.04em;color:${recommendationStyle.color};">
+                                    ${escapeHtml(researchHero.recommendation)}
+                                  </td>
+                                </tr>
+                              </table>`
+                            : ""
+                        }
+
+                        ${
+                          researchHero.targetPrice ||
+                          researchHero.cmp
+                            ? `
+                              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 16px 0;">
+                                <tr>
+                                  ${
+                                    researchHero.targetPrice
+                                      ? `
+                                        <td valign="top" style="padding:0 28px 0 0;">
+                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;text-transform:uppercase;letter-spacing:.06em;color:${BRAND.muted};margin-bottom:3px;">
+                                            Target Price
+                                          </div>
+                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:22px;font-weight:700;color:${BRAND.text};">
+                                            ₹${escapeHtml(researchHero.targetPrice)}
+                                          </div>
+                                        </td>`
+                                      : ""
+                                  }
+
+                                  ${
+                                    researchHero.cmp
+                                      ? `
+                                        <td valign="top">
+                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;text-transform:uppercase;letter-spacing:.06em;color:${BRAND.muted};margin-bottom:3px;">
+                                            Current Market Price
+                                          </div>
+                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:22px;font-weight:700;color:${BRAND.text};">
+                                            ₹${escapeHtml(researchHero.cmp)}
+                                          </div>
+                                          ${
+                                            researchHero.asOnDate
+                                              ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:15px;color:#98A2B3;margin-top:2px;">As on ${escapeHtml(researchHero.asOnDate)}</div>`
+                                              : ""
+                                          }
+                                        </td>`
+                                      : ""
+                                  }
+                                </tr>
+                              </table>`
+                            : ""
+                        }
+
+                        ${
+                          researchHero.secondaryText
+                            ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:${BRAND.muted};margin:0;">${escapeHtml(normalizeResearchInlineText(researchHero.secondaryText))}</div>`
+                            : ""
+                        }
+                      `
+                      : `
+                        ${
+                          hero?.title
+                            ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:24px;line-height:32px;font-weight:700;color:${BRAND.text};margin:0 0 10px 0;">${escapeHtml(hero.title)}</div>`
+                            : ""
+                        }
+                        ${
+                          hero?.subtitle
+                            ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:${BRAND.muted};margin:0;">${escapeHtml(normalizeResearchInlineText(hero.subtitle))}</div>`
+                            : ""
+                        }
+                      `
                   }
                 </td>
               </tr>
@@ -798,6 +888,167 @@ function shouldHideBodyDisclaimer(
 }
 
 
+function getRecommendationStyle(
+  recommendation: string
+): {
+  background: string;
+  border: string;
+  color: string;
+} {
+  const value =
+    recommendation
+      .trim()
+      .toLowerCase();
+
+  if (
+    value === "buy" ||
+    value === "accumulate"
+  ) {
+    return {
+      background: "#EAF7EF",
+      border: "#A9D9B9",
+      color: "#177245",
+    };
+  }
+
+  if (
+    value === "sell" ||
+    value === "reduce"
+  ) {
+    return {
+      background: "#FDEEEE",
+      border: "#F1B5B5",
+      color: "#B42318",
+    };
+  }
+
+  if (value === "hold") {
+    return {
+      background: "#FFF7E8",
+      border: "#F3D28A",
+      color: "#9A6700",
+    };
+  }
+
+  return {
+    background: "#F3F4F6",
+    border: "#D1D5DB",
+    color: "#374151",
+  };
+}
+
+
+function parseResearchHero(
+  heroTitle?: string,
+  heroSubtitle?: string
+): {
+  companyTitle: string;
+  recommendation: string;
+  targetPrice: string;
+  cmp: string;
+  asOnDate: string;
+  secondaryText: string;
+} {
+  const title =
+    heroTitle || "";
+
+  const subtitle =
+    heroSubtitle || "";
+
+  let recommendation = "";
+  let targetPrice = "";
+  let cmp = "";
+  let asOnDate = "";
+
+  const recommendationMatch =
+    title.match(
+      /\b(BUY|SELL|HOLD|ACCUMULATE|REDUCE)\b/i
+    );
+
+  if (recommendationMatch) {
+    recommendation =
+      recommendationMatch[1].toUpperCase();
+  }
+
+  const targetMatch =
+    `${title} | ${subtitle}`.match(
+      /(?:target(?:\s*price)?|tp)\s*[:₹Rs.\s-]*([0-9][0-9,]*(?:\.\d+)?)/i
+    );
+
+  if (targetMatch) {
+    targetPrice =
+      targetMatch[1];
+  }
+
+  const cmpMatch =
+    `${title} | ${subtitle}`.match(
+      /(?:current\s*market\s*price|cmp)\s*[:₹Rs.\s-]*([0-9][0-9,]*(?:\.\d+)?)/i
+    );
+
+  if (cmpMatch) {
+    cmp = cmpMatch[1];
+  }
+
+  const dateMatch =
+    `${title} | ${subtitle}`.match(
+      /(?:as\s*on|as\s*of|dated?)\s*[:\-]?\s*([0-9]{1,2}[\/.\-][0-9]{1,2}[\/.\-][0-9]{2,4}|[0-9]{1,2}\s+[A-Za-z]{3,9}\s+[0-9]{2,4}|[A-Za-z]{3,9}\s+[0-9]{1,2},?\s+[0-9]{4})/i
+    );
+
+  if (dateMatch) {
+    asOnDate =
+      dateMatch[1];
+  }
+
+  let companyTitle =
+    title
+      .replace(
+        /\s*[—–-]\s*(BUY|SELL|HOLD|ACCUMULATE|REDUCE)\b.*$/i,
+        ""
+      )
+      .replace(
+        /\s*\((?:Target|TP).*?\)\s*$/i,
+        ""
+      )
+      .trim();
+
+  if (!companyTitle) {
+    companyTitle = title;
+  }
+
+  let secondaryText =
+    subtitle;
+
+  secondaryText =
+    secondaryText
+      .replace(
+        /(?:current\s*market\s*price|cmp)\s*[:₹Rs.\s-]*[0-9][0-9,]*(?:\.\d+)?/gi,
+        ""
+      )
+      .replace(
+        /(?:target(?:\s*price)?|tp)\s*[:₹Rs.\s-]*[0-9][0-9,]*(?:\.\d+)?/gi,
+        ""
+      )
+      .replace(
+        /\|\s*\|/g,
+        "|"
+      )
+      .replace(
+        /^\s*\|\s*|\s*\|\s*$/g,
+        ""
+      )
+      .trim();
+
+  return {
+    companyTitle,
+    recommendation,
+    targetPrice,
+    cmp,
+    asOnDate,
+    secondaryText,
+  };
+}
+
+
 function normalizeResearchInlineText(
   value: string
 ): string {
@@ -852,7 +1103,7 @@ function getCategoryLabel(
 ) {
   switch (category) {
     case "research":
-      return "Research";
+      return "Fundamental Research";
     case "education":
       return "Investor Education";
     case "product":
