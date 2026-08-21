@@ -98,8 +98,8 @@ export function renderEmailHtml(
   const researchHero =
     category === "research"
       ? parseResearchHero(
-          hero?.title,
-          hero?.subtitle
+          hero,
+          body
         )
       : null;
 
@@ -116,13 +116,18 @@ export function renderEmailHtml(
     hero?.subtitle
       ? `
         <tr>
-          <td style="padding:14px 32px 28px 32px;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${BRAND.soft};border-radius:14px;">
+          <td style="padding:18px 32px 28px 32px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:${BRAND.soft};border-radius:18px;">
               <tr>
-                <td style="padding:38px 30px 34px 30px;">
+                <td style="padding:34px 30px 30px 30px;">
                   ${
                     heroEyebrow
-                      ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;font-weight:700;letter-spacing:.10em;text-transform:uppercase;color:${BRAND.teal};margin:0 0 18px 0;">${escapeHtml(heroEyebrow)}</div>`
+                      ? `
+                        <div style="font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${BRAND.teal};margin:0 0 8px 0;">
+                          ${escapeHtml(heroEyebrow)}
+                        </div>
+                        <div style="width:36px;height:3px;background:${BRAND.teal};border-radius:999px;margin:0 0 22px 0;"></div>
+                      `
                       : ""
                   }
 
@@ -130,70 +135,112 @@ export function renderEmailHtml(
                     category === "research" &&
                     researchHero
                       ? `
-                        <div style="font-family:Arial,Helvetica,sans-serif;font-size:24px;line-height:32px;font-weight:700;color:${BRAND.text};margin:0 0 16px 0;">
+                        <div style="font-family:Arial,Helvetica,sans-serif;font-size:25px;line-height:34px;font-weight:700;color:${BRAND.text};margin:0 0 24px 0;">
                           ${escapeHtml(researchHero.companyTitle)}
                         </div>
 
                         ${
-                          researchHero.recommendation &&
-                          recommendationStyle
-                            ? `
-                              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 18px 0;">
-                                <tr>
-                                  <td style="background:${recommendationStyle.background};border:1px solid ${recommendationStyle.border};border-radius:999px;padding:7px 14px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:16px;font-weight:800;letter-spacing:.04em;color:${recommendationStyle.color};">
-                                    ${escapeHtml(researchHero.recommendation)}
-                                  </td>
-                                </tr>
-                              </table>`
-                            : ""
-                        }
-
-                        ${
+                          researchHero.recommendation ||
                           researchHero.targetPrice ||
-                          researchHero.cmp
+                          researchHero.cmp ||
+                          researchHero.timeHorizon
                             ? `
-                              <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 16px 0;">
+                              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;">
                                 <tr>
+                                  ${
+                                    researchHero.recommendation &&
+                                    recommendationStyle
+                                      ? `
+                                        <td valign="top" style="width:26%;padding:0 18px 0 0;border-right:1px solid #CFE4E1;">
+                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${BRAND.muted};margin:0 0 8px 0;">
+                                            Recommendation
+                                          </div>
+                                          <span style="display:inline-block;background:${recommendationStyle.background};border:1px solid ${recommendationStyle.border};border-radius:999px;padding:9px 18px;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:22px;font-weight:800;letter-spacing:.03em;color:${recommendationStyle.color};">
+                                            ${escapeHtml(researchHero.recommendation)}
+                                          </span>
+                                        </td>
+                                      `
+                                      : ""
+                                  }
+
                                   ${
                                     researchHero.targetPrice
                                       ? `
-                                        <td valign="top" style="padding:0 28px 0 0;">
-                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;text-transform:uppercase;letter-spacing:.06em;color:${BRAND.muted};margin-bottom:3px;">
+                                        <td valign="top" style="width:24%;padding:0 18px;${researchHero.cmp || researchHero.timeHorizon ? "border-right:1px solid #CFE4E1;" : ""}">
+                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${BRAND.muted};margin:0 0 6px 0;">
                                             Target Price
                                           </div>
-                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:22px;font-weight:700;color:${BRAND.text};">
+                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:21px;line-height:26px;font-weight:800;color:${BRAND.darkTeal};">
                                             ₹${escapeHtml(researchHero.targetPrice)}
                                           </div>
-                                        </td>`
+                                        </td>
+                                      `
                                       : ""
                                   }
 
                                   ${
                                     researchHero.cmp
                                       ? `
-                                        <td valign="top">
-                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;text-transform:uppercase;letter-spacing:.06em;color:${BRAND.muted};margin-bottom:3px;">
+                                        <td valign="top" style="width:26%;padding:0 18px;${researchHero.timeHorizon ? "border-right:1px solid #CFE4E1;" : ""}">
+                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${BRAND.muted};margin:0 0 6px 0;">
                                             Current Market Price
                                           </div>
-                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:22px;font-weight:700;color:${BRAND.text};">
+                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:21px;line-height:26px;font-weight:800;color:${BRAND.darkTeal};">
                                             ₹${escapeHtml(researchHero.cmp)}
                                           </div>
                                           ${
                                             researchHero.asOnDate
-                                              ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:15px;color:#98A2B3;margin-top:2px;">As on ${escapeHtml(researchHero.asOnDate)}</div>`
+                                              ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:15px;color:${BRAND.muted};margin-top:3px;">As on ${escapeHtml(researchHero.asOnDate)}</div>`
                                               : ""
                                           }
-                                        </td>`
+                                        </td>
+                                      `
+                                      : ""
+                                  }
+
+                                  ${
+                                    researchHero.timeHorizon
+                                      ? `
+                                        <td valign="top" style="width:24%;padding:0 0 0 18px;">
+                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${BRAND.muted};margin:0 0 6px 0;">
+                                            Time Horizon
+                                          </div>
+                                          <div style="font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:800;color:${BRAND.darkTeal};">
+                                            ${escapeHtml(researchHero.timeHorizon)}
+                                          </div>
+                                        </td>
+                                      `
                                       : ""
                                   }
                                 </tr>
-                              </table>`
-                            : ""
-                        }
+                              </table>
 
-                        ${
-                          researchHero.secondaryText
-                            ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:${BRAND.muted};margin:0;">${escapeHtml(normalizeResearchInlineText(researchHero.secondaryText))}</div>`
+                              ${
+                                researchHero.valuationMethod ||
+                                researchHero.secondaryText
+                                  ? `
+                                    <div style="border-top:1px solid #CFE4E1;margin-top:24px;padding-top:16px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;color:${BRAND.muted};">
+                                      ${
+                                        researchHero.valuationMethod
+                                          ? `<strong style="color:${BRAND.text};">Valuation Method:</strong> ${escapeHtml(researchHero.valuationMethod)}`
+                                          : ""
+                                      }
+                                      ${
+                                        researchHero.valuationMethod &&
+                                        researchHero.secondaryText
+                                          ? `<span style="padding:0 10px;color:#A8B2BC;">|</span>`
+                                          : ""
+                                      }
+                                      ${
+                                        researchHero.secondaryText
+                                          ? escapeHtml(normalizeResearchInlineText(researchHero.secondaryText))
+                                          : ""
+                                      }
+                                    </div>
+                                  `
+                                  : ""
+                              }
+                            `
                             : ""
                         }
                       `
@@ -447,15 +494,30 @@ function renderSection(
   }
 
   if (section.type === "highlight") {
+    const isTopLineSummary =
+      (section.title || "")
+        .toLowerCase()
+        .includes("top-line");
+
     return `
       <tr>
         <td style="padding:4px 32px 24px 32px;">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${BRAND.soft};border-left:4px solid ${BRAND.teal};">
             <tr>
-              <td style="padding:16px 18px;">
+              <td style="padding:18px 20px;">
                 ${title}
                 <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:${BRAND.text};">
-                  ${escapeHtml(normalizeResearchInlineText(section.content || ""))}
+                  ${
+                    isTopLineSummary
+                      ? renderResearchSummaryContent(
+                          section.content || ""
+                        )
+                      : escapeHtml(
+                          normalizeResearchInlineText(
+                            section.content || ""
+                          )
+                        )
+                  }
                 </div>
               </td>
             </tr>
@@ -808,6 +870,69 @@ function formatPeriodLabel(
 }
 
 
+function renderResearchSummaryContent(
+  value: string
+): string {
+  const normalized =
+    normalizeResearchInlineText(
+      value
+    );
+
+  const match =
+    normalized.match(
+      /\b(BUY|SELL|HOLD|ACCUMULATE|REDUCE)\b/i
+    );
+
+  if (!match) {
+    return escapeHtml(
+      normalized
+    );
+  }
+
+  const recommendation =
+    match[1].toUpperCase();
+
+  const style =
+    getRecommendationStyle(
+      recommendation
+    );
+
+  const before =
+    normalized.slice(
+      0,
+      match.index
+    );
+
+  const after =
+    normalized.slice(
+      (match.index || 0) +
+        match[0].length
+    );
+
+  return `
+    ${escapeHtml(before)}
+    <span
+      style="
+        display:inline-block;
+        background:${style.background};
+        border:1px solid ${style.border};
+        border-radius:999px;
+        padding:2px 10px;
+        margin:0 3px;
+        font-family:Arial,Helvetica,sans-serif;
+        font-size:12px;
+        line-height:18px;
+        font-weight:800;
+        color:${style.color};
+      "
+    >
+      ${escapeHtml(recommendation)}
+    </span>
+    ${escapeHtml(after)}
+  `;
+}
+
+
 function cleanListItem(
   value: string
 ): string {
@@ -939,68 +1064,100 @@ function getRecommendationStyle(
 
 
 function parseResearchHero(
-  heroTitle?: string,
-  heroSubtitle?: string
+  hero:
+    | {
+        eyebrow?: string;
+        title?: string;
+        subtitle?: string;
+      }
+    | undefined,
+  body:
+    | {
+        intro?: string;
+        sections?: EmailSection[];
+        closing?: string;
+      }
+    | undefined
 ): {
   companyTitle: string;
   recommendation: string;
   targetPrice: string;
   cmp: string;
   asOnDate: string;
+  timeHorizon: string;
+  valuationMethod: string;
   secondaryText: string;
 } {
-  const title =
-    heroTitle || "";
+  const heroTitle =
+    hero?.title || "";
 
-  const subtitle =
-    heroSubtitle || "";
+  const heroSubtitle =
+    hero?.subtitle || "";
 
-  let recommendation = "";
-  let targetPrice = "";
-  let cmp = "";
-  let asOnDate = "";
+  const sectionText =
+    (body?.sections || [])
+      .map((section) => {
+        const items =
+          (section.items || [])
+            .map((item) =>
+              typeof item === "string"
+                ? item
+                : `${item.label}: ${item.value}`
+            )
+            .join(" | ");
+
+        return [
+          section.title || "",
+          section.content || "",
+          items,
+        ]
+          .filter(Boolean)
+          .join(" | ");
+      })
+      .join(" | ");
+
+  const allText = [
+    heroTitle,
+    heroSubtitle,
+    body?.intro || "",
+    sectionText,
+    body?.closing || "",
+  ]
+    .filter(Boolean)
+    .join(" | ");
 
   const recommendationMatch =
-    title.match(
-      /\b(BUY|SELL|HOLD|ACCUMULATE|REDUCE)\b/i
+    allText.match(
+      /(?:recommendation\s*[:\-]?\s*)?\b(BUY|SELL|HOLD|ACCUMULATE|REDUCE)\b/i
     );
 
-  if (recommendationMatch) {
-    recommendation =
-      recommendationMatch[1].toUpperCase();
-  }
-
   const targetMatch =
-    `${title} | ${subtitle}`.match(
+    allText.match(
       /(?:target(?:\s*price)?|tp)\s*[:₹Rs.\s-]*([0-9][0-9,]*(?:\.\d+)?)/i
     );
 
-  if (targetMatch) {
-    targetPrice =
-      targetMatch[1];
-  }
-
   const cmpMatch =
-    `${title} | ${subtitle}`.match(
-      /(?:current\s*market\s*price|cmp)\s*[:₹Rs.\s-]*([0-9][0-9,]*(?:\.\d+)?)/i
+    allText.match(
+      /(?:current\s*market\s*price(?:\s*\(cmp\))?|cmp)\s*[:₹Rs.\s-]*([0-9][0-9,]*(?:\.\d+)?)/i
     );
-
-  if (cmpMatch) {
-    cmp = cmpMatch[1];
-  }
 
   const dateMatch =
-    `${title} | ${subtitle}`.match(
-      /(?:as\s*on|as\s*of|dated?)\s*[:\-]?\s*([0-9]{1,2}[\/.\-][0-9]{1,2}[\/.\-][0-9]{2,4}|[0-9]{1,2}\s+[A-Za-z]{3,9}\s+[0-9]{2,4}|[A-Za-z]{3,9}\s+[0-9]{1,2},?\s+[0-9]{4})/i
+    allText.match(
+      /(?:as\s*on|as\s*of)\s*[:\-]?\s*([0-9]{1,2}[\/.\-][0-9]{1,2}[\/.\-][0-9]{2,4}|[0-9]{1,2}\s+[A-Za-z]{3,9}\s+[0-9]{2,4}|[A-Za-z]{3,9}\s+[0-9]{1,2},?\s+[0-9]{4})/i
     );
 
-  if (dateMatch) {
-    asOnDate =
-      dateMatch[1];
-  }
+  const horizonMatch =
+    allText.match(
+      /(?:time\s*horizon\s*[:\-]?\s*)?(\d+\s*[- ]?\s*(?:month|months|year|years))/i
+    );
+
+  const valuationMatch =
+    allText.match(
+      /(?:valuation(?:\s*method)?\s*[:\-]?\s*)?((?:SOTP|DCF|P\/E|PE|EV\/EBITDA|price[- ]to[- ]earnings)[^|.;]*)/i
+    );
 
   let companyTitle =
-    title
+    heroTitle
       .replace(
         /\s*[—–-]\s*(BUY|SELL|HOLD|ACCUMULATE|REDUCE)\b.*$/i,
         ""
@@ -1012,20 +1169,30 @@ function parseResearchHero(
       .trim();
 
   if (!companyTitle) {
-    companyTitle = title;
+    companyTitle =
+      heroTitle || "Research Update";
   }
 
   let secondaryText =
-    subtitle;
-
-  secondaryText =
-    secondaryText
+    heroSubtitle
       .replace(
-        /(?:current\s*market\s*price|cmp)\s*[:₹Rs.\s-]*[0-9][0-9,]*(?:\.\d+)?/gi,
+        /\brecommendation\s*[:\-]?\s*(BUY|SELL|HOLD|ACCUMULATE|REDUCE)\b/gi,
+        ""
+      )
+      .replace(
+        /\b(BUY|SELL|HOLD|ACCUMULATE|REDUCE)\b/gi,
         ""
       )
       .replace(
         /(?:target(?:\s*price)?|tp)\s*[:₹Rs.\s-]*[0-9][0-9,]*(?:\.\d+)?/gi,
+        ""
+      )
+      .replace(
+        /(?:current\s*market\s*price(?:\s*\(cmp\))?|cmp)\s*[:₹Rs.\s-]*[0-9][0-9,]*(?:\.\d+)?/gi,
+        ""
+      )
+      .replace(
+        /(?:time\s*horizon\s*[:\-]?\s*)?\d+\s*[- ]?\s*(?:month|months|year|years)/gi,
         ""
       )
       .replace(
@@ -1040,10 +1207,34 @@ function parseResearchHero(
 
   return {
     companyTitle,
-    recommendation,
-    targetPrice,
-    cmp,
-    asOnDate,
+    recommendation:
+      recommendationMatch
+        ? recommendationMatch[1].toUpperCase()
+        : "",
+    targetPrice:
+      targetMatch
+        ? targetMatch[1]
+        : "",
+    cmp:
+      cmpMatch
+        ? cmpMatch[1]
+        : "",
+    asOnDate:
+      dateMatch
+        ? dateMatch[1]
+        : "",
+    timeHorizon:
+      horizonMatch
+        ? horizonMatch[1]
+            .replace(/\s+/g, " ")
+            .replace(/(\d+)\s+(month|months|year|years)/i, "$1 $2")
+        : "",
+    valuationMethod:
+      valuationMatch
+        ? valuationMatch[1]
+            .trim()
+            .replace(/\s+/g, " ")
+        : "",
     secondaryText,
   };
 }
