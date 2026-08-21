@@ -9,7 +9,7 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const MAX_PAGES = 50;
 const MIN_TEXT_CHARS = 200;
 const COMPACT_TEXT_LIMIT = 15000;
-const RELEVANT_TEXT_LIMIT = 8000;
+const RELEVANT_TEXT_LIMIT = 12000;
 
 type Category =
   | "research"
