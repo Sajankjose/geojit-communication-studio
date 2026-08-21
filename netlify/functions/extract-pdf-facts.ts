@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 
-const MAX_SOURCE_CHARS = 8000;
+const MAX_SOURCE_CHARS = 12000;
 
 type Category =
   | "research"
@@ -228,7 +228,7 @@ export default async (
   request: Request
 ) => {
   console.log(
-    "extract-pdf-facts version: manual-json-schema-2026-08-11"
+    "extract-pdf-facts version: accuracy-upgrade-2026-08-21"
   );
   if (request.method !== "POST") {
     return jsonResponse(405, {
@@ -395,7 +395,8 @@ export default async (
         "id",
         communicationId
       )
-      .single();
+      .limit(1)
+      .maybeSingle();
 
   if (
     communicationError ||
@@ -450,7 +451,7 @@ export default async (
     const completion =
       await openai.chat.completions.create({
         model:
-          "gpt-4.1-nano",
+          "gpt-4.1-mini",
 
         temperature: 0,
 
@@ -570,7 +571,7 @@ export default async (
           null,
 
         model:
-          "gpt-4.1-nano",
+          "gpt-4.1-mini",
       },
     });
   } catch (error) {
@@ -591,19 +592,182 @@ function getExtractionInstructions(
   category: Category
 ) {
   const common = `
-You extract factual information from source documents for a regulated financial-services communication workflow.
+You are a factual extraction engine for a regulated
+financial-services communication workflow.
 
-STRICT RULES:
-- Use ONLY information explicitly supported by the supplied source.
-- Never use outside knowledge.
-- Never guess or fill gaps.
-- Never create prices, dates, recommendations, percentages, deadlines or product claims.
-- If a scalar fact is not present, return null.
-- If a list has no supported items, return an empty array.
-- Keep list items short and factual.
-- Preserve the source's meaning and terminology.
-- Do not calculate upside/downside or derive new financial metrics.
-- If the source is internally inconsistent, mention that briefly in sourceWarnings.
+Your job is NOT to write an email.
+
+Your job is NOT to improve the source.
+
+Your job is to identify the exact facts that a human
+reviewer should verify before communication generation.
+
+============================================================
+SOURCE AUTHORITY
+============================================================
+
+The supplied source document is the only authority.
+
+Use ONLY information explicitly supported by the source.
+
+Never use:
+- outside knowledge
+- assumptions
+- previous knowledge about the company or product
+- inferred dates
+- inferred prices
+- inferred recommendations
+- inferred eligibility
+- inferred product behaviour
+
+============================================================
+FACT PRESERVATION
+============================================================
+
+Preserve exactly where material:
+
+- names
+- numbers
+- percentages
+- currencies
+- recommendations
+- price values
+- target values
+- dates
+- time horizons
+- product names
+- feature names
+- regulatory references
+- authority names
+- deadlines
+- conditions
+- limitations
+
+Do not silently normalise factual terminology.
+
+Examples:
+
+If the source says:
+"ACCUMULATE"
+
+do not change it to:
+"BUY"
+
+If the source says:
+"₹1,250"
+
+do not change it to:
+"Rs. 1,250"
+
+unless formatting changes are explicitly requested later.
+
+============================================================
+NO DERIVED FACTS
+============================================================
+
+Do NOT calculate:
+
+- upside
+- downside
+- return
+- CAGR
+- percentage change
+- valuation multiples
+- time difference
+
+unless that exact calculated value is explicitly written
+in the source.
+
+============================================================
+FACT COMPLETENESS
+============================================================
+
+Review the entire supplied source text.
+
+Do not focus only on the beginning of the document.
+
+Capture material facts appearing in:
+
+- headings
+- tables represented as extracted text
+- recommendation summaries
+- product explanations
+- feature descriptions
+- conditions
+- risk sections
+- footnotes
+- action sections
+- closing sections
+
+Do not omit a material fact simply because similar
+information appeared earlier.
+
+============================================================
+AMBIGUITY AND CONFLICTS
+============================================================
+
+If two values conflict:
+
+- do not choose one silently;
+- preserve the safest supported value where the schema permits;
+- add a clear entry to sourceWarnings.
+
+If a scalar fact is absent:
+return null.
+
+If a list has no supported items:
+return [].
+
+Never fill gaps.
+
+============================================================
+LIST QUALITY
+============================================================
+
+For rationale, risks, facts, actions and limitations:
+
+- keep each item short;
+- keep each item factual;
+- avoid merging unrelated facts into one bullet;
+- avoid repeating the same fact in different wording;
+- prefer source terminology;
+- retain material qualifiers such as "subject to",
+  "up to", "from", "effective", "may", "expected",
+  "approximately", or similar wording when present.
+
+============================================================
+WRITING STYLE
+============================================================
+
+Extract facts in concise, professional Indian business
+English.
+
+Keep the source meaning and terminology.
+
+List items should be factual statements, not promotional
+copy.
+
+Do not add:
+- marketing claims
+- interpretations
+- recommendations
+- advice
+- persuasive language
+
+============================================================
+FINAL SELF-CHECK
+============================================================
+
+Before returning the structured result, verify:
+
+1. Every number exists in the source.
+2. Every date exists in the source.
+3. Every recommendation exists in the source.
+4. Every product capability exists in the source.
+5. Every deadline or required action exists in the source.
+6. Material risks and conditions have not been dropped.
+7. Nothing has been inferred from outside knowledge.
+8. Conflicting values are surfaced in sourceWarnings.
 `;
 
   if (
@@ -612,7 +776,37 @@ STRICT RULES:
     return `${common}
 
 RESEARCH-SPECIFIC:
-Extract the company/security, report date, recommendation, CMP/current price, target price, time horizon, valuation language, key rationale, risks and other important research facts. A recommendation must be taken exactly from the source; do not normalize it into Buy/Sell/Hold unless the source itself uses that recommendation.`;
+
+Extract and preserve:
+
+- document/report type
+- company/security name
+- report date
+- exact recommendation
+- CMP/current market price
+- target price
+- time horizon
+- valuation language
+- key investment rationale
+- material risks
+- other decision-relevant research facts
+
+Important rules:
+
+- Recommendation must be reproduced exactly from the source.
+- Do not convert ACCUMULATE to BUY.
+- Do not convert REDUCE to SELL.
+- Do not calculate upside or downside.
+- If the source contains multiple target prices, CMP values,
+  or recommendations, do not silently choose one; add a
+  sourceWarnings item describing the conflict.
+- Preserve qualifiers around forecasts, targets and outlook.
+- Risk factors must come from the source, not from general
+  market knowledge.
+- keyRationale should contain distinct source-supported
+  investment drivers, not generic summaries.
+- keyFacts should capture other material report facts that are
+  important for human verification but do not fit another field.`;
   }
 
   if (
@@ -622,12 +816,81 @@ Extract the company/security, report date, recommendation, CMP/current price, ta
     return `${common}
 
 REGULATORY-SPECIFIC:
-Extract the issuing authority, circular/reference number, subject, dates, applicability, affected products/users, explicit actions and deadlines. Do not infer compliance obligations that are not stated.`;
+
+Extract and preserve:
+
+- issuing authority
+- circular/reference number
+- subject
+- issue date
+- effective date
+- applicability
+- affected products/users
+- explicit required actions
+- explicit deadlines
+- other material regulatory facts
+
+Important rules:
+
+- Do not infer an obligation that is not explicitly stated.
+- Preserve "shall", "must", "may", "with effect from", and
+  similar obligation/timing language where material.
+- Do not invent affected users or products.
+- Do not silently resolve conflicting dates or references.
+- If the source contains a conflict or ambiguity, record it in
+  sourceWarnings.
+- requiredActions must only contain actions explicitly stated
+  in the source.
+- deadlines must only contain explicit source deadlines.`;
   }
 
   return `${common}
 
-Extract only the main source-supported topic, audience/applicability, dates/timeline, message, facts, actions and limitations relevant to the selected communication category: ${category}.`;
+CATEGORY-SPECIFIC EXTRACTION:
+
+Selected category:
+${category}
+
+Extract only source-supported information relevant to this
+communication category.
+
+Capture:
+
+- document type
+- main topic/product
+- dates or timeline
+- audience/applicability
+- central factual message
+- material key facts
+- explicit customer/user actions
+- material risks, conditions or limitations
+
+For Product & Sales:
+- preserve exact feature names
+- preserve exact capabilities
+- preserve pricing/offer/eligibility only when explicit
+- capture conditions and limitations
+- never infer how a feature works
+
+For Service & Transactional:
+- preserve affected service
+- preserve dates/times
+- preserve customer impact
+- preserve required actions
+- do not invent outage duration
+
+For Investor Education:
+- extract factual concepts and examples
+- do not convert educational material into advice
+
+For Onboarding:
+- preserve journey stage, required steps, eligibility,
+  deadlines and supplied support information
+
+If information is absent:
+return null or [] according to the schema.
+
+Do not generate polished communication copy here.`;
 }
 
 function jsonResponse(
