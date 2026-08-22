@@ -208,9 +208,36 @@ export async function updateCommunication(
 /**
  * Get one communication by ID.
  *
- * Used when reopening an existing
- * communication from the Dashboard
- * and across the creation / review flow.
+ * Used by:
+ * - Dashboard reopening
+ * - Approval Status
+ * - Audit Trail
+ * - Review history
+ *
+ * IMPORTANT:
+ * This now uses the restricted
+ * get_communication_for_audit() RPC.
+ *
+ * Why:
+ * A reviewer may need to view a communication
+ * after it has moved beyond their active queue.
+ * Direct SELECT access can then be blocked by
+ * communications RLS even though the reviewer
+ * legitimately participated in that workflow.
+ *
+ * Access is enforced server-side:
+ *
+ * Creator:
+ * - own communications
+ *
+ * Marketing Reviewer:
+ * - communications with Marketing review history
+ *
+ * CorpCom Reviewer:
+ * - communications with CorpCom review history
+ *
+ * Admin:
+ * - all communications
  */
 export async function getCommunicationById(
   communicationId: string
@@ -218,19 +245,17 @@ export async function getCommunicationById(
   const {
     data,
     error,
-  } = await supabase
-    .from("communications")
-    .select("*")
-    .eq(
-      "id",
-      communicationId
-    )
-    .limit(1)
-    .maybeSingle();
+  } = await supabase.rpc(
+    "get_communication_for_audit",
+    {
+      p_communication_id:
+        communicationId,
+    }
+  );
 
   if (error) {
     console.error(
-      "Load communication error:",
+      "Load communication for audit error:",
       error
     );
 
@@ -239,11 +264,36 @@ export async function getCommunicationById(
     );
   }
 
-  if (!data) {
+  const rows =
+    (data || []) as CommunicationRecord[];
+
+  if (
+    rows.length === 0
+  ) {
+    console.error(
+      "Communication audit lookup returned no rows:",
+      {
+        communicationId,
+      }
+    );
+
     throw new Error(
       "Communication not found or you do not have permission to view it."
     );
   }
 
-  return data as CommunicationRecord;
+  if (
+    rows.length > 1
+  ) {
+    console.error(
+      "Unexpected multiple communication rows returned:",
+      rows
+    );
+
+    throw new Error(
+      "Unexpected duplicate communication records were returned."
+    );
+  }
+
+  return rows[0];
 }
