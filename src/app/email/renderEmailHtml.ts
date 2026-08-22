@@ -128,7 +128,7 @@ export function renderEmailHtml(
       ? `
         <tr>
           <td style="padding:18px 32px 28px 32px;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:${BRAND.soft};border-radius:18px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:${BRAND.soft};border:1px solid #D8EEEA;border-top:5px solid ${BRAND.teal};border-radius:18px;">
               <tr>
                 <td style="padding:34px 30px 30px 30px;">
                   ${
@@ -166,7 +166,7 @@ export function renderEmailHtml(
                                           <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${BRAND.muted};margin:0 0 8px 0;">
                                             Recommendation
                                           </div>
-                                          <span style="display:inline-block;background:${recommendationStyle.background};border:1px solid ${recommendationStyle.border};border-radius:999px;padding:9px 18px;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:22px;font-weight:800;letter-spacing:.03em;color:${recommendationStyle.color};">
+                                          <span style="display:inline-block;background:${recommendationStyle.background};border:1px solid ${recommendationStyle.border};border-radius:999px;padding:10px 20px;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:22px;font-weight:800;letter-spacing:.03em;color:${recommendationStyle.color};box-shadow:0 1px 0 rgba(0,0,0,.04);">
                                             ${escapeHtml(researchHero.recommendation)}
                                           </span>
                                         </td>
@@ -428,6 +428,8 @@ function prepareClientFacingSections(
   researchHero: ResearchHeroData | null
 ): EmailSection[] {
   const seen = new Set<string>();
+  const seenFinancialMetrics =
+    new Set<string>();
 
   return sections
     .filter(
@@ -454,6 +456,46 @@ function prepareClientFacingSections(
     })
     .map(sanitizeClientSection)
     .filter((section) => {
+      /**
+       * Avoid two near-identical sections such as
+       * "Key financial drivers reported" and
+       * "What the results show".
+       */
+      if (
+        isDenseResearchFinancialSection(
+          section
+        )
+      ) {
+        const metricKeys =
+          getFinancialMetricKeys(
+            section
+          );
+
+        const overlap =
+          metricKeys.filter(
+            (key) =>
+              seenFinancialMetrics.has(
+                key
+              )
+          ).length;
+
+        if (
+          metricKeys.length > 0 &&
+          overlap /
+            metricKeys.length >=
+            0.6
+        ) {
+          return false;
+        }
+
+        metricKeys.forEach(
+          (key) =>
+            seenFinancialMetrics.add(
+              key
+            )
+        );
+      }
+
       const fingerprint =
         getSectionFingerprint(section);
 
@@ -597,6 +639,83 @@ function isHeroDuplicateSnapshot(
   return matches >= 2;
 }
 
+function getFinancialMetricKeys(
+  section: EmailSection
+): string[] {
+  const items =
+    (section.items || []).filter(
+      (item): item is string =>
+        typeof item === "string"
+    );
+
+  const keys =
+    items
+      .map((item) => {
+        const text =
+          item.toLowerCase();
+
+        if (
+          /\b(?:eps|earnings per share)\b/.test(
+            text
+          )
+        ) {
+          return "eps";
+        }
+
+        if (
+          /\b(?:pat|profit after tax)\b/.test(
+            text
+          )
+        ) {
+          return "pat";
+        }
+
+        if (
+          /\b(?:pbt|profit before tax)\b/.test(
+            text
+          )
+        ) {
+          return "pbt";
+        }
+
+        if (
+          /\b(?:ebit|earnings before interest and tax)\b/.test(
+            text
+          )
+        ) {
+          return "ebit";
+        }
+
+        if (
+          /\b(?:p\/e|price-to-earnings)\b/.test(
+            text
+          )
+        ) {
+          return "pe";
+        }
+
+        if (
+          /\bsales\b/.test(text)
+        ) {
+          return "sales";
+        }
+
+        if (
+          /\brevenue\b/.test(text)
+        ) {
+          return "revenue";
+        }
+
+        return "";
+      })
+      .filter(Boolean);
+
+  return Array.from(
+    new Set(keys)
+  );
+}
+
+
 function sanitizeClientSection(
   section: EmailSection
 ): EmailSection {
@@ -704,14 +823,30 @@ function normalizeDurationText(
 ): string {
   return value
     .replace(
-      /\b(\d+)\s*[- ]?\s*(Months?)\b/g,
-      (_, number, unit) =>
-        `${number} ${String(unit).toLowerCase()}`
+      /\b(\d+)\s*[- ]?\s*(month|months)\b/gi,
+      (_, number) => {
+        const n =
+          Number(number);
+
+        return `${number} ${
+          n === 1
+            ? "month"
+            : "months"
+        }`;
+      }
     )
     .replace(
-      /\b(\d+)\s*[- ]?\s*(Years?)\b/g,
-      (_, number, unit) =>
-        `${number} ${String(unit).toLowerCase()}`
+      /\b(\d+)\s*[- ]?\s*(year|years)\b/gi,
+      (_, number) => {
+        const n =
+          Number(number);
+
+        return `${number} ${
+          n === 1
+            ? "year"
+            : "years"
+        }`;
+      }
     );
 }
 
@@ -916,6 +1051,305 @@ function getSectionFingerprint(
 }
 
 
+function isDenseResearchFinancialSection(
+  section: EmailSection
+): boolean {
+  const title =
+    String(
+      section.title || ""
+    ).toLowerCase();
+
+  const titleLooksFinancial =
+    [
+      "financial",
+      "results show",
+      "key numbers",
+      "key figures",
+      "earnings",
+      "reported",
+    ].some(
+      (term) =>
+        title.includes(term)
+    );
+
+  const items =
+    (section.items || []).filter(
+      (item): item is string =>
+        typeof item === "string"
+    );
+
+  const financialSignalCount =
+    items.filter((item) =>
+      /\b(?:EPS|earnings per share|PAT|profit after tax|PBT|profit before tax|EBIT|P\/E|price[- ]to[- ]earnings|YoY|QoQ|Q[1-4]FY\d{2}|FY\d{2})\b/i.test(
+        item
+      )
+    ).length;
+
+  return (
+    titleLooksFinancial &&
+    financialSignalCount >= 2
+  );
+}
+
+
+function expandResearchMetricName(
+  value: string
+): string {
+  return value
+    .replace(
+      /\bAdjusted\s+PAT\b/gi,
+      "Adjusted Profit After Tax"
+    )
+    .replace(
+      /\bPAT\b/g,
+      "Profit After Tax"
+    )
+    .replace(
+      /\bPBT\b/g,
+      "Profit Before Tax"
+    )
+    .replace(
+      /\bEBIT\b/g,
+      "Earnings Before Interest and Tax"
+    )
+    .replace(
+      /\bEPS\b/g,
+      "Earnings Per Share"
+    )
+    .replace(
+      /\bP\/E\s*ratio\b/gi,
+      "Price-to-Earnings Ratio"
+    )
+    .replace(
+      /\bYoY\b/g,
+      "year-on-year"
+    )
+    .replace(
+      /\bQoQ\b/g,
+      "quarter-on-quarter"
+    )
+    .replace(
+      /\(₹\s*crore\)/gi,
+      ""
+    )
+    .replace(
+      /\(₹\)/g,
+      ""
+    )
+    .replace(
+      /\s{2,}/g,
+      " "
+    )
+    .trim();
+}
+
+
+function splitResearchMetricItem(
+  value: string
+): {
+  metric: string;
+  details: string[];
+} {
+  const clean =
+    normalizeCustomerSentence(
+      expandResearchMetricName(
+        cleanListItem(value)
+      )
+    );
+
+  const firstPeriod =
+    clean.search(
+      /\b(?:Q[1-4]\s*FY\d{2}|Q[1-4]FY\d{2}|FY\d{2}[AE]?)\b/i
+    );
+
+  let metric =
+    firstPeriod > 0
+      ? clean
+          .slice(
+            0,
+            firstPeriod
+          )
+          .replace(
+            /[:\-–—,\s]+$/g,
+            ""
+          )
+          .trim()
+      : "";
+
+  let detailText =
+    firstPeriod > 0
+      ? clean
+          .slice(firstPeriod)
+          .trim()
+      : clean;
+
+  if (!metric) {
+    const colonIndex =
+      clean.indexOf(":");
+
+    if (
+      colonIndex > 0 &&
+      colonIndex < 45
+    ) {
+      metric =
+        clean
+          .slice(
+            0,
+            colonIndex
+          )
+          .trim();
+
+      detailText =
+        clean
+          .slice(
+            colonIndex + 1
+          )
+          .trim();
+    }
+  }
+
+  if (!metric) {
+    metric =
+      "Financial update";
+  }
+
+  const details =
+    detailText
+      .replace(
+        /\s+versus\s+/gi,
+        "; compared with "
+      )
+      .replace(
+        /\(\s*year-on-year\s*([^)]+)\)/gi,
+        "; year-on-year $1"
+      )
+      .replace(
+        /\(\s*quarter-on-quarter\s*([^)]+)\)/gi,
+        "; quarter-on-quarter $1"
+      )
+      .split(";")
+      .map(
+        (item) =>
+          item
+            .replace(
+              /^[\s,.:–—-]+/,
+              ""
+            )
+            .trim()
+      )
+      .filter(Boolean);
+
+  return {
+    metric:
+      normalizeCustomerSentence(
+        metric
+      ),
+    details,
+  };
+}
+
+
+function renderReadableResearchFinancialSection(
+  section: EmailSection,
+  title: string
+): string {
+  const items =
+    (section.items || []).filter(
+      (item): item is string =>
+        typeof item === "string"
+    );
+
+  const rows =
+    items
+      .map((item) => {
+        const parsed =
+          splitResearchMetricItem(
+            item
+          );
+
+        const details =
+          parsed.details
+            .map(
+              (detail) => `
+                <div
+                  style="
+                    margin:4px 0 0 0;
+                    font-family:Arial,Helvetica,sans-serif;
+                    font-size:13px;
+                    line-height:20px;
+                    color:${BRAND.muted};
+                  "
+                >
+                  ${escapeHtml(detail)}
+                </div>`
+            )
+            .join("");
+
+        return `
+          <tr>
+            <td
+              style="
+                padding:15px 16px;
+                border-bottom:1px solid ${BRAND.border};
+              "
+            >
+              <div
+                style="
+                  font-family:Arial,Helvetica,sans-serif;
+                  font-size:14px;
+                  line-height:20px;
+                  font-weight:700;
+                  color:${BRAND.text};
+                "
+              >
+                ${escapeHtml(parsed.metric)}
+              </div>
+              ${details}
+            </td>
+          </tr>`;
+      })
+      .join("");
+
+  return `
+    <tr>
+      <td style="padding:4px 32px 24px 32px;">
+        <div
+          style="
+            font-family:Arial,Helvetica,sans-serif;
+            font-size:15px;
+            line-height:22px;
+            font-weight:700;
+            color:${BRAND.text};
+            margin:0 0 10px 0;
+          "
+        >
+          ${escapeHtml(
+            normalizeClientHeading(
+              title ||
+                "Key financial highlights"
+            )
+          )}
+        </div>
+
+        <table
+          role="presentation"
+          width="100%"
+          cellspacing="0"
+          cellpadding="0"
+          border="0"
+          style="
+            background:#F8FAFB;
+            border:1px solid ${BRAND.border};
+            border-radius:10px;
+          "
+        >
+          ${rows}
+        </table>
+      </td>
+    </tr>`;
+}
+
+
 function renderSection(
   section: EmailSection
 ): string {
@@ -1026,6 +1460,19 @@ function renderSection(
           </table>
         </td>
       </tr>`;
+  }
+
+  if (
+    section.type === "bullets" &&
+    isDenseResearchFinancialSection(
+      section
+    )
+  ) {
+    return renderReadableResearchFinancialSection(
+      section,
+      readableSectionTitle ||
+        "Key financial highlights"
+    );
   }
 
   if (
@@ -1604,9 +2051,9 @@ function getRecommendationStyle(
     value === "accumulate"
   ) {
     return {
-      background: "#EAF7EF",
-      border: "#A9D9B9",
-      color: "#177245",
+      background: BRAND.teal,
+      border: BRAND.teal,
+      color: "#FFFFFF",
     };
   }
 
@@ -1615,24 +2062,24 @@ function getRecommendationStyle(
     value === "reduce"
   ) {
     return {
-      background: "#FDEEEE",
-      border: "#F1B5B5",
-      color: "#B42318",
+      background: "#C0392B",
+      border: "#C0392B",
+      color: "#FFFFFF",
     };
   }
 
   if (value === "hold") {
     return {
-      background: "#FFF7E8",
-      border: "#F3D28A",
-      color: "#9A6700",
+      background: BRAND.amber,
+      border: BRAND.amber,
+      color: "#5C4300",
     };
   }
 
   return {
-    background: "#F3F4F6",
-    border: "#D1D5DB",
-    color: "#374151",
+    background: BRAND.darkTeal,
+    border: BRAND.darkTeal,
+    color: "#FFFFFF",
   };
 }
 
@@ -1727,7 +2174,7 @@ function parseResearchHero(
 
   const valuationMatch =
     allText.match(
-      /(?:valuation(?:\s*method)?\s*[:\-]?\s*)?((?:SOTP|DCF|P\/E|PE|EV\/EBITDA|price[- ]to[- ]earnings)[^|.;]*)/i
+      /(?:valuation(?:\s*method)?\s*[:\-]?\s*)?((?:SOTP(?:[- ]based)?(?:\s+valuation|\s+approach)?|DCF(?:[- ]based)?(?:\s+valuation|\s+approach)?|sum[- ]of[- ]the[- ]parts(?:\s+valuation)?))\b/i
     );
 
   let companyTitle =
@@ -1770,11 +2217,19 @@ function parseResearchHero(
         ""
       )
       .replace(
+        /\b(?:time\s*)?horizon\b\s*[:\-]?/gi,
+        ""
+      )
+      .replace(
         /\|\s*\|/g,
         "|"
       )
       .replace(
         /^\s*\|\s*|\s*\|\s*$/g,
+        ""
+      )
+      .replace(
+        /^\s*[-–—|,:;]+|[-–—|,:;]+\s*$/g,
         ""
       )
       .trim();
