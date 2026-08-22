@@ -217,7 +217,7 @@ export function renderEmailHtml(
                                             Time Horizon
                                           </div>
                                           <div style="font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:24px;font-weight:800;color:${BRAND.darkTeal};">
-                                            ${escapeHtml(researchHero.timeHorizon)}
+                                            ${escapeHtml(normalizeDurationText(researchHero.timeHorizon))}
                                           </div>
                                         </td>
                                       `
@@ -601,8 +601,10 @@ function sanitizeClientSection(
   section: EmailSection
 ): EmailSection {
   const title =
-    cleanClientFacingTitle(
-      section.title || ""
+    normalizeClientHeading(
+      cleanClientFacingTitle(
+        section.title || ""
+      )
     );
 
   const content =
@@ -614,7 +616,9 @@ function sanitizeClientSection(
     (section.items || []).map(
       (item) => {
         if (typeof item === "string") {
-          return cleanClientFacingText(item);
+          return normalizeCustomerSentence(
+            cleanClientFacingText(item)
+          );
         }
 
         return {
@@ -624,8 +628,10 @@ function sanitizeClientSection(
               item.label
             ),
           value:
-            cleanClientFacingText(
-              item.value
+            normalizeCustomerSentence(
+              cleanClientFacingText(
+                item.value
+              )
             ),
         };
       }
@@ -638,6 +644,107 @@ function sanitizeClientSection(
     items,
   };
 }
+
+function normalizeClientHeading(
+  value: string
+): string {
+  const clean =
+    value
+      .replace(/\s{2,}/g, " ")
+      .trim();
+
+  const normalized =
+    clean
+      .toLowerCase()
+      .replace(/[?.!]+$/g, "")
+      .trim();
+
+  const headingMap: Record<
+    string,
+    string
+  > = {
+    "why we recommend":
+      "Why do we recommend it?",
+    "why we recommend it":
+      "Why do we recommend it?",
+    "why recommend":
+      "Why do we recommend it?",
+    "why buy":
+      "Why do we recommend it?",
+    "what investors should know":
+      "What should investors know?",
+    "what investors should watch next":
+      "What should investors watch next?",
+    "company at a glance":
+      "Company at a glance",
+    "key risks to watch":
+      "Key risks to watch",
+    "what matters (plain language)":
+      "What supports our view",
+    "what matters":
+      "What supports our view",
+    "top investor takeaways":
+      "Why do we recommend it?",
+    "selected numbers":
+      "Key financial figures",
+    "key financial figures":
+      "Key financial figures",
+  };
+
+  if (headingMap[normalized]) {
+    return headingMap[normalized];
+  }
+
+  return clean;
+}
+
+
+function normalizeDurationText(
+  value: string
+): string {
+  return value
+    .replace(
+      /\b(\d+)\s*[- ]?\s*(Months?)\b/g,
+      (_, number, unit) =>
+        `${number} ${String(unit).toLowerCase()}`
+    )
+    .replace(
+      /\b(\d+)\s*[- ]?\s*(Years?)\b/g,
+      (_, number, unit) =>
+        `${number} ${String(unit).toLowerCase()}`
+    );
+}
+
+
+function normalizeCustomerSentence(
+  value: string
+): string {
+  return normalizeDurationText(
+    value
+  )
+    .replace(
+      /\bRs\.?\s*/gi,
+      "₹"
+    )
+    .replace(
+      /\bINR\s*/gi,
+      "₹"
+    )
+    .replace(
+      /\s+([,.;:!?])/g,
+      "$1"
+    )
+    .replace(
+      /([!?.,]){2,}/g,
+      "$1"
+    )
+    .replace(
+      /\s{2,}/g,
+      " "
+    )
+    .trim();
+}
+
 
 function cleanClientFacingTitle(
   value: string
@@ -744,7 +851,9 @@ function getClientFacingIntro(
     return `Geojit Research has a${recommendation} view on ${researchHero.companyTitle}${target}${horizon}. Here is a short summary of the key reasons and risks to consider.`;
   }
 
-  return cleanClientFacingText(value);
+  return normalizeCustomerSentence(
+    cleanClientFacingText(value)
+  );
 }
 
 function getClientFacingClosing(
@@ -774,7 +883,9 @@ function getClientFacingClosing(
     return "";
   }
 
-  return cleanClientFacingText(value);
+  return normalizeCustomerSentence(
+    cleanClientFacingText(value)
+  );
 }
 
 function getSectionFingerprint(
@@ -809,13 +920,60 @@ function renderSection(
   section: EmailSection
 ): string {
   const readableSectionTitle =
-    getReadableSectionTitle(
-      section.title || ""
+    normalizeClientHeading(
+      getReadableSectionTitle(
+        section.title || ""
+      )
     );
 
   const title = readableSectionTitle
     ? `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;font-weight:700;color:${BRAND.text};margin:0 0 10px 0;">${escapeHtml(readableSectionTitle)}</div>`
     : "";
+
+  if (
+    readableSectionTitle
+      .toLowerCase() ===
+      "company at a glance"
+  ) {
+    return `
+      <tr>
+        <td style="padding:4px 32px 24px 32px;">
+          <table
+            role="presentation"
+            width="100%"
+            cellspacing="0"
+            cellpadding="0"
+            border="0"
+            style="
+              width:100%;
+              background:#F8FAFB;
+              border:1px solid ${BRAND.border};
+              border-radius:10px;
+            "
+          >
+            <tr>
+              <td style="padding:18px 20px;">
+                ${title}
+                <div
+                  style="
+                    font-family:Arial,Helvetica,sans-serif;
+                    font-size:14px;
+                    line-height:23px;
+                    color:${BRAND.text};
+                  "
+                >
+                  ${escapeHtml(
+                    cleanClientFacingText(
+                      section.content || ""
+                    )
+                  )}
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>`;
+  }
 
   if (section.type === "snapshot") {
     const items = (section.items || []).filter(
