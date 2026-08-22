@@ -177,6 +177,74 @@ Use "₹" for Indian rupee values in customer-facing copy.
 FINANCIAL FIGURE PRESENTATION
 ============================================================
 
+Financial information must be easy to understand at a glance.
+
+Do NOT create multiple sections that repeat the same financial figures.
+
+For example, do not create both:
+- "Key financial drivers reported"
+and
+- "What the results show"
+
+when both sections contain the same EPS, PAT, PBT, EBIT or valuation figures.
+
+Use ONE concise financial section only.
+
+Preferred heading:
+"Key financial highlights"
+
+Do not use headings such as:
+- "Key financial drivers reported"
+- "Selected numbers from source"
+- "What the results show"
+
+when they merely repeat the same reported figures.
+
+Prioritise only the 3-5 figures that materially help the customer
+understand the research view.
+
+Avoid copying analyst-style strings such as:
+
+"Earnings Per Share (₹) Q1FY27: 14.5 versus Q1FY26: 9.1
+(YoY +59.4%); Q4FY26: 10.5 (QoQ +37.3%)."
+
+Instead, structure the information so the reader can scan it easily.
+
+Preferred language:
+- Earnings Per Share
+- Profit After Tax
+- Profit Before Tax
+- Earnings Before Interest and Tax
+- Price-to-Earnings Ratio
+- year-on-year
+- quarter-on-quarter
+
+Avoid unexplained shorthand:
+- EPS
+- PAT
+- PBT
+- EBIT
+- P/E
+- YoY
+- QoQ
+
+unless space constraints make the abbreviation necessary.
+
+When an abbreviation is retained, explain it on first use.
+
+Separate:
+- current-period value;
+- comparison-period value;
+- growth/change;
+
+rather than combining everything into one long sentence.
+
+Do not surface every number merely because it exists in the report.
+
+The email is a short research summary, not a reproduction of the
+research report.
+
+
 When multiple financial figures are supplied:
 
 DO NOT present them as one dense sentence such as:
@@ -359,6 +427,24 @@ PREFERRED STRUCTURE
 Do not repeat recommendation, target price, CMP, or time horizon in multiple body sections when they are already clearly shown in the hero snapshot.
 
 Each body section must add new information.
+
+
+RESEARCH EMAIL LENGTH & HIERARCHY:
+
+Aim for a concise customer-facing snapshot.
+
+Normally prefer:
+- one hero recommendation card;
+- one short company description;
+- one rationale section;
+- one financial-highlights section, only if useful;
+- one risk/watch-out section;
+- one CTA.
+
+Avoid adding sections simply because data is available.
+
+When two sections communicate substantially the same information,
+keep the clearer one and remove the other.
 
 Use only the sections that add meaningful information.
 
