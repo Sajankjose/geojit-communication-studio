@@ -53,6 +53,12 @@ const BRAND = {
   teal: "#07877B",
   darkTeal: "#066E65",
   amber: "#FBB041",
+  navy: "#17324D",
+  blueSoft: "#F2F6FA",
+  blueBorder: "#D9E3EC",
+  slateSoft: "#F7F9FB",
+  amberSoft: "#FFF8E8",
+  redSoft: "#FDEEEE",
   text: "#1F2937",
   muted: "#667085",
   border: "#E5E7EB",
@@ -808,6 +814,14 @@ function normalizeClientHeading(
       "Key financial figures",
     "key financial figures":
       "Key financial figures",
+    "selected result details":
+      "Key financial highlights",
+    "result details":
+      "Key financial highlights",
+    "key financial drivers reported":
+      "Key financial highlights",
+    "what the results show":
+      "Key financial highlights",
   };
 
   if (headingMap[normalized]) {
@@ -1067,6 +1081,10 @@ function isDenseResearchFinancialSection(
       "key figures",
       "earnings",
       "reported",
+      "selected result details",
+      "result details",
+      "results",
+      "quarterly result",
     ].some(
       (term) =>
         title.includes(term)
@@ -1148,7 +1166,11 @@ function splitResearchMetricItem(
   value: string
 ): {
   metric: string;
-  details: string[];
+  currentLabel: string;
+  currentValue: string;
+  comparisonLabel: string;
+  comparisonValue: string;
+  extra: string[];
 } {
   const clean =
     normalizeCustomerSentence(
@@ -1165,86 +1187,72 @@ function splitResearchMetricItem(
   let metric =
     firstPeriod > 0
       ? clean
-          .slice(
-            0,
-            firstPeriod
-          )
-          .replace(
-            /[:\-–—,\s]+$/g,
-            ""
-          )
+          .slice(0, firstPeriod)
+          .replace(/[:\-–—,\s]+$/g, "")
           .trim()
-      : "";
+      : "Financial update";
 
-  let detailText =
+  const rest =
     firstPeriod > 0
-      ? clean
-          .slice(firstPeriod)
-          .trim()
+      ? clean.slice(firstPeriod).trim()
       : clean;
 
-  if (!metric) {
-    const colonIndex =
-      clean.indexOf(":");
+  const periodValuePattern =
+    /(Q[1-4]\s*FY\d{2}|Q[1-4]FY\d{2}|FY\d{2}[AE]?)\s*[:\-]?\s*₹?\s*([0-9][0-9,]*(?:\.\d+)?)/gi;
 
-    if (
-      colonIndex > 0 &&
-      colonIndex < 45
-    ) {
-      metric =
-        clean
-          .slice(
-            0,
-            colonIndex
-          )
-          .trim();
+  const matches =
+    [...rest.matchAll(periodValuePattern)];
 
-      detailText =
-        clean
-          .slice(
-            colonIndex + 1
-          )
-          .trim();
-    }
+  const currentLabel =
+    matches[0]?.[1]
+      ? formatPeriodLabel(matches[0][1])
+      : "";
+
+  const currentValue =
+    matches[0]?.[2] || "";
+
+  const comparisonLabel =
+    matches[1]?.[1]
+      ? formatPeriodLabel(matches[1][1])
+      : "";
+
+  const comparisonValue =
+    matches[1]?.[2] || "";
+
+  let extraText = rest;
+
+  for (const match of matches) {
+    extraText =
+      extraText.replace(
+        match[0],
+        ""
+      );
   }
 
-  if (!metric) {
-    metric =
-      "Financial update";
-  }
-
-  const details =
-    detailText
-      .replace(
-        /\s+versus\s+/gi,
-        "; compared with "
+  const extra =
+    extraText
+      .replace(/[()]/g, "")
+      .split(/[;|]/)
+      .map((item) =>
+        item
+          .replace(/^[\s,.:–—-]+/, "")
+          .replace(/[\s,.:–—-]+$/, "")
+          .trim()
       )
-      .replace(
-        /\(\s*year-on-year\s*([^)]+)\)/gi,
-        "; year-on-year $1"
-      )
-      .replace(
-        /\(\s*quarter-on-quarter\s*([^)]+)\)/gi,
-        "; quarter-on-quarter $1"
-      )
-      .split(";")
-      .map(
+      .filter(
         (item) =>
-          item
-            .replace(
-              /^[\s,.:–—-]+/,
-              ""
-            )
-            .trim()
-      )
-      .filter(Boolean);
+          item &&
+          !/^versus$/i.test(item)
+      );
 
   return {
     metric:
-      normalizeCustomerSentence(
-        metric
-      ),
-    details,
+      normalizeCustomerSentence(metric),
+    currentLabel,
+    currentValue,
+    comparisonLabel,
+    comparisonValue,
+    extra,
   };
 }
 
@@ -1261,50 +1269,178 @@ function renderReadableResearchFinancialSection(
 
   const rows =
     items
-      .map((item) => {
+      .map((item, index) => {
         const parsed =
-          splitResearchMetricItem(
-            item
-          );
+          splitResearchMetricItem(item);
 
-        const details =
-          parsed.details
-            .map(
-              (detail) => `
-                <div
-                  style="
-                    margin:4px 0 0 0;
-                    font-family:Arial,Helvetica,sans-serif;
-                    font-size:13px;
-                    line-height:20px;
-                    color:${BRAND.muted};
-                  "
-                >
-                  ${escapeHtml(detail)}
-                </div>`
-            )
-            .join("");
+        const accent =
+          index % 3 === 0
+            ? BRAND.navy
+            : index % 3 === 1
+              ? BRAND.teal
+              : "#8A6A12";
+
+        const bg =
+          index % 3 === 0
+            ? BRAND.blueSoft
+            : index % 3 === 1
+              ? "#F3FBFA"
+              : BRAND.amberSoft;
+
+        const valuePrefix =
+          /earnings per share/i.test(
+            parsed.metric
+          )
+            ? "₹"
+            : /(profit after tax|profit before tax|earnings before interest and tax|sales|revenue)/i.test(
+                parsed.metric
+              )
+              ? "₹"
+              : "";
+
+        const valueSuffix =
+          /(profit after tax|profit before tax|earnings before interest and tax|sales|revenue)/i.test(
+            parsed.metric
+          )
+            ? " crore"
+            : "";
+
+        const extraHtml =
+          parsed.extra.length
+            ? `
+              <div style="margin-top:8px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:${BRAND.muted};">
+                ${escapeHtml(
+                  parsed.extra.join(" • ")
+                )}
+              </div>`
+            : "";
 
         return `
           <tr>
-            <td
-              style="
-                padding:15px 16px;
-                border-bottom:1px solid ${BRAND.border};
-              "
-            >
-              <div
+            <td style="padding:0 0 12px 0;">
+              <table
+                role="presentation"
+                width="100%"
+                cellspacing="0"
+                cellpadding="0"
+                border="0"
                 style="
-                  font-family:Arial,Helvetica,sans-serif;
-                  font-size:14px;
-                  line-height:20px;
-                  font-weight:700;
-                  color:${BRAND.text};
+                  width:100%;
+                  background:${bg};
+                  border:1px solid ${BRAND.border};
+                  border-left:4px solid ${accent};
+                  border-radius:10px;
                 "
               >
-                ${escapeHtml(parsed.metric)}
-              </div>
-              ${details}
+                <tr>
+                  <td style="padding:14px 16px;">
+                    <div
+                      style="
+                        font-family:Arial,Helvetica,sans-serif;
+                        font-size:14px;
+                        line-height:20px;
+                        font-weight:700;
+                        color:${BRAND.text};
+                        margin-bottom:10px;
+                      "
+                    >
+                      ${escapeHtml(parsed.metric)}
+                    </div>
+
+                    <table
+                      role="presentation"
+                      cellspacing="0"
+                      cellpadding="0"
+                      border="0"
+                    >
+                      <tr>
+                        ${
+                          parsed.currentLabel &&
+                          parsed.currentValue
+                            ? `
+                              <td
+                                valign="top"
+                                style="
+                                  padding:0 24px 0 0;
+                                "
+                              >
+                                <div
+                                  style="
+                                    font-family:Arial,Helvetica,sans-serif;
+                                    font-size:10px;
+                                    line-height:14px;
+                                    text-transform:uppercase;
+                                    letter-spacing:.04em;
+                                    color:${BRAND.muted};
+                                  "
+                                >
+                                  ${escapeHtml(parsed.currentLabel)}
+                                </div>
+
+                                <div
+                                  style="
+                                    margin-top:3px;
+                                    font-family:Arial,Helvetica,sans-serif;
+                                    font-size:18px;
+                                    line-height:23px;
+                                    font-weight:800;
+                                    color:${accent};
+                                  "
+                                >
+                                  ${valuePrefix}${escapeHtml(parsed.currentValue)}${valueSuffix}
+                                </div>
+                              </td>
+                            `
+                            : ""
+                        }
+
+                        ${
+                          parsed.comparisonLabel &&
+                          parsed.comparisonValue
+                            ? `
+                              <td
+                                valign="top"
+                                style="
+                                  padding-left:20px;
+                                  border-left:1px solid ${BRAND.blueBorder};
+                                "
+                              >
+                                <div
+                                  style="
+                                    font-family:Arial,Helvetica,sans-serif;
+                                    font-size:10px;
+                                    line-height:14px;
+                                    text-transform:uppercase;
+                                    letter-spacing:.04em;
+                                    color:${BRAND.muted};
+                                  "
+                                >
+                                  ${escapeHtml(parsed.comparisonLabel)}
+                                </div>
+
+                                <div
+                                  style="
+                                    margin-top:3px;
+                                    font-family:Arial,Helvetica,sans-serif;
+                                    font-size:15px;
+                                    line-height:21px;
+                                    font-weight:700;
+                                    color:${BRAND.text};
+                                  "
+                                >
+                                  ${valuePrefix}${escapeHtml(parsed.comparisonValue)}${valueSuffix}
+                                </div>
+                              </td>
+                            `
+                            : ""
+                        }
+                      </tr>
+                    </table>
+
+                    ${extraHtml}
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>`;
       })
@@ -1316,11 +1452,11 @@ function renderReadableResearchFinancialSection(
         <div
           style="
             font-family:Arial,Helvetica,sans-serif;
-            font-size:15px;
+            font-size:16px;
             line-height:22px;
             font-weight:700;
-            color:${BRAND.text};
-            margin:0 0 10px 0;
+            color:${BRAND.navy};
+            margin:0 0 12px 0;
           "
         >
           ${escapeHtml(
@@ -1337,11 +1473,7 @@ function renderReadableResearchFinancialSection(
           cellspacing="0"
           cellpadding="0"
           border="0"
-          style="
-            background:#F8FAFB;
-            border:1px solid ${BRAND.border};
-            border-radius:10px;
-          "
+          style="width:100%;"
         >
           ${rows}
         </table>
@@ -1523,7 +1655,7 @@ function renderSection(
     return `
       <tr>
         <td style="padding:4px 32px 24px 32px;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${BRAND.soft};border-left:4px solid ${BRAND.teal};">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${BRAND.blueSoft};border-left:4px solid ${BRAND.navy};">
             <tr>
               <td style="padding:18px 20px;">
                 ${title}
@@ -1551,7 +1683,7 @@ function renderSection(
     return `
       <tr>
         <td style="padding:4px 32px 24px 32px;">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F8FAFB;border:1px solid ${BRAND.border};">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${BRAND.slateSoft};border:1px solid ${BRAND.blueBorder};">
             <tr>
               <td style="padding:14px 16px;">
                 ${title}
