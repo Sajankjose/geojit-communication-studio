@@ -80,15 +80,17 @@ export function renderEmailHtml(
   const hero = contentData?.hero;
   const body = contentData?.body;
 
-  const sectionsHtml = (body?.sections || [])
-    .filter(
-      (section) =>
-        !shouldHideBodyDisclaimer(
-          section
-        )
-    )
-    .map(renderSection)
-    .join("");
+  const clientSections =
+    prepareClientFacingSections(
+      body?.sections || [],
+      category,
+      researchHero
+    );
+
+  const sectionsHtml =
+    clientSections
+      .map(renderSection)
+      .join("");
 
   const heroEyebrow =
     category === "research"
@@ -264,20 +266,31 @@ export function renderEmailHtml(
         </tr>`
       : "";
 
-  const introHtml = body?.intro
+  const clientIntro =
+    getClientFacingIntro(
+      body?.intro || "",
+      researchHero
+    );
+
+  const introHtml = clientIntro
     ? `
       <tr>
         <td style="padding:0 32px 20px 32px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:${BRAND.text};">
-          ${escapeHtml(body.intro)}
+          ${escapeHtml(clientIntro)}
         </td>
       </tr>`
     : "";
 
-  const closingHtml = body?.closing
+  const clientClosing =
+    getClientFacingClosing(
+      body?.closing || ""
+    );
+
+  const closingHtml = clientClosing
     ? `
       <tr>
         <td style="padding:4px 32px 20px 32px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:${BRAND.text};">
-          ${escapeHtml(body.closing)}
+          ${escapeHtml(clientClosing)}
         </td>
       </tr>`
     : "";
@@ -388,6 +401,400 @@ export function renderEmailHtml(
 </body>
 </html>`;
 }
+
+type ResearchHeroData = {
+  companyTitle: string;
+  recommendation: string;
+  targetPrice: string;
+  cmp: string;
+  asOnDate: string;
+  timeHorizon: string;
+  valuationMethod: string;
+  secondaryText: string;
+};
+
+function prepareClientFacingSections(
+  sections: EmailSection[],
+  category: string,
+  researchHero: ResearchHeroData | null
+): EmailSection[] {
+  const seen = new Set<string>();
+
+  return sections
+    .filter(
+      (section) =>
+        !shouldHideBodyDisclaimer(section)
+    )
+    .filter(
+      (section) =>
+        !isInternalOnlySection(section)
+    )
+    .filter((section) => {
+      if (
+        category === "research" &&
+        researchHero &&
+        isHeroDuplicateSnapshot(
+          section,
+          researchHero
+        )
+      ) {
+        return false;
+      }
+
+      return true;
+    })
+    .map(sanitizeClientSection)
+    .filter((section) => {
+      const fingerprint =
+        getSectionFingerprint(section);
+
+      if (!fingerprint) {
+        return true;
+      }
+
+      if (seen.has(fingerprint)) {
+        return false;
+      }
+
+      seen.add(fingerprint);
+      return true;
+    });
+}
+
+function isInternalOnlySection(
+  section: EmailSection
+): boolean {
+  const title =
+    String(section.title || "")
+      .trim()
+      .toLowerCase();
+
+  const content =
+    String(section.content || "")
+      .trim()
+      .toLowerCase();
+
+  const combined =
+    `${title} ${content}`;
+
+  const blockedTitlePatterns = [
+    "important source note",
+    "source note",
+    "source validation",
+    "validation note",
+    "extraction note",
+    "selected numbers (source-extracted)",
+    "selected numbers (source extracted)",
+    "source-extracted",
+    "source extracted",
+    "extracted figures",
+    "extracted numbers",
+    "reported figures (source)",
+    "select reported figures (source)",
+  ];
+
+  if (
+    blockedTitlePatterns.some(
+      (pattern) =>
+        title.includes(pattern)
+    )
+  ) {
+    return true;
+  }
+
+  const blockedContentPatterns = [
+    "report file provided",
+    "uploaded report",
+    "uploaded file",
+    "source includes",
+    "source shows",
+    "source-extracted",
+    "source extracted",
+    "reproduced as extracted",
+    "should be validated in final review",
+    "validate in final review",
+    "communication studio rules engine",
+    "extraction warning",
+  ];
+
+  return blockedContentPatterns.some(
+    (pattern) =>
+      combined.includes(pattern)
+  );
+}
+
+function isHeroDuplicateSnapshot(
+  section: EmailSection,
+  researchHero: ResearchHeroData
+): boolean {
+  if (section.type !== "snapshot") {
+    return false;
+  }
+
+  const title =
+    String(section.title || "")
+      .toLowerCase();
+
+  if (
+    !title.includes("at a glance") &&
+    !title.includes("snapshot") &&
+    !title.includes("recommendation")
+  ) {
+    return false;
+  }
+
+  const labels =
+    (section.items || [])
+      .filter(
+        (
+          item
+        ): item is SnapshotItem =>
+          typeof item === "object" &&
+          item !== null &&
+          "label" in item
+      )
+      .map(
+        (item) =>
+          item.label.toLowerCase()
+      );
+
+  const heroLabels = [
+    researchHero.recommendation
+      ? "recommendation"
+      : "",
+    researchHero.targetPrice
+      ? "target"
+      : "",
+    researchHero.cmp
+      ? "current"
+      : "",
+    researchHero.timeHorizon
+      ? "horizon"
+      : "",
+  ].filter(Boolean);
+
+  if (heroLabels.length < 2) {
+    return false;
+  }
+
+  const matches =
+    labels.filter((label) =>
+      heroLabels.some(
+        (heroLabel) =>
+          label.includes(heroLabel)
+      )
+    ).length;
+
+  return matches >= 2;
+}
+
+function sanitizeClientSection(
+  section: EmailSection
+): EmailSection {
+  const title =
+    cleanClientFacingTitle(
+      section.title || ""
+    );
+
+  const content =
+    cleanClientFacingText(
+      section.content || ""
+    );
+
+  const items =
+    (section.items || []).map(
+      (item) => {
+        if (typeof item === "string") {
+          return cleanClientFacingText(item);
+        }
+
+        return {
+          ...item,
+          label:
+            cleanClientFacingTitle(
+              item.label
+            ),
+          value:
+            cleanClientFacingText(
+              item.value
+            ),
+        };
+      }
+    );
+
+  return {
+    ...section,
+    title: title || undefined,
+    content: content || undefined,
+    items,
+  };
+}
+
+function cleanClientFacingTitle(
+  value: string
+): string {
+  return value
+    .replace(
+      /\s*\(source[- ]?extracted\)\s*/gi,
+      ""
+    )
+    .replace(
+      /\s*\(source\)\s*/gi,
+      ""
+    )
+    .replace(
+      /\bsource[- ]?extracted\b/gi,
+      ""
+    )
+    .replace(
+      /\bsource figures\b/gi,
+      "Key figures"
+    )
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function cleanClientFacingText(
+  value: string
+): string {
+  return normalizeResearchInlineText(
+    value
+  )
+    .replace(
+      /\bfrom the source\b/gi,
+      ""
+    )
+    .replace(
+      /\bsource[- ]?extracted\b/gi,
+      ""
+    )
+    .replace(
+      /\bsource includes\b/gi,
+      ""
+    )
+    .replace(
+      /\bsource shows\b/gi,
+      ""
+    )
+    .replace(
+      /\buploaded report\b/gi,
+      "research report"
+    )
+    .replace(
+      /\buploaded file\b/gi,
+      "research report"
+    )
+    .replace(
+      /\breproduced as extracted\b/gi,
+      ""
+    )
+    .replace(
+      /\bshould be validated in final review\b/gi,
+      ""
+    )
+    .replace(
+      /\s+([,.;:])/g,
+      "$1"
+    )
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function getClientFacingIntro(
+  value: string,
+  researchHero: ResearchHeroData | null
+): string {
+  if (!value) {
+    return "";
+  }
+
+  const lower =
+    value.toLowerCase();
+
+  if (
+    lower.includes(
+      "summary of the research note uploaded"
+    ) &&
+    researchHero?.companyTitle
+  ) {
+    const recommendation =
+      researchHero.recommendation
+        ? ` ${researchHero.recommendation}`
+        : "";
+
+    const target =
+      researchHero.targetPrice
+        ? ` with a target price of ₹${researchHero.targetPrice}`
+        : "";
+
+    const horizon =
+      researchHero.timeHorizon
+        ? ` over ${researchHero.timeHorizon}`
+        : "";
+
+    return `Geojit Research has a${recommendation} view on ${researchHero.companyTitle}${target}${horizon}. Here is a short summary of the key reasons and risks to consider.`;
+  }
+
+  return cleanClientFacingText(value);
+}
+
+function getClientFacingClosing(
+  value: string
+): string {
+  if (!value) {
+    return "";
+  }
+
+  const lower =
+    value.toLowerCase();
+
+  const internalPhrases = [
+    "check final validated figures",
+    "validate the figures",
+    "validated figures before acting",
+    "source validation",
+    "final review",
+  ];
+
+  if (
+    internalPhrases.some(
+      (phrase) =>
+        lower.includes(phrase)
+    )
+  ) {
+    return "";
+  }
+
+  return cleanClientFacingText(value);
+}
+
+function getSectionFingerprint(
+  section: EmailSection
+): string {
+  const itemText =
+    (section.items || [])
+      .map((item) =>
+        typeof item === "string"
+          ? item
+          : `${item.label}:${item.value}`
+      )
+      .join("|");
+
+  return [
+    section.title || "",
+    section.content || "",
+    itemText,
+  ]
+    .join("|")
+    .toLowerCase()
+    .replace(
+      /[^a-z0-9₹]+/g,
+      " "
+    )
+    .trim()
+    .slice(0, 220);
+}
+
 
 function renderSection(
   section: EmailSection
