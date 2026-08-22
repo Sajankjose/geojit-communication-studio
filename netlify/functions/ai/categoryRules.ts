@@ -19,7 +19,7 @@ export const CATEGORY_RULES: Record<
   string
 > = {
   research: `
-CATEGORY: RESEARCH & ADVISORY
+CATEGORY: FUNDAMENTAL RESEARCH
 
 Purpose:
 Transform verified research inputs into a concise, structured research communication that an ordinary customer can understand without losing the meaning, caution, or analytical value of the source.
@@ -116,6 +116,63 @@ Examples of acceptable labels:
 
 Do NOT alter the source value when changing the label.
 
+
+============================================================
+CUSTOMER-FACING LANGUAGE ONLY
+============================================================
+
+The final email is a short client-facing summary of Geojit's research.
+
+Never expose internal document-processing language such as:
+- source-extracted
+- source extracted
+- extracted figures
+- selected numbers from source
+- important source note
+- source validation
+- validation note
+- uploaded report
+- report file provided
+- reproduced as extracted
+- validate in final review
+- extraction warning
+- Communication Studio rules engine
+
+If extraction or source quality concerns exist, keep them in internal
+compliance metadata/flags for reviewers. Do not show them to the client.
+
+Do not create sections primarily about how the information was obtained.
+
+============================================================
+GRAMMAR & HEADING QUALITY
+============================================================
+
+All customer-facing headings and sentences must be grammatically polished.
+
+Use sentence case.
+
+If a heading is a question, make it a complete grammatical question:
+- "Why do we recommend it?"
+- "What should investors know?"
+
+Do not write:
+- "Why we recommend?"
+- "Why BUY?"
+- "What investors should know?" if a full question is intended.
+
+For label-style headings, no question mark is required:
+- "Company at a glance"
+- "What supports our view"
+- "Key risks to watch"
+- "Key financial figures"
+
+Duration formatting:
+- "12 months"
+- "3 years"
+- not "12 Months" or "3 Years"
+
+Use "₹" for Indian rupee values in customer-facing copy.
+
 ============================================================
 FINANCIAL FIGURE PRESENTATION
 ============================================================
@@ -205,6 +262,39 @@ Only make such simplification when the meaning remains equivalent.
 Do not add interpretation that is absent from the source.
 
 ============================================================
+COMPANY AT A GLANCE
+============================================================
+
+For Fundamental Research emails, include a short customer-friendly
+company description when the source contains enough information.
+
+Preferred heading:
+"Company at a glance"
+
+Length:
+- approximately 3-4 short lines;
+- normally 45-80 words;
+- one compact paragraph.
+
+The description should help a reader quickly understand:
+- what the company mainly does;
+- its principal business areas or segments;
+- the most relevant business context mentioned in the report.
+
+Use ONLY information supported by the supplied research material.
+
+Never:
+- use outside company knowledge;
+- invent market leadership claims;
+- invent business segments;
+- add promotional adjectives;
+- add company history unless it is relevant and explicitly supported;
+- mention that the description was extracted from a PDF/report/source.
+
+This section should orient the reader, not repeat the recommendation,
+target price, CMP, time horizon, rationale, or risk sections.
+
+============================================================
 RECOMMENDATION SNAPSHOT
 ============================================================
 
@@ -258,12 +348,17 @@ PREFERRED STRUCTURE
 ============================================================
 
 1. Research context / hero
-2. Recommendation snapshot
-3. What supports the view / key rationale
-4. Key financial figures, when useful
-5. Risks / watch-outs
-6. CTA to full report if URL exists
-7. Research disclaimer family
+2. Company at a glance
+3. Why do we recommend it? / key rationale
+4. Key financial figures, only when genuinely useful to the client
+5. Key risks to watch
+6. What should investors watch next? when useful
+7. CTA to full report if URL exists
+8. Research disclaimer metadata only
+
+Do not repeat recommendation, target price, CMP, or time horizon in multiple body sections when they are already clearly shown in the hero snapshot.
+
+Each body section must add new information.
 
 Use only the sections that add meaningful information.
 
@@ -323,6 +418,11 @@ Before returning each variant, verify:
 - Can a non-specialist understand the key rationale?
 - Are important risks understandable and visible?
 - Has any number, recommendation, estimate, date, target, or analytical meaning changed during simplification?
+- Is there a concise company description when the report supports one?
+- Is any internal extraction/source-validation language visible to the client? If yes, remove it.
+- Are headings grammatically complete and punctuated correctly?
+- Are durations written naturally, such as "12 months"?
+- Is repeated content removed?
 
 If not, revise the variant.
 
