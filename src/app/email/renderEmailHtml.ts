@@ -133,10 +133,10 @@ export function renderEmailHtml(
     hero?.subtitle
       ? `
         <tr>
-          <td style="padding:18px 32px 28px 32px;">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:${BRAND.soft};border:1px solid #D8EEEA;border-top:5px solid ${BRAND.teal};border-radius:18px;">
+          <td class="mobile-side-pad hero-outer" style="padding:18px 32px 28px 32px;">
+            <table class="research-hero" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:${BRAND.soft};border:1px solid #D8EEEA;border-top:5px solid ${BRAND.teal};border-radius:18px;">
               <tr>
-                <td style="padding:34px 30px 30px 30px;">
+                <td class="hero-inner" style="padding:34px 30px 30px 30px;">
                   ${
                     heroEyebrow
                       ? `
@@ -152,7 +152,7 @@ export function renderEmailHtml(
                     category === "research" &&
                     researchHero
                       ? `
-                        <div style="font-family:Arial,Helvetica,sans-serif;font-size:25px;line-height:34px;font-weight:700;color:${BRAND.text};margin:0 0 24px 0;">
+                        <div class="hero-title" style="font-family:Arial,Helvetica,sans-serif;font-size:25px;line-height:34px;font-weight:700;color:${BRAND.text};margin:0 0 24px 0;">
                           ${escapeHtml(researchHero.companyTitle)}
                         </div>
 
@@ -162,17 +162,17 @@ export function renderEmailHtml(
                           researchHero.cmp ||
                           researchHero.timeHorizon
                             ? `
-                              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;">
+                              <table class="hero-metrics" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;">
                                 <tr>
                                   ${
                                     researchHero.recommendation &&
                                     recommendationStyle
                                       ? `
-                                        <td valign="top" style="width:26%;padding:0 18px 0 0;border-right:1px solid #CFE4E1;">
+                                        <td class="metric-cell metric-first" valign="top" style="width:26%;padding:0 18px 0 0;border-right:1px solid #CFE4E1;">
                                           <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${BRAND.muted};margin:0 0 8px 0;">
                                             Recommendation
                                           </div>
-                                          <span style="display:inline-block;background:${recommendationStyle.background};border:1px solid ${recommendationStyle.border};border-radius:999px;padding:10px 20px;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:22px;font-weight:800;letter-spacing:.03em;color:${recommendationStyle.color};box-shadow:0 1px 0 rgba(0,0,0,.04);">
+                                          <span class="recommendation-pill" style="display:inline-block;background:${recommendationStyle.background};border:1px solid ${recommendationStyle.border};border-radius:999px;padding:10px 20px;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:22px;font-weight:800;letter-spacing:.03em;color:${recommendationStyle.color};box-shadow:0 1px 0 rgba(0,0,0,.04);">
                                             ${escapeHtml(researchHero.recommendation)}
                                           </span>
                                         </td>
@@ -183,7 +183,7 @@ export function renderEmailHtml(
                                   ${
                                     researchHero.targetPrice
                                       ? `
-                                        <td valign="top" style="width:24%;padding:0 18px;${researchHero.cmp || researchHero.timeHorizon ? "border-right:1px solid #CFE4E1;" : ""}">
+                                        <td class="metric-cell" valign="top" style="width:24%;padding:0 18px;${researchHero.cmp || researchHero.timeHorizon ? "border-right:1px solid #CFE4E1;" : ""}">
                                           <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${BRAND.muted};margin:0 0 6px 0;">
                                             Target Price
                                           </div>
@@ -198,7 +198,7 @@ export function renderEmailHtml(
                                   ${
                                     researchHero.cmp
                                       ? `
-                                        <td valign="top" style="width:26%;padding:0 18px;${researchHero.timeHorizon ? "border-right:1px solid #CFE4E1;" : ""}">
+                                        <td class="metric-cell" valign="top" style="width:26%;padding:0 18px;${researchHero.timeHorizon ? "border-right:1px solid #CFE4E1;" : ""}">
                                           <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${BRAND.muted};margin:0 0 6px 0;">
                                             Current Market Price
                                           </div>
@@ -218,7 +218,7 @@ export function renderEmailHtml(
                                   ${
                                     researchHero.timeHorizon
                                       ? `
-                                        <td valign="top" style="width:24%;padding:0 0 0 18px;">
+                                        <td class="metric-cell metric-last" valign="top" style="width:24%;padding:0 0 0 18px;">
                                           <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:14px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:${BRAND.muted};margin:0 0 6px 0;">
                                             Time Horizon
                                           </div>
@@ -290,7 +290,7 @@ export function renderEmailHtml(
   const introHtml = clientIntro
     ? `
       <tr>
-        <td style="padding:0 32px 20px 32px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:${BRAND.text};">
+        <td class="mobile-side-pad" style="padding:0 32px 20px 32px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:${BRAND.text};">
           ${escapeHtml(clientIntro)}
         </td>
       </tr>`
@@ -304,7 +304,7 @@ export function renderEmailHtml(
   const closingHtml = clientClosing
     ? `
       <tr>
-        <td style="padding:4px 32px 20px 32px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:${BRAND.text};">
+        <td class="mobile-side-pad" style="padding:4px 32px 20px 32px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:${BRAND.text};">
           ${escapeHtml(clientClosing)}
         </td>
       </tr>`
@@ -332,6 +332,111 @@ export function renderEmailHtml(
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="x-apple-disable-message-reformatting">
   <title>${escapeHtml(subject || "Geojit Communication")}</title>
+
+  <style>
+    html,
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+    }
+
+    table {
+      border-spacing: 0;
+    }
+
+    img {
+      border: 0;
+      line-height: 100%;
+    }
+
+    @media only screen and (max-width: 600px) {
+      .email-shell {
+        padding: 0 !important;
+      }
+
+      .email-container {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      .mobile-side-pad {
+        padding-left: 18px !important;
+        padding-right: 18px !important;
+      }
+
+      .email-header {
+        padding-top: 18px !important;
+        padding-bottom: 18px !important;
+      }
+
+      .email-header img {
+        width: 128px !important;
+        max-width: 128px !important;
+        height: auto !important;
+      }
+
+      .hero-outer {
+        padding-top: 14px !important;
+        padding-bottom: 22px !important;
+      }
+
+      .research-hero {
+        border-radius: 14px !important;
+      }
+
+      .hero-inner {
+        padding: 26px 20px 24px 20px !important;
+      }
+
+      .hero-title {
+        font-size: 22px !important;
+        line-height: 29px !important;
+        margin-bottom: 20px !important;
+      }
+
+      .hero-metrics,
+      .hero-metrics tbody,
+      .hero-metrics tr {
+        display: block !important;
+        width: 100% !important;
+      }
+
+      .hero-metrics .metric-cell {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 14px 0 !important;
+        border-right: 0 !important;
+        border-left: 0 !important;
+        border-bottom: 1px solid #CFE4E1 !important;
+      }
+
+      .hero-metrics .metric-first {
+        padding-top: 0 !important;
+      }
+
+      .hero-metrics .metric-last {
+        border-bottom: 0 !important;
+        padding-bottom: 0 !important;
+      }
+
+      .recommendation-pill {
+        font-size: 16px !important;
+        line-height: 20px !important;
+        padding: 9px 16px !important;
+      }
+
+      .email-footer {
+        padding-top: 22px !important;
+        padding-bottom: 22px !important;
+      }
+
+      a {
+        word-break: break-word;
+      }
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;background:#EEF1F4;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all;">
@@ -340,11 +445,11 @@ export function renderEmailHtml(
 
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#EEF1F4;">
     <tr>
-      <td align="center" style="padding:24px 12px;">
-        <table role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;background:#ffffff;border-collapse:separate;border-spacing:0;">
+      <td class="email-shell" align="center" style="padding:24px 12px;">
+        <table class="email-container" role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;background:#ffffff;border-collapse:separate;border-spacing:0;">
 
           <tr>
-            <td style="background:#ffffff;padding:22px 32px;border-bottom:1px solid ${BRAND.border};">
+            <td class="email-header mobile-side-pad" style="background:#ffffff;padding:22px 32px;border-bottom:1px solid ${BRAND.border};">
               <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td valign="middle" align="left">
@@ -372,7 +477,7 @@ export function renderEmailHtml(
           ${ctaHtml}
 
           <tr>
-            <td style="background:${BRAND.footer};border-top:1px solid ${BRAND.border};padding:24px 32px;text-align:left;">
+            <td class="email-footer mobile-side-pad" style="background:${BRAND.footer};border-top:1px solid ${BRAND.border};padding:24px 32px;text-align:left;">
               <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:19px;color:${BRAND.muted};">
                 <strong style="color:${BRAND.text};">Our Customer Care Numbers:</strong>
                 <br>
@@ -1448,7 +1553,7 @@ function renderReadableResearchFinancialSection(
 
   return `
     <tr>
-      <td style="padding:4px 32px 24px 32px;">
+      <td class="mobile-side-pad" style="padding:4px 32px 24px 32px;">
         <div
           style="
             font-family:Arial,Helvetica,sans-serif;
@@ -1503,7 +1608,7 @@ function renderSection(
   ) {
     return `
       <tr>
-        <td style="padding:4px 32px 24px 32px;">
+        <td class="mobile-side-pad" style="padding:4px 32px 24px 32px;">
           <table
             role="presentation"
             width="100%"
@@ -1585,7 +1690,7 @@ function renderSection(
 
     return `
       <tr>
-        <td style="padding:4px 32px 24px 32px;">
+        <td class="mobile-side-pad" style="padding:4px 32px 24px 32px;">
           ${title}
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#F8FAFB;border:1px solid ${BRAND.border};border-radius:8px;">
             ${cells}
@@ -1637,7 +1742,7 @@ function renderSection(
 
     return `
       <tr>
-        <td style="padding:4px 32px 24px 32px;">
+        <td class="mobile-side-pad" style="padding:4px 32px 24px 32px;">
           ${title}
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
             ${list}
@@ -1654,7 +1759,7 @@ function renderSection(
 
     return `
       <tr>
-        <td style="padding:4px 32px 24px 32px;">
+        <td class="mobile-side-pad" style="padding:4px 32px 24px 32px;">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${BRAND.blueSoft};border-left:4px solid ${BRAND.navy};">
             <tr>
               <td style="padding:18px 20px;">
@@ -1682,7 +1787,7 @@ function renderSection(
   if (section.type === "note") {
     return `
       <tr>
-        <td style="padding:4px 32px 24px 32px;">
+        <td class="mobile-side-pad" style="padding:4px 32px 24px 32px;">
           <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:${BRAND.slateSoft};border:1px solid ${BRAND.blueBorder};">
             <tr>
               <td style="padding:14px 16px;">
@@ -1699,7 +1804,7 @@ function renderSection(
 
   return `
     <tr>
-      <td style="padding:4px 32px 24px 32px;">
+      <td class="mobile-side-pad" style="padding:4px 32px 24px 32px;">
         ${title}
         <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:${BRAND.text};">
           ${escapeHtml(normalizeResearchInlineText(section.content || ""))}
