@@ -29,7 +29,7 @@ import {
 import {
   AppNotification,
   formatNotificationTime,
-  getMyNotifications,
+  getNotificationCentreItems,
   markAllNotificationsRead,
   markNotificationRead,
   subscribeToMyNotifications,
@@ -122,9 +122,10 @@ export function TopNavBar() {
           );
 
           const items =
-            await getMyNotifications(
-              20
-            );
+            await getNotificationCentreItems({
+              liveLimit: 20,
+              historyLimit: 50,
+            });
 
           setNotifications(
             items
@@ -381,7 +382,7 @@ export function TopNavBar() {
                         </p>
 
                         <p className="mt-1 text-xs text-gray-500">
-                          New workflow updates will appear here.
+                          Workflow updates and your recent activity will appear here.
                         </p>
                       </div>
                     ) : (
@@ -430,11 +431,19 @@ export function TopNavBar() {
                                 }
                               </p>
 
-                              <p className="mt-1.5 text-[11px] text-gray-400">
-                                {formatNotificationTime(
-                                  notification.created_at
+                              <div className="mt-1.5 flex items-center gap-2 text-[11px] text-gray-400">
+                                <span>
+                                  {formatNotificationTime(
+                                    notification.created_at
+                                  )}
+                                </span>
+
+                                {notification.is_historical && (
+                                  <span className="rounded-full bg-gray-100 px-1.5 py-0.5 font-medium text-gray-500">
+                                    History
+                                  </span>
                                 )}
-                              </p>
+                              </div>
                             </div>
                           </button>
                         )
