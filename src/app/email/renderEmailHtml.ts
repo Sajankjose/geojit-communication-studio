@@ -80,23 +80,20 @@ export function renderEmailHtml(
   const hero = contentData?.hero;
   const body = contentData?.body;
 
-  const clientSections =
-    prepareClientFacingSections(
-      body?.sections || [],
-      category,
-      researchHero
-    );
-
-  const sectionsHtml =
-    clientSections
-      .map(renderSection)
-      .join("");
-
   const heroEyebrow =
     category === "research"
       ? "GEOJIT IDEAS"
       : hero?.eyebrow || "";
 
+  /**
+   * IMPORTANT:
+   * Build researchHero before using it in the
+   * client-facing section preparation below.
+   *
+   * The previous order referenced researchHero before
+   * initialization, which caused renderEmailHtml() to throw
+   * when the HTML download action called it.
+   */
   const researchHero =
     category === "research"
       ? parseResearchHero(
@@ -111,6 +108,18 @@ export function renderEmailHtml(
           researchHero.recommendation
         )
       : null;
+
+  const clientSections =
+    prepareClientFacingSections(
+      body?.sections || [],
+      category,
+      researchHero
+    );
+
+  const sectionsHtml =
+    clientSections
+      .map(renderSection)
+      .join("");
 
   const heroHtml =
     heroEyebrow ||
