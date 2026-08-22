@@ -102,6 +102,16 @@ export function TopNavBar() {
       [notifications]
     );
 
+  const hasHistory =
+    useMemo(
+      () =>
+        notifications.some(
+          (item) =>
+            item.is_historical
+        ),
+      [notifications]
+    );
+
   const loadNotifications =
     useCallback(
       async () => {
@@ -292,7 +302,13 @@ export function TopNavBar() {
           <div className="relative">
             <button
               type="button"
-              aria-label="Notifications"
+              aria-label={
+                unreadCount > 0
+                  ? `${unreadCount} unread notifications`
+                  : hasHistory
+                    ? "Notifications with activity history"
+                    : "Notifications"
+              }
               onClick={() => {
                 setIsNotificationOpen(
                   (current) =>
@@ -305,10 +321,11 @@ export function TopNavBar() {
 
                 void loadNotifications();
               }}
-              className="relative flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
+              className="relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
             >
               <Bell className="h-5 w-5" />
 
+              {/* New / unread notifications */}
               {unreadCount >
                 0 && (
                 <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white">
@@ -318,6 +335,16 @@ export function TopNavBar() {
                     : unreadCount}
                 </span>
               )}
+
+              {/* Historical activity exists, but nothing is unread */}
+              {unreadCount ===
+                0 &&
+                hasHistory && (
+                  <span
+                    className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full bg-[#07877B] ring-2 ring-white"
+                    aria-hidden="true"
+                  />
+                )}
             </button>
 
             {isNotificationOpen && (
