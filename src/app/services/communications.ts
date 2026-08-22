@@ -71,20 +71,12 @@ export async function createCommunication(
     );
   }
 
-  console.log(
-    "Communication created successfully:",
-    data[0]
-  );
-
   return data[0] as CommunicationRecord;
 }
 
 /**
  * Get communications available to the
  * currently authenticated user.
- *
- * Supabase RLS controls which rows
- * this user is allowed to receive.
  */
 export async function getMyCommunications(): Promise<
   CommunicationRecord[]
@@ -117,33 +109,11 @@ export async function getMyCommunications(): Promise<
 
 /**
  * Update an existing communication.
- *
- * Important:
- * Do not use .single() here.
- *
- * If RLS blocks the update, Supabase may
- * return zero rows. Using .single() would
- * then produce the vague PostgREST error:
- *
- * "Cannot coerce the result to a single JSON object"
- *
- * Returning the array first lets us provide
- * a meaningful permission/workflow error.
  */
 export async function updateCommunication(
   communicationId: string,
   updates: Partial<CommunicationRecord>
 ): Promise<CommunicationRecord> {
-  console.log(
-    "Updating communication:",
-    communicationId
-  );
-
-  console.log(
-    "Update payload:",
-    updates
-  );
-
   const {
     data,
     error,
@@ -171,14 +141,6 @@ export async function updateCommunication(
     !data ||
     data.length === 0
   ) {
-    console.error(
-      "Communication update returned no rows.",
-      {
-        communicationId,
-        updates,
-      }
-    );
-
     throw new Error(
       "Communication could not be updated. You may not have permission to edit this communication, or it may no longer be editable in its current workflow stage."
     );
@@ -187,20 +149,10 @@ export async function updateCommunication(
   if (
     data.length > 1
   ) {
-    console.error(
-      "Unexpected multiple communication rows updated:",
-      data
-    );
-
     throw new Error(
       "Unexpected duplicate communication records were returned."
     );
   }
-
-  console.log(
-    "Communication updated successfully:",
-    data[0]
-  );
 
   return data[0] as CommunicationRecord;
 }
@@ -208,36 +160,9 @@ export async function updateCommunication(
 /**
  * Get one communication by ID.
  *
- * Used by:
- * - Dashboard reopening
- * - Approval Status
- * - Audit Trail
- * - Review history
- *
- * IMPORTANT:
- * This now uses the restricted
- * get_communication_for_audit() RPC.
- *
- * Why:
- * A reviewer may need to view a communication
- * after it has moved beyond their active queue.
- * Direct SELECT access can then be blocked by
- * communications RLS even though the reviewer
- * legitimately participated in that workflow.
- *
- * Access is enforced server-side:
- *
- * Creator:
- * - own communications
- *
- * Marketing Reviewer:
- * - communications with Marketing review history
- *
- * CorpCom Reviewer:
- * - communications with CorpCom review history
- *
- * Admin:
- * - all communications
+ * Uses the restricted audit-access RPC so a user can still
+ * open a communication they legitimately own/reviewed after
+ * it moves beyond their active queue.
  */
 export async function getCommunicationById(
   communicationId: string
@@ -270,13 +195,6 @@ export async function getCommunicationById(
   if (
     rows.length === 0
   ) {
-    console.error(
-      "Communication audit lookup returned no rows:",
-      {
-        communicationId,
-      }
-    );
-
     throw new Error(
       "Communication not found or you do not have permission to view it."
     );
@@ -285,15 +203,53 @@ export async function getCommunicationById(
   if (
     rows.length > 1
   ) {
-    console.error(
-      "Unexpected multiple communication rows returned:",
-      rows
-    );
-
     throw new Error(
       "Unexpected duplicate communication records were returned."
     );
   }
 
   return rows[0];
+}
+
+/**
+ * Delete a draft communication.
+ *
+ * IMPORTANT:
+ * The RPC enforces the rule server-side:
+ * - status must still be "draft"
+ * - creator may delete own draft
+ * - admin may delete any draft
+ * - any communication with approval history is protected
+ */
+export async function deleteDraftCommunication(
+  communicationId: string
+): Promise<void> {
+  const {
+    data,
+    error,
+  } =
+    await supabase.rpc(
+      "delete_draft_communication",
+      {
+        p_communication_id:
+          communicationId,
+      }
+    );
+
+  if (error) {
+    console.error(
+      "Delete draft communication error:",
+      error
+    );
+
+    throw new Error(
+      error.message
+    );
+  }
+
+  if (data !== true) {
+    throw new Error(
+      "The draft could not be deleted."
+    );
+  }
 }
