@@ -173,9 +173,6 @@ export async function getReviewerQueue(
   if (
     profileIds.length > 0
   ) {
-    /**
-     * Restricted submitter-profile RPC.
-     */
     const {
       data:
         profiles,
@@ -273,9 +270,7 @@ export async function getReviewerQueue(
 /**
  * Reviewer "My Activity"
  *
- * Uses the new central activity_logs architecture through
- * get_my_activity(). This replaces the retired
- * get_my_review_activity() function.
+ * Uses the central activity_logs architecture.
  */
 export async function getReviewerActivity(
   limit = 100
@@ -315,6 +310,19 @@ export async function getReviewerActivity(
   ) as ReviewerActivityItem[];
 }
 
+/**
+ * Submit a reviewer decision.
+ *
+ * IMPORTANT:
+ * Workflow milestone notifications are now generated inside
+ * Supabase from approval_actions changes.
+ *
+ * Keeping notification creation at database level means:
+ * - Marketing / CorpCom decisions and notification creation are
+ *   driven by the same workflow data;
+ * - notifications also work if another UI later calls the same RPC;
+ * - client-side notification code cannot be skipped accidentally.
+ */
 export async function submitReviewerDecision({
   approvalActionId,
   communicationId,
