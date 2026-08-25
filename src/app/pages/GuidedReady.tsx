@@ -171,6 +171,12 @@ export function GuidedReady() {
       setGenerationMessage(
         `Channel options generated successfully. ${summary}`
       );
+
+      navigate(
+        `/create/guided/channels?communicationId=${encodeURIComponent(
+          communicationId
+        )}`
+      );
     } catch (err) {
       console.error(
         "Unable to generate channel options:",
