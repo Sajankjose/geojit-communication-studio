@@ -1,7 +1,9 @@
 import {
   ArrowLeft,
   ArrowRight,
+  CheckCircle2,
   Lightbulb,
+  Loader2,
   MessageCircle,
   Sparkles,
   Users,
@@ -21,6 +23,13 @@ import {
   TopNavBar,
 } from "../components/TopNavBar";
 
+import {
+  GuidedUnderstanding,
+  GuidedRawInput,
+  saveGuidedRawInput,
+  understandGuidedInput,
+} from "../services/guidedCreation";
+
 type StarterId =
   | "customer_question"
   | "my_experience"
@@ -30,10 +39,18 @@ type StarterId =
   | "open_idea";
 
 interface StarterPrompt {
-  id: StarterId;
-  title: string;
-  helper: string;
-  starterText: string;
+  id:
+    StarterId;
+
+  title:
+    string;
+
+  helper:
+    string;
+
+  starterText:
+    string;
+
   icon:
     typeof MessageCircle;
 }
@@ -164,10 +181,24 @@ export function GuidedCreation() {
     >(null);
 
   const [
-    rawIdea,
-    setRawIdea,
+    rawInputContent,
+    setRawInputContent,
   ] =
     useState("");
+
+  const [
+    understanding,
+    setUnderstanding,
+  ] =
+    useState<
+      GuidedUnderstanding | null
+    >(null);
+
+  const [
+    processing,
+    setProcessing,
+  ] =
+    useState(false);
 
   const [
     error,
@@ -176,10 +207,14 @@ export function GuidedCreation() {
     useState("");
 
   const characterCount =
-    rawIdea.trim().length;
+    rawInputContent
+      .trim()
+      .length;
 
   const canContinue =
-    characterCount >= 20;
+    characterCount >=
+      20 &&
+    !processing;
 
   const selectedPrompt =
     useMemo(
@@ -192,6 +227,23 @@ export function GuidedCreation() {
       [selectedStarter]
     );
 
+  function buildRawInput():
+    GuidedRawInput {
+    return {
+      inputType:
+        "text",
+
+      content:
+        rawInputContent.trim(),
+
+      originalTranscript:
+        null,
+
+      language:
+        null,
+    };
+  }
+
   function handleStarterClick(
     prompt:
       StarterPrompt
@@ -200,24 +252,27 @@ export function GuidedCreation() {
       prompt.id
     );
 
-    setError("");
+    setError(
+      ""
+    );
 
-    /**
-     * Only insert the starter text
-     * when the user has not already
-     * written their own idea.
-     */
+    setUnderstanding(
+      null
+    );
+
     if (
-      !rawIdea.trim()
+      !rawInputContent.trim()
     ) {
-      setRawIdea(
+      setRawInputContent(
         prompt.starterText
       );
     }
   }
 
   function handleBack() {
-    if (!communicationId) {
+    if (
+      !communicationId
+    ) {
       navigate("/");
       return;
     }
@@ -229,8 +284,10 @@ export function GuidedCreation() {
     );
   }
 
-  function handleContinue() {
-    if (!communicationId) {
+  async function handleUnderstandIdea() {
+    if (
+      !communicationId
+    ) {
       setError(
         "Communication ID is missing. Please return to the dashboard and start again."
       );
@@ -239,7 +296,8 @@ export function GuidedCreation() {
     }
 
     if (
-      !canContinue
+      characterCount <
+      20
     ) {
       setError(
         "Tell us a little more about your idea so we can understand it properly."
@@ -248,27 +306,91 @@ export function GuidedCreation() {
       return;
     }
 
-    /**
-     * FIRST CHECKPOINT ONLY
-     *
-     * No AI or database write yet.
-     *
-     * The next implementation will
-     * persist rawIdea and send it to
-     * the Idea Understanding AI layer.
-     */
-    console.log(
-      "Guided idea captured:",
-      {
+    const rawInput =
+      buildRawInput();
+
+    try {
+      setProcessing(
+        true
+      );
+
+      setError(
+        ""
+      );
+
+      setUnderstanding(
+        null
+      );
+
+      /**
+       * Save the employee's original words first.
+       *
+       * This is intentionally separate from AI understanding
+       * so the original human input is always preserved.
+       */
+      await saveGuidedRawInput({
         communicationId,
-        selectedStarter,
-        rawIdea,
-      }
+        rawInput,
+        starterId:
+          selectedStarter,
+      });
+
+      const result =
+        await understandGuidedInput({
+          communicationId,
+          rawInput,
+          starterId:
+            selectedStarter,
+        });
+
+      setUnderstanding(
+        result.understanding
+      );
+
+      window.setTimeout(
+        () => {
+          document
+            .getElementById(
+              "guided-understanding"
+            )
+            ?.scrollIntoView({
+              behavior:
+                "smooth",
+
+              block:
+                "start",
+            });
+        },
+        50
+      );
+    } catch (err) {
+      console.error(
+        "Unable to understand guided idea:",
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to understand the idea. Please try again."
+      );
+    } finally {
+      setProcessing(
+        false
+      );
+    }
+  }
+
+  function handleEditIdea() {
+    setUnderstanding(
+      null
     );
 
-    setError(
-      "Idea captured successfully. AI understanding will be connected in the next step."
-    );
+    window.scrollTo({
+      top: 0,
+      behavior:
+        "smooth",
+    });
   }
 
   return (
@@ -276,8 +398,6 @@ export function GuidedCreation() {
       <TopNavBar />
 
       <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
-
-        {/* Header */}
 
         <div className="mb-10">
           <button
@@ -314,8 +434,6 @@ export function GuidedCreation() {
           </div>
         </div>
 
-        {/* Reassurance */}
-
         <div className="mb-8 rounded-xl border border-[#bfe4df] bg-[#f3fbfa] px-5 py-4">
           <div className="flex items-start gap-3">
             <Sparkles className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#07877B]" />
@@ -329,15 +447,14 @@ export function GuidedCreation() {
                 Short notes, incomplete
                 sentences, simple English or
                 mixed-language thoughts are
-                fine. The first job of AI is
-                to understand what you mean —
-                not to judge how you write.
+                fine. AI first tries to
+                understand what you mean —
+                it does not judge how you
+                write.
               </p>
             </div>
           </div>
         </div>
-
-        {/* Starter prompts */}
 
         <section className="mb-8">
 
@@ -414,8 +531,6 @@ export function GuidedCreation() {
 
         </section>
 
-        {/* Main idea capture */}
-
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
 
           <div className="mb-5">
@@ -446,22 +561,26 @@ export function GuidedCreation() {
 
           <textarea
             value={
-              rawIdea
+              rawInputContent
             }
             onChange={(
               event
             ) => {
-              setRawIdea(
+              setRawInputContent(
                 event.target.value
               );
 
               setError(
                 ""
               );
+
+              setUnderstanding(
+                null
+              );
             }}
             rows={9}
             autoFocus
-            placeholder="For example: Many customers tell me they are waiting for the market to come down before investing. I usually explain that nobody knows the exact bottom and they can think about investing gradually instead of putting everything at one time..."
+            placeholder="For example: customer asking market down again or now invest. many waiting correction. i normally tell cannot know exact bottom and can think about investing small amount at different times..."
             className="w-full resize-none rounded-xl border border-gray-300 bg-white px-5 py-4 text-base leading-7 text-gray-900 outline-none transition-all placeholder:text-gray-400 focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10"
           />
 
@@ -485,8 +604,6 @@ export function GuidedCreation() {
 
         </section>
 
-        {/* What happens next */}
-
         <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4">
           <p className="text-sm font-medium text-gray-800">
             What happens next?
@@ -503,20 +620,10 @@ export function GuidedCreation() {
         </div>
 
         {error && (
-          <div
-            className={`mt-6 rounded-lg border px-4 py-3 text-sm ${
-              error.startsWith(
-                "Idea captured"
-              )
-                ? "border-green-200 bg-green-50 text-green-700"
-                : "border-red-200 bg-red-50 text-red-700"
-            }`}
-          >
+          <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
-
-        {/* Actions */}
 
         <div className="mt-8 flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
 
@@ -525,7 +632,10 @@ export function GuidedCreation() {
             onClick={
               handleBack
             }
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 hover:bg-gray-50"
+            disabled={
+              processing
+            }
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
@@ -533,21 +643,255 @@ export function GuidedCreation() {
 
           <button
             type="button"
-            onClick={
-              handleContinue
+            onClick={() =>
+              void handleUnderstandIdea()
             }
             disabled={
               !canContinue
             }
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-7 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Help me shape this idea
-            <ArrowRight className="h-4 w-4" />
+            {processing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Understanding your idea...
+              </>
+            ) : (
+              <>
+                Help me shape this idea
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </button>
 
         </div>
 
+
+        {understanding && (
+          <section
+            id="guided-understanding"
+            className="mt-12 scroll-mt-6 rounded-2xl border border-[#bfe4df] bg-white p-6 shadow-sm sm:p-8"
+          >
+            <div className="mb-6 flex items-start gap-3">
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[#e8f5f4]">
+                <CheckCircle2 className="h-5 w-5 text-[#07877B]" />
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-[#07877B]">
+                  Here's what I understood
+                </p>
+
+                <h2 className="mt-1 text-2xl text-gray-900">
+                  Is this what you mean?
+                </h2>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+              <p className="text-sm leading-7 text-gray-700">
+                {
+                  understanding.summary
+                }
+              </p>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+
+              <UnderstandingItem
+                label="What you're seeing"
+                value={
+                  understanding.customerSituation
+                }
+              />
+
+              <UnderstandingItem
+                label="Customer concern"
+                value={
+                  understanding.customerConcern
+                }
+              />
+
+              <UnderstandingItem
+                label="What you know / explain"
+                value={
+                  understanding.creatorInsight
+                }
+              />
+
+              <UnderstandingItem
+                label="Who this may help"
+                value={
+                  understanding.intendedAudience
+                }
+              />
+
+              <UnderstandingItem
+                label="Core idea"
+                value={
+                  understanding.coreIdea
+                }
+              />
+
+              <UnderstandingItem
+                label="Desired outcome"
+                value={
+                  understanding.desiredOutcome
+                }
+              />
+
+            </div>
+
+            {understanding.suggestedCategory && (
+              <div className="mt-5 flex flex-wrap items-center gap-2">
+                <span className="text-xs text-gray-500">
+                  Suggested communication area:
+                </span>
+
+                <span className="rounded-full bg-[#e8f5f4] px-3 py-1 text-xs font-medium text-[#075f58]">
+                  {formatCategory(
+                    understanding.suggestedCategory
+                  )}
+                </span>
+              </div>
+            )}
+
+            {understanding.needsFollowUp &&
+              understanding.nextQuestion && (
+                <div className="mt-7 rounded-xl border border-blue-200 bg-blue-50 p-5">
+                  <p className="text-xs font-medium uppercase tracking-wide text-blue-600">
+                    One thing would help
+                  </p>
+
+                  <p className="mt-2 text-base font-medium leading-7 text-blue-950">
+                    {
+                      understanding.nextQuestion
+                    }
+                  </p>
+
+                  {understanding.suggestedAnswers.length >
+                    0 && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {understanding.suggestedAnswers.map(
+                        (
+                          answer
+                        ) => (
+                          <span
+                            key={
+                              answer
+                            }
+                            className="rounded-full border border-blue-200 bg-white px-3 py-1.5 text-xs text-blue-800"
+                          >
+                            {
+                              answer
+                            }
+                          </span>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+            {!understanding.needsFollowUp && (
+              <div className="mt-7 rounded-xl border border-green-200 bg-green-50 px-5 py-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 text-green-600" />
+
+                  <div>
+                    <p className="text-sm font-medium text-green-800">
+                      Your idea is clear enough to continue.
+                    </p>
+
+                    <p className="mt-1 text-sm leading-6 text-green-700">
+                      In the next step we'll let you confirm this understanding before choosing audience, personalisation and channels.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-7 flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={
+                  handleEditIdea
+                }
+                className="rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                Not quite — edit my idea
+              </button>
+
+              <button
+                type="button"
+                disabled
+                title="Enabled in the next Guided Creation checkpoint"
+                className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white opacity-40"
+              >
+                Yes, that's my idea
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+
+          </section>
+        )}
+
       </main>
     </div>
   );
+}
+
+function UnderstandingItem({
+  label,
+  value,
+}: {
+  label:
+    string;
+
+  value:
+    string | null;
+}) {
+  if (!value) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+        {label}
+      </p>
+
+      <p className="mt-2 text-sm leading-6 text-gray-700">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function formatCategory(
+  category:
+    string
+) {
+  switch (category) {
+    case "research":
+      return "Fundamental Research";
+
+    case "education":
+      return "Investor Education";
+
+    case "product":
+      return "Product & Sales";
+
+    case "service":
+      return "Service & Transactional";
+
+    case "regulatory":
+      return "Regulatory & Compliance";
+
+    case "onboarding":
+      return "Onboarding & Journey";
+
+    default:
+      return category;
+  }
 }
