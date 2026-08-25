@@ -242,8 +242,17 @@ export function Dashboard() {
             user.id
           );
 
+        /**
+         * Phase 2 entry point:
+         *
+         * Create the draft exactly as before, then allow the
+         * user to choose Guided or Expert Creation.
+         *
+         * Expert Creation continues into the existing
+         * /create/category flow without changing Phase 1.
+         */
         navigate(
-          `/create/category?communicationId=${encodeURIComponent(
+          `/create/mode?communicationId=${encodeURIComponent(
             communication.id
           )}`
         );
@@ -558,7 +567,7 @@ export function Dashboard() {
             <p className="mb-8 text-lg text-gray-600">
               {isReviewer
                 ? "Review communications waiting for your action and move them through the approval workflow."
-                : "Create structured, compliant, Geojit-aligned emailers in minutes."}
+                : "Create structured, compliant, Geojit-aligned communications with AI-assisted guidance."}
             </p>
 
             {isReviewer ? (
@@ -1555,8 +1564,15 @@ function openCommunication(
       : null;
 
   if (!category) {
+    /**
+     * A brand-new Phase 2 draft may exist before the user
+     * chooses Guided or Expert Creation.
+     *
+     * Reopen that draft at the mode-selection screen instead
+     * of silently pushing the user into Expert Creation.
+     */
     navigate(
-      `/create/category?${communicationParam}`
+      `/create/mode?${communicationParam}`
     );
 
     return;
