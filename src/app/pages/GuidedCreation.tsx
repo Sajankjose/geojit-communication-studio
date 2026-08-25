@@ -393,6 +393,21 @@ export function GuidedCreation() {
     });
   }
 
+  function handleConfirmIdea() {
+    if (
+      !communicationId ||
+      !understanding
+    ) {
+      return;
+    }
+
+    navigate(
+      `/create/guided/brief?communicationId=${encodeURIComponent(
+        communicationId
+      )}`
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <TopNavBar />
@@ -804,7 +819,7 @@ export function GuidedCreation() {
                     </p>
 
                     <p className="mt-1 text-sm leading-6 text-green-700">
-                      In the next step we'll let you confirm this understanding before choosing audience, personalisation and channels.
+                      Confirm it below, and we'll help you choose the audience, personalisation and channels.
                     </p>
                   </div>
                 </div>
@@ -824,9 +839,10 @@ export function GuidedCreation() {
 
               <button
                 type="button"
-                disabled
-                title="Enabled in the next Guided Creation checkpoint"
-                className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white opacity-40"
+                onClick={
+                  handleConfirmIdea
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-[#06766a]"
               >
                 Yes, that's my idea
                 <ArrowRight className="h-4 w-4" />
