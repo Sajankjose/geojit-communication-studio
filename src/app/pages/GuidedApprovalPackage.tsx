@@ -38,6 +38,11 @@ import {
   WhatsAppChannelContent,
 } from "../services/channels/channelOutputTypes";
 
+import {
+  getExistingPendingApproval,
+  submitCommunicationForApproval,
+} from "../services/approvals";
+
 export function GuidedApprovalPackage() {
   const navigate =
     useNavigate();
@@ -92,6 +97,24 @@ export function GuidedApprovalPackage() {
     useState<
       GuidedApprovalPackageData | null
     >(null);
+
+  const [
+    submitting,
+    setSubmitting,
+  ] =
+    useState(false);
+
+  const [
+    submitError,
+    setSubmitError,
+  ] =
+    useState("");
+
+  const [
+    alreadySubmitted,
+    setAlreadySubmitted,
+  ] =
+    useState(false);
 
   useEffect(() => {
     if (
@@ -176,6 +199,80 @@ export function GuidedApprovalPackage() {
     communicationId,
     isReviewMode,
   ]);
+
+  async function handleSubmitForMarketingReview() {
+    if (
+      !communicationId ||
+      isReviewMode ||
+      submitting
+    ) {
+      return;
+    }
+
+    try {
+      setSubmitting(
+        true
+      );
+
+      setSubmitError(
+        ""
+      );
+
+      /**
+       * Guard against accidental double submission.
+       *
+       * The database RPC also protects this, but checking
+       * here gives the Creator a cleaner UX.
+       */
+      const existing =
+        await getExistingPendingApproval(
+          communicationId
+        );
+
+      if (existing) {
+        setAlreadySubmitted(
+          true
+        );
+
+        navigate(
+          `/approval/status?communicationId=${encodeURIComponent(
+            communicationId
+          )}`
+        );
+
+        return;
+      }
+
+      await submitCommunicationForApproval({
+        communicationId,
+      });
+
+      setAlreadySubmitted(
+        true
+      );
+
+      navigate(
+        `/approval/status?communicationId=${encodeURIComponent(
+          communicationId
+        )}`
+      );
+    } catch (err) {
+      console.error(
+        "Unable to submit Guided communication for approval:",
+        err
+      );
+
+      setSubmitError(
+        err instanceof Error
+          ? err.message
+          : "Unable to submit this communication for Marketing review."
+      );
+    } finally {
+      setSubmitting(
+        false
+      );
+    }
+  }
 
   function handleBack() {
     if (
@@ -375,16 +472,45 @@ export function GuidedApprovalPackage() {
                   </p>
 
                   <p className="mt-2 text-sm leading-6 text-gray-600">
-                    This approval package is saved in Supabase. Submission to the existing Marketing → CorpCom workflow will be enabled only after reviewer access is fully verified.
+                    Your selected channel outputs are saved as one governed package. Submit it to Marketing to begin the existing Marketing → CorpCom approval workflow.
                   </p>
+
+                  {submitError && (
+                    <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {submitError}
+                    </div>
+                  )}
+
+                  {alreadySubmitted && (
+                    <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                      This communication has already been submitted for review.
+                    </div>
+                  )}
 
                   <button
                     type="button"
-                    disabled
-                    className="mt-5 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white opacity-40"
+                    onClick={
+                      handleSubmitForMarketingReview
+                    }
+                    disabled={
+                      submitting ||
+                      alreadySubmitted ||
+                      profile?.role !== "creator"
+                    }
+                    className="mt-5 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Submit for Marketing Review
+                    {submitting
+                      ? "Submitting..."
+                      : alreadySubmitted
+                        ? "Submitted for Marketing Review"
+                        : "Submit for Marketing Review"}
                   </button>
+
+                  {profile?.role === "admin" && (
+                    <p className="mt-3 text-xs leading-5 text-gray-500">
+                      Admin can inspect this package, but only the Creator can submit it for approval.
+                    </p>
+                  )}
                 </>
               )}
             </div>
