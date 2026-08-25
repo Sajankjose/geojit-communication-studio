@@ -10,6 +10,24 @@ import {
   Dashboard,
 } from "./pages/Dashboard";
 
+/**
+ * PHASE 2
+ *
+ * New creation entry point.
+ *
+ * After a communication draft is created,
+ * the Creator chooses:
+ *
+ * - Guided Creation
+ * - Expert Creation
+ *
+ * Expert Creation continues into the
+ * existing Phase 1 workflow without changing it.
+ */
+import {
+  CreationModeSelection,
+} from "./pages/CreationModeSelection";
+
 import {
   CategorySelection,
 } from "./pages/CategorySelection";
@@ -100,19 +118,76 @@ export const router =
 
     /**
      * ------------------------------------------------------
-     * CREATOR FLOW
+     * CREATION MODE SELECTION
      * ------------------------------------------------------
      *
-     * Creator:
-     * - creates communication
-     * - enters inputs
-     * - generates variants
-     * - selects copy
-     * - previews
-     * - submits for approval
+     * NEW IN PHASE 2
+     *
+     * This is the new entry point after the Creator clicks
+     * "Start Creating".
+     *
+     * Example:
+     *
+     * /create/mode?communicationId=<UUID>
+     *
+     * The Creator chooses between:
+     *
+     * GUIDED CREATION
+     * AI helps the Creator understand and structure the idea.
+     *
+     * EXPERT CREATION
+     * Continues into the existing Category Selection and
+     * structured creation workflow.
+     *
+     * IMPORTANT:
+     *
+     * This route does NOT change the existing Expert workflow.
+     */
+
+    {
+      path:
+        "/create/mode",
+
+      element: (
+        <ProtectedRoute>
+          <RoleGuard
+            allowedRoles={[
+              "creator",
+              "admin",
+            ]}
+          >
+            <CreationModeSelection />
+          </RoleGuard>
+        </ProtectedRoute>
+      ),
+    },
+
+
+    /**
+     * ------------------------------------------------------
+     * EXISTING CREATOR / EXPERT FLOW
+     * ------------------------------------------------------
+     *
+     * The existing Phase 1 workflow remains unchanged.
+     *
+     * Expert Creation:
+     *
+     * Creation Mode
+     *      ↓
+     * Category Selection
+     *      ↓
+     * Smart Input Form
+     *      ↓
+     * AI Generation
+     *      ↓
+     * Variant Selection
+     *      ↓
+     * Preview
+     *      ↓
+     * Approval
      *
      * Admin is currently retained here for creation-flow
-     * visibility / testing because that is how your existing
+     * visibility / testing because that is how the existing
      * application is configured.
      *
      * Individual screens should still prevent Admin from
@@ -271,17 +346,11 @@ export const router =
      * COMMUNICATION APPROVAL STATUS / AUDIT TRAIL
      * ------------------------------------------------------
      *
-     * IMPORTANT:
-     *
-     * This is the canonical route:
+     * Canonical route:
      *
      * /approval/status?communicationId=<UUID>
      *
-     * Do NOT navigate to:
-     *
-     * /approval-status
-     *
-     * Creator, Marketing, CorpCom and Admin may all use this
+     * Creator, Marketing, CorpCom and Admin may use this
      * page subject to Supabase/RPC access rules.
      */
 
