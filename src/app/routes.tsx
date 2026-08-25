@@ -64,6 +64,17 @@ import {
   GuidedChannelPreview,
 } from "./pages/GuidedChannelPreview";
 
+/**
+ * PHASE 2
+ *
+ * Approval Package:
+ * combines the selected channel outputs
+ * into one governed review package.
+ */
+import {
+  GuidedApprovalPackage,
+} from "./pages/GuidedApprovalPackage";
+
 import {
   CategorySelection,
 } from "./pages/CategorySelection";
@@ -206,11 +217,7 @@ export const router =
      * GUIDED BRIEF
      * ------------------------------------------------------
      *
-     * After the Creator confirms:
-     *
-     * "Yes, that's my idea"
-     *
-     * the Creator confirms:
+     * Creator confirms:
      *
      * - audience
      * - purpose
@@ -246,10 +253,6 @@ export const router =
      * confirmed Guided Brief.
      *
      * Then generates selected channel variants.
-     *
-     * Example:
-     *
-     * /create/guided/ready?communicationId=<UUID>
      */
 
     {
@@ -286,10 +289,6 @@ export const router =
      * - Leaflet
      *
      * Creator selects one variant per channel.
-     *
-     * Example:
-     *
-     * /create/guided/channels?communicationId=<UUID>
      */
 
     {
@@ -313,25 +312,52 @@ export const router =
 
     /**
      * ------------------------------------------------------
+     * GUIDED APPROVAL PACKAGE
+     * ------------------------------------------------------
+     *
+     * Combines the selected channel outputs into
+     * one review package.
+     *
+     * Example:
+     *
+     * /create/guided/approval-package?communicationId=<UUID>
+     *
+     * Current checkpoint:
+     *
+     * - package is prepared
+     * - selected outputs are shown together
+     * - package is saved in Supabase
+     *
+     * Submission into Marketing → CorpCom
+     * will be connected in the next stage.
+     */
+
+    {
+      path:
+        "/create/guided/approval-package",
+
+      element: (
+        <ProtectedRoute>
+          <RoleGuard
+            allowedRoles={[
+              "creator",
+              "admin",
+            ]}
+          >
+            <GuidedApprovalPackage />
+          </RoleGuard>
+        </ProtectedRoute>
+      ),
+    },
+
+
+    /**
+     * ------------------------------------------------------
      * EXISTING CREATOR / EXPERT FLOW
      * ------------------------------------------------------
      *
      * Expert Creation continues through
      * the existing Phase 1 workflow.
-     *
-     * Creation Mode
-     *      ↓
-     * Category Selection
-     *      ↓
-     * Smart Input Form
-     *      ↓
-     * AI Generation
-     *      ↓
-     * Variant Selection
-     *      ↓
-     * Preview
-     *      ↓
-     * Approval
      */
 
     {
