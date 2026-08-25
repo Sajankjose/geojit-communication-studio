@@ -654,8 +654,47 @@ export function ReviewQueue() {
                     }
                   />
 
-                  {selected.communication
-                    ?.selected_variant_id && (
+                  {isGuidedCommunication(
+                    selected
+                  ) ? (
+                    <div className="mb-6 rounded-xl border border-[#b3d9d5] bg-[#f7fbfa] p-4">
+                      <div className="mb-3 flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-[#07877B]" />
+
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            Guided communication package
+                          </p>
+
+                          <p className="mt-0.5 text-xs leading-5 text-gray-500">
+                            Review all selected channel outputs together before making a decision.
+                          </p>
+                        </div>
+                      </div>
+
+                      <GuidedChannelSummary
+                        item={
+                          selected
+                        }
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigate(
+                            `/create/guided/approval-package?communicationId=${encodeURIComponent(
+                              selected.communication_id
+                            )}&mode=review`
+                          );
+                        }}
+                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:border-[#07877B] hover:text-[#07877B]"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Open Approval Package
+                      </button>
+                    </div>
+                  ) : selected.communication
+                      ?.selected_variant_id ? (
                     <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
                       <div className="mb-3 flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-[#07877B]" />
@@ -699,6 +738,16 @@ export function ReviewQueue() {
                         <FileText className="h-4 w-4" />
                         Open Full Preview
                       </button>
+                    </div>
+                  ) : (
+                    <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                      <p className="text-sm font-medium text-amber-800">
+                        Preview unavailable
+                      </p>
+
+                      <p className="mt-1 text-xs leading-5 text-amber-700">
+                        No submitted communication output could be identified for this review.
+                      </p>
                     </div>
                   )}
 
@@ -822,6 +871,133 @@ export function ReviewQueue() {
     </div>
   );
 }
+
+function getGuidedApprovalPackage(
+  item:
+    ReviewQueueItem | null
+): Record<string, any> | null {
+  const inputData =
+    item?.communication
+      ?.input_data;
+
+  if (
+    !inputData ||
+    typeof inputData !==
+      "object" ||
+    Array.isArray(
+      inputData
+    )
+  ) {
+    return null;
+  }
+
+  const guided =
+    (
+      inputData as
+        Record<string, any>
+    ).guided;
+
+  if (
+    !guided ||
+    typeof guided !==
+      "object" ||
+    Array.isArray(
+      guided
+    )
+  ) {
+    return null;
+  }
+
+  const approvalPackage =
+    guided.approvalPackage;
+
+  if (
+    !approvalPackage ||
+    typeof approvalPackage !==
+      "object" ||
+    Array.isArray(
+      approvalPackage
+    )
+  ) {
+    return null;
+  }
+
+  if (
+    approvalPackage.sourceMode !==
+      "guided"
+  ) {
+    return null;
+  }
+
+  return approvalPackage as
+    Record<string, any>;
+}
+
+
+function isGuidedCommunication(
+  item:
+    ReviewQueueItem | null
+) {
+  return Boolean(
+    getGuidedApprovalPackage(
+      item
+    )
+  );
+}
+
+
+function GuidedChannelSummary({
+  item,
+}: {
+  item:
+    ReviewQueueItem;
+}) {
+  const approvalPackage =
+    getGuidedApprovalPackage(
+      item
+    );
+
+  const channels =
+    Array.isArray(
+      approvalPackage?.channels
+    )
+      ? approvalPackage
+          ?.channels
+      : [];
+
+  if (
+    !channels ||
+    channels.length ===
+      0
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {channels.map(
+        (
+          channel:
+            string
+        ) => (
+          <span
+            key={
+              channel
+            }
+            className="rounded-full border border-[#b3d9d5] bg-white px-2.5 py-1 text-xs font-medium text-[#06766a]"
+          >
+            {
+              humanize(
+                channel
+              )
+            }
+          </span>
+        )
+      )}
+    </div>
+  );
+}
+
 
 function ActivityView({
   items,
