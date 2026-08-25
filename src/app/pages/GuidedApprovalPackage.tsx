@@ -544,32 +544,147 @@ function CompactOutputPreview({
         EmailChannelContent;
 
     return (
-      <div>
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-          Subject
-        </p>
+      <div className="space-y-5">
 
-        <p className="mt-1 text-sm font-medium text-gray-900">
-          {
-            email.subject
-          }
-        </p>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+            Subject
+          </p>
 
-        <p className="mt-4 text-xs font-medium uppercase tracking-wide text-gray-400">
-          Headline
-        </p>
+          <p className="mt-1 text-sm font-medium leading-6 text-gray-900">
+            {
+              email.subject
+            }
+          </p>
+        </div>
 
-        <p className="mt-1 text-lg text-gray-900">
-          {
-            email.headline
-          }
-        </p>
+        {email.preheader && (
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              Preheader
+            </p>
 
-        <p className="mt-3 text-sm leading-6 text-gray-600">
-          {
-            email.opening
-          }
-        </p>
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              {
+                email.preheader
+              }
+            </p>
+          </div>
+        )}
+
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+          <h3 className="text-xl font-semibold leading-8 text-gray-900">
+            {
+              email.headline
+            }
+          </h3>
+
+          <p className="mt-4 text-sm leading-7 text-gray-700">
+            {
+              email.opening
+            }
+          </p>
+
+          {Array.isArray(
+            email.bodySections
+          ) &&
+            email.bodySections.map(
+              (
+                section,
+                index
+              ) => (
+                <div
+                  key={
+                    `${section.heading || "section"}-${index}`
+                  }
+                  className="mt-5"
+                >
+                  {section.heading && (
+                    <h4 className="text-sm font-semibold text-gray-900">
+                      {
+                        section.heading
+                      }
+                    </h4>
+                  )}
+
+                  <p className="mt-1 text-sm leading-7 text-gray-700">
+                    {
+                      section.content
+                    }
+                  </p>
+                </div>
+              )
+            )}
+
+          {Array.isArray(
+            email.keyPoints
+          ) &&
+            email.keyPoints.length >
+              0 && (
+              <ul className="mt-5 space-y-2">
+                {email.keyPoints.map(
+                  (
+                    point,
+                    index
+                  ) => (
+                    <li
+                      key={
+                        `${point}-${index}`
+                      }
+                      className="flex gap-2 text-sm leading-6 text-gray-700"
+                    >
+                      <span className="text-[#07877B]">
+                        •
+                      </span>
+
+                      <span>
+                        {
+                          point
+                        }
+                      </span>
+                    </li>
+                  )
+                )}
+              </ul>
+            )}
+
+          {email.cta && (
+            <div className="mt-5">
+              <span className="inline-flex rounded-lg bg-[#07877B] px-4 py-2 text-sm font-medium text-white">
+                {
+                  email.cta.label
+                }
+              </span>
+            </div>
+          )}
+        </div>
+
+        {Array.isArray(
+          email.mandatoryNotes
+        ) &&
+          email.mandatoryNotes.length >
+            0 && (
+            <div className="border-t border-gray-200 pt-4">
+              {email.mandatoryNotes.map(
+                (
+                  note,
+                  index
+                ) => (
+                  <p
+                    key={
+                      `${note}-${index}`
+                    }
+                    className="mt-1 text-xs leading-5 text-gray-500"
+                  >
+                    {
+                      note
+                    }
+                  </p>
+                )
+              )}
+            </div>
+          )}
+
       </div>
     );
   }
@@ -583,20 +698,94 @@ function CompactOutputPreview({
         WhatsAppChannelContent;
 
     return (
-      <div className="max-w-xl rounded-xl bg-[#eaf7e8] p-4">
-        {whatsapp.headline && (
-          <p className="text-sm font-medium text-gray-900">
+      <div className="space-y-5">
+
+        <div className="mx-auto max-w-2xl rounded-2xl border border-green-100 bg-[#eaf7e8] p-5">
+
+          {whatsapp.headline && (
+            <p className="text-base font-semibold text-gray-900">
+              {
+                whatsapp.headline
+              }
+            </p>
+          )}
+
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-gray-800">
             {
-              whatsapp.headline
+              whatsapp.message
             }
           </p>
-        )}
 
-        <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700">
-          {
-            whatsapp.message
-          }
-        </p>
+          {Array.isArray(
+            whatsapp.keyPoints
+          ) &&
+            whatsapp.keyPoints.length >
+              0 && (
+              <ul className="mt-4 space-y-2">
+                {whatsapp.keyPoints.map(
+                  (
+                    point,
+                    index
+                  ) => (
+                    <li
+                      key={
+                        `${point}-${index}`
+                      }
+                      className="flex gap-2 text-sm leading-6 text-gray-700"
+                    >
+                      <span className="text-[#07877B]">
+                        •
+                      </span>
+
+                      <span>
+                        {
+                          point
+                        }
+                      </span>
+                    </li>
+                  )
+                )}
+              </ul>
+            )}
+
+          {whatsapp.cta && (
+            <div className="mt-5">
+              <span className="inline-flex rounded-lg bg-white px-4 py-2 text-sm font-medium text-[#075f58] shadow-sm">
+                {
+                  whatsapp.cta.label
+                }
+              </span>
+            </div>
+          )}
+
+        </div>
+
+        {Array.isArray(
+          whatsapp.mandatoryNotes
+        ) &&
+          whatsapp.mandatoryNotes.length >
+            0 && (
+            <div className="border-t border-gray-200 pt-4">
+              {whatsapp.mandatoryNotes.map(
+                (
+                  note,
+                  index
+                ) => (
+                  <p
+                    key={
+                      `${note}-${index}`
+                    }
+                    className="mt-1 text-xs leading-5 text-gray-500"
+                  >
+                    {
+                      note
+                    }
+                  </p>
+                )
+              )}
+            </div>
+          )}
+
       </div>
     );
   }
@@ -606,26 +795,128 @@ function CompactOutputPreview({
       LeafletChannelContent;
 
   return (
-    <div>
-      <p className="text-xl font-semibold leading-7 text-gray-900">
-        {
-          leaflet.headline
-        }
-      </p>
+    <div className="space-y-5">
 
-      {leaflet.subheadline && (
-        <p className="mt-1 text-sm text-gray-500">
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+
+        <p className="text-xs font-medium uppercase tracking-wide text-[#07877B]">
+          Leaflet content
+        </p>
+
+        <h3 className="mt-3 text-2xl font-semibold leading-8 text-gray-900">
           {
-            leaflet.subheadline
+            leaflet.headline
+          }
+        </h3>
+
+        {leaflet.subheadline && (
+          <p className="mt-2 text-base leading-6 text-gray-600">
+            {
+              leaflet.subheadline
+            }
+          </p>
+        )}
+
+        <p className="mt-5 text-sm leading-7 text-gray-700">
+          {
+            leaflet.intro
           }
         </p>
+
+        {Array.isArray(
+          leaflet.keyPoints
+        ) &&
+          leaflet.keyPoints.length >
+            0 && (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {leaflet.keyPoints.map(
+                (
+                  point,
+                  index
+                ) => (
+                  <div
+                    key={
+                      `${point.title}-${index}`
+                    }
+                    className="rounded-lg border border-gray-200 bg-white p-4"
+                  >
+                    <p className="text-sm font-semibold text-gray-900">
+                      {
+                        point.title
+                      }
+                    </p>
+
+                    <p className="mt-1 text-sm leading-6 text-gray-600">
+                      {
+                        point.description
+                      }
+                    </p>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+
+        {leaflet.cta && (
+          <div className="mt-5 rounded-lg bg-[#07877B] px-4 py-3 text-white">
+            <p className="text-sm font-medium">
+              {
+                leaflet.cta.label
+              }
+            </p>
+
+            {leaflet.cta.supportingText && (
+              <p className="mt-1 text-xs leading-5 text-white/80">
+                {
+                  leaflet.cta.supportingText
+                }
+              </p>
+            )}
+          </div>
+        )}
+
+      </div>
+
+      {leaflet.visualDirection && (
+        <div className="rounded-lg border border-dashed border-gray-300 bg-white px-4 py-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+            Visual direction
+          </p>
+
+          <p className="mt-1 text-sm leading-6 text-gray-600">
+            {
+              leaflet.visualDirection
+            }
+          </p>
+        </div>
       )}
 
-      <p className="mt-3 text-sm leading-6 text-gray-600">
-        {
-          leaflet.intro
-        }
-      </p>
+      {Array.isArray(
+        leaflet.mandatoryNotes
+      ) &&
+        leaflet.mandatoryNotes.length >
+          0 && (
+          <div className="border-t border-gray-200 pt-4">
+            {leaflet.mandatoryNotes.map(
+              (
+                note,
+                index
+              ) => (
+                <p
+                  key={
+                    `${note}-${index}`
+                  }
+                  className="mt-1 text-xs leading-5 text-gray-500"
+                >
+                  {
+                    note
+                  }
+                </p>
+              )
+            )}
+          </div>
+        )}
+
     </div>
   );
 }
