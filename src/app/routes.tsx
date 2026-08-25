@@ -26,11 +26,32 @@ import {
  *
  * Guided Creation:
  * captures the Creator's raw idea
- * before AI understanding is introduced.
+ * and runs the Idea Understanding layer.
  */
 import {
   GuidedCreation,
 } from "./pages/GuidedCreation";
+
+/**
+ * PHASE 2
+ *
+ * Guided Brief:
+ * confirms audience, purpose,
+ * personalisation and channels.
+ */
+import {
+  GuidedBrief,
+} from "./pages/GuidedBrief";
+
+/**
+ * PHASE 2
+ *
+ * Temporary safe checkpoint after
+ * Guided Brief confirmation.
+ */
+import {
+  GuidedReady,
+} from "./pages/GuidedReady";
 
 import {
   CategorySelection,
@@ -120,18 +141,6 @@ export const router =
      * ------------------------------------------------------
      * CREATION MODE SELECTION
      * ------------------------------------------------------
-     *
-     * New Phase 2 entry point.
-     *
-     * Dashboard
-     *    ↓
-     * /create/mode
-     *
-     * User chooses:
-     *
-     * Guided Creation
-     * or
-     * Expert Creation
      */
 
     {
@@ -158,21 +167,8 @@ export const router =
      * GUIDED CREATION
      * ------------------------------------------------------
      *
-     * New Phase 2 flow.
-     *
-     * Current purpose:
-     *
-     * - capture raw user idea
-     * - allow natural / imperfect language
-     * - use guided starter prompts
-     * - prepare for the AI understanding layer
-     *
-     * IMPORTANT:
-     *
-     * This does NOT yet call the existing generation engine.
-     *
-     * It is intentionally isolated so the existing Expert
-     * workflow remains unaffected.
+     * Captures rawInput and uses AI
+     * to understand the employee's idea.
      */
 
     {
@@ -188,6 +184,80 @@ export const router =
             ]}
           >
             <GuidedCreation />
+          </RoleGuard>
+        </ProtectedRoute>
+      ),
+    },
+
+
+    /**
+     * ------------------------------------------------------
+     * GUIDED BRIEF
+     * ------------------------------------------------------
+     *
+     * After the Creator confirms:
+     *
+     * "Yes, that's my idea"
+     *
+     * the Creator confirms:
+     *
+     * - audience
+     * - purpose
+     * - personalisation
+     * - channels
+     *
+     * Example:
+     *
+     * /create/guided/brief?communicationId=<UUID>
+     */
+
+    {
+      path:
+        "/create/guided/brief",
+
+      element: (
+        <ProtectedRoute>
+          <RoleGuard
+            allowedRoles={[
+              "creator",
+              "admin",
+            ]}
+          >
+            <GuidedBrief />
+          </RoleGuard>
+        </ProtectedRoute>
+      ),
+    },
+
+
+    /**
+     * ------------------------------------------------------
+     * GUIDED READY
+     * ------------------------------------------------------
+     *
+     * Safe Phase 2 checkpoint.
+     *
+     * The Guided Brief has been saved,
+     * but it is NOT yet passed into the
+     * existing Expert generation engine.
+     *
+     * This route will later be replaced
+     * or extended by channel-aware generation.
+     */
+
+    {
+      path:
+        "/create/guided/ready",
+
+      element: (
+        <ProtectedRoute>
+          <RoleGuard
+            allowedRoles={[
+              "creator",
+              "admin",
+            ]}
+          >
+            <GuidedReady />
           </RoleGuard>
         </ProtectedRoute>
       ),
@@ -297,18 +367,6 @@ export const router =
      * ------------------------------------------------------
      * SHARED FULL PREVIEW
      * ------------------------------------------------------
-     *
-     * Creator:
-     * editable where workflow allows
-     *
-     * Marketing:
-     * read-only review preview
-     *
-     * CorpCom:
-     * read-only review preview
-     *
-     * Admin:
-     * read-only oversight preview
      */
 
     {
