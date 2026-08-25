@@ -13,20 +13,24 @@ import {
 /**
  * PHASE 2
  *
- * New creation entry point.
- *
- * After a communication draft is created,
- * the Creator chooses:
- *
+ * Creation mode selection:
  * - Guided Creation
  * - Expert Creation
- *
- * Expert Creation continues into the
- * existing Phase 1 workflow without changing it.
  */
 import {
   CreationModeSelection,
 } from "./pages/CreationModeSelection";
+
+/**
+ * PHASE 2
+ *
+ * Guided Creation:
+ * captures the Creator's raw idea
+ * before AI understanding is introduced.
+ */
+import {
+  GuidedCreation,
+} from "./pages/GuidedCreation";
 
 import {
   CategorySelection,
@@ -98,10 +102,6 @@ export const router =
      * ------------------------------------------------------
      * DASHBOARD
      * ------------------------------------------------------
-     *
-     * Dashboard is available to every authenticated role.
-     *
-     * Each role can render its own relevant dashboard content.
      */
 
     {
@@ -121,27 +121,17 @@ export const router =
      * CREATION MODE SELECTION
      * ------------------------------------------------------
      *
-     * NEW IN PHASE 2
+     * New Phase 2 entry point.
      *
-     * This is the new entry point after the Creator clicks
-     * "Start Creating".
+     * Dashboard
+     *    ↓
+     * /create/mode
      *
-     * Example:
+     * User chooses:
      *
-     * /create/mode?communicationId=<UUID>
-     *
-     * The Creator chooses between:
-     *
-     * GUIDED CREATION
-     * AI helps the Creator understand and structure the idea.
-     *
-     * EXPERT CREATION
-     * Continues into the existing Category Selection and
-     * structured creation workflow.
-     *
-     * IMPORTANT:
-     *
-     * This route does NOT change the existing Expert workflow.
+     * Guided Creation
+     * or
+     * Expert Creation
      */
 
     {
@@ -165,12 +155,52 @@ export const router =
 
     /**
      * ------------------------------------------------------
+     * GUIDED CREATION
+     * ------------------------------------------------------
+     *
+     * New Phase 2 flow.
+     *
+     * Current purpose:
+     *
+     * - capture raw user idea
+     * - allow natural / imperfect language
+     * - use guided starter prompts
+     * - prepare for the AI understanding layer
+     *
+     * IMPORTANT:
+     *
+     * This does NOT yet call the existing generation engine.
+     *
+     * It is intentionally isolated so the existing Expert
+     * workflow remains unaffected.
+     */
+
+    {
+      path:
+        "/create/guided",
+
+      element: (
+        <ProtectedRoute>
+          <RoleGuard
+            allowedRoles={[
+              "creator",
+              "admin",
+            ]}
+          >
+            <GuidedCreation />
+          </RoleGuard>
+        </ProtectedRoute>
+      ),
+    },
+
+
+    /**
+     * ------------------------------------------------------
      * EXISTING CREATOR / EXPERT FLOW
      * ------------------------------------------------------
      *
-     * The existing Phase 1 workflow remains unchanged.
-     *
-     * Expert Creation:
+     * Expert Creation continues through
+     * the existing Phase 1 workflow.
      *
      * Creation Mode
      *      ↓
@@ -185,13 +215,6 @@ export const router =
      * Preview
      *      ↓
      * Approval
-     *
-     * Admin is currently retained here for creation-flow
-     * visibility / testing because that is how the existing
-     * application is configured.
-     *
-     * Individual screens should still prevent Admin from
-     * acting as Creator where required.
      */
 
     {
@@ -212,6 +235,7 @@ export const router =
       ),
     },
 
+
     {
       path:
         "/create/form",
@@ -230,6 +254,7 @@ export const router =
       ),
     },
 
+
     {
       path:
         "/create/generating",
@@ -247,6 +272,7 @@ export const router =
         </ProtectedRoute>
       ),
     },
+
 
     {
       path:
@@ -273,7 +299,7 @@ export const router =
      * ------------------------------------------------------
      *
      * Creator:
-     * editable preview
+     * editable where workflow allows
      *
      * Marketing:
      * read-only review preview
@@ -283,9 +309,6 @@ export const router =
      *
      * Admin:
      * read-only oversight preview
-     *
-     * FullPreview itself controls whether the page is editable
-     * based on role + mode.
      */
 
     {
@@ -313,13 +336,6 @@ export const router =
      * ------------------------------------------------------
      * APPROVAL SUBMISSION
      * ------------------------------------------------------
-     *
-     * Creator submits the selected communication
-     * to Marketing review.
-     *
-     * Admin may reach this route under the existing role
-     * configuration, but the page/service layer should
-     * prevent Admin from impersonating Creator.
      */
 
     {
@@ -343,15 +359,12 @@ export const router =
 
     /**
      * ------------------------------------------------------
-     * COMMUNICATION APPROVAL STATUS / AUDIT TRAIL
+     * APPROVAL STATUS / AUDIT TRAIL
      * ------------------------------------------------------
      *
      * Canonical route:
      *
      * /approval/status?communicationId=<UUID>
-     *
-     * Creator, Marketing, CorpCom and Admin may use this
-     * page subject to Supabase/RPC access rules.
      */
 
     {
@@ -370,17 +383,6 @@ export const router =
      * ------------------------------------------------------
      * REVIEW QUEUE
      * ------------------------------------------------------
-     *
-     * Marketing Reviewer:
-     * - Marketing pending queue
-     * - My Activity
-     *
-     * CorpCom Reviewer:
-     * - CorpCom pending queue
-     * - My Activity
-     *
-     * Admin is intentionally excluded because Admin is an
-     * oversight/configuration role rather than an approver.
      */
 
     {
