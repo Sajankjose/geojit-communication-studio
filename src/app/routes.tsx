@@ -341,6 +341,8 @@ export const router =
           <RoleGuard
             allowedRoles={[
               "creator",
+              "marketing_reviewer",
+              "corpcom_reviewer",
               "admin",
             ]}
           >
