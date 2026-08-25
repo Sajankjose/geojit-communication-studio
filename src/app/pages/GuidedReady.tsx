@@ -1,7 +1,9 @@
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   FileText,
+  Loader2,
   Mail,
   MessageCircle,
   Sparkles,
@@ -26,6 +28,10 @@ import {
   CommunicationMaster,
 } from "../services/guidedCreation";
 
+import {
+  generateGuidedChannels,
+} from "../services/channels/guidedChannelGeneration";
+
 export function GuidedReady() {
   const navigate =
     useNavigate();
@@ -45,8 +51,20 @@ export function GuidedReady() {
     useState(true);
 
   const [
+    generating,
+    setGenerating,
+  ] =
+    useState(false);
+
+  const [
     error,
     setError,
+  ] =
+    useState("");
+
+  const [
+    generationMessage,
+    setGenerationMessage,
   ] =
     useState("");
 
@@ -112,6 +130,65 @@ export function GuidedReady() {
     );
   }
 
+  async function handleGenerateChannels() {
+    if (
+      !communicationId ||
+      !master
+    ) {
+      return;
+    }
+
+    try {
+      setGenerating(
+        true
+      );
+
+      setError(
+        ""
+      );
+
+      setGenerationMessage(
+        ""
+      );
+
+      const result =
+        await generateGuidedChannels(
+          communicationId
+        );
+
+      const summary =
+        result.generated
+          .map(
+            (item) =>
+              `${formatChannel(
+                item.channel
+              )}: ${item.variants} variants`
+          )
+          .join(
+            " · "
+          );
+
+      setGenerationMessage(
+        `Channel options generated successfully. ${summary}`
+      );
+    } catch (err) {
+      console.error(
+        "Unable to generate channel options:",
+        err
+      );
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to generate channel options."
+      );
+    } finally {
+      setGenerating(
+        false
+      );
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -147,11 +224,13 @@ export function GuidedReady() {
           Back to Guided Brief
         </button>
 
-        {error ? (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
             {error}
           </div>
-        ) : master ? (
+        )}
+
+        {master ? (
           <>
             <div className="mb-8 text-center">
               <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-green-50">
@@ -167,10 +246,10 @@ export function GuidedReady() {
               </h1>
 
               <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-gray-600">
-                Your confirmed idea has now
-                been converted into one
-                governed source that future
-                channel outputs will use.
+                Your confirmed idea is now
+                ready to be adapted into the
+                selected communication
+                channels.
               </p>
             </div>
 
@@ -226,50 +305,6 @@ export function GuidedReady() {
                 />
               </div>
 
-              {master.customerContext.situation && (
-                <div className="mt-5">
-                  <MasterItem
-                    label="Customer situation"
-                    value={
-                      master.customerContext.situation
-                    }
-                  />
-                </div>
-              )}
-
-              {master.customerContext.concern && (
-                <div className="mt-4">
-                  <MasterItem
-                    label="Customer concern"
-                    value={
-                      master.customerContext.concern
-                    }
-                  />
-                </div>
-              )}
-
-              {master.creatorKnowledge.insight && (
-                <div className="mt-4">
-                  <MasterItem
-                    label="Creator knowledge / experience"
-                    value={
-                      master.creatorKnowledge.insight
-                    }
-                  />
-                </div>
-              )}
-
-              {master.desiredOutcome && (
-                <div className="mt-4">
-                  <MasterItem
-                    label="Desired outcome"
-                    value={
-                      master.desiredOutcome
-                    }
-                  />
-                </div>
-              )}
-
               <div className="mt-7 border-t border-gray-200 pt-6">
                 <p className="text-sm font-medium text-gray-900">
                   Selected channels
@@ -297,62 +332,55 @@ export function GuidedReady() {
 
                   <div>
                     <p className="text-sm font-medium text-gray-900">
-                      One governed source
+                      Same governed meaning. Different channel expression.
                     </p>
 
                     <p className="mt-1 text-sm leading-6 text-gray-600">
-                      Email, WhatsApp and
-                      Leaflet outputs will be
-                      generated from this same
-                      Communication Master.
-                      The channels may express
-                      the idea differently,
-                      but the underlying
-                      meaning and facts must
-                      remain consistent.
+                      Each selected channel
+                      will receive three
+                      variants. Email can be
+                      more explanatory,
+                      WhatsApp will be
+                      mobile-first, and
+                      Leaflet content will be
+                      more scannable.
                     </p>
                   </div>
                 </div>
               </div>
 
-              {master.unresolvedInformation.length >
-                0 && (
-                <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
-                  <p className="text-sm font-medium text-amber-900">
-                    Items still to be confirmed
-                  </p>
+              <button
+                type="button"
+                onClick={() =>
+                  void handleGenerateChannels()
+                }
+                disabled={
+                  generating
+                }
+                className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-7 py-3.5 text-sm font-medium text-white shadow-sm hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating channel options...
+                  </>
+                ) : (
+                  <>
+                    Generate Channel Options
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
 
-                  <ul className="mt-2 space-y-1 text-sm text-amber-800">
-                    {master.unresolvedInformation.map(
-                      (item) => (
-                        <li
-                          key={
-                            item
-                          }
-                        >
-                          • {item}
-                        </li>
-                      )
-                    )}
-                  </ul>
+              {generationMessage && (
+                <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm leading-6 text-green-700">
+                  {
+                    generationMessage
+                  }
                 </div>
               )}
 
             </section>
-
-            <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50 px-5 py-4">
-              <p className="text-sm font-medium text-gray-800">
-                Next checkpoint
-              </p>
-
-              <p className="mt-1 text-sm leading-6 text-gray-600">
-                We can now build the
-                channel-generation layer
-                against this master without
-                changing the existing Expert
-                workflow.
-              </p>
-            </div>
           </>
         ) : null}
 
@@ -403,21 +431,34 @@ function ChannelPill({
         ? MessageCircle
         : FileText;
 
-  const label =
-    channel ===
-      "email"
-      ? "Email"
-      : channel ===
-          "whatsapp"
-        ? "WhatsApp"
-        : "Leaflet";
-
   return (
     <span className="inline-flex items-center gap-2 rounded-full border border-[#bfe4df] bg-[#f3fbfa] px-3 py-1.5 text-xs font-medium text-[#075f58]">
       <Icon className="h-3.5 w-3.5" />
-      {label}
+      {formatChannel(
+        channel
+      )}
     </span>
   );
+}
+
+
+function formatChannel(
+  channel:
+    string
+) {
+  switch (channel) {
+    case "email":
+      return "Email";
+
+    case "whatsapp":
+      return "WhatsApp";
+
+    case "leaflet":
+      return "Leaflet";
+
+    default:
+      return channel;
+  }
 }
 
 
