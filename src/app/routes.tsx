@@ -46,12 +46,23 @@ import {
 /**
  * PHASE 2
  *
- * Temporary safe checkpoint after
- * Guided Brief confirmation.
+ * Communication Master + channel generation.
  */
 import {
   GuidedReady,
 } from "./pages/GuidedReady";
+
+/**
+ * PHASE 2
+ *
+ * Channel Preview:
+ * compare A/B/C variants for Email,
+ * WhatsApp and Leaflet and select
+ * one variant per channel.
+ */
+import {
+  GuidedChannelPreview,
+} from "./pages/GuidedChannelPreview";
 
 import {
   CategorySelection,
@@ -205,10 +216,6 @@ export const router =
      * - purpose
      * - personalisation
      * - channels
-     *
-     * Example:
-     *
-     * /create/guided/brief?communicationId=<UUID>
      */
 
     {
@@ -232,17 +239,17 @@ export const router =
 
     /**
      * ------------------------------------------------------
-     * GUIDED READY
+     * COMMUNICATION MASTER / CHANNEL GENERATION
      * ------------------------------------------------------
      *
-     * Safe Phase 2 checkpoint.
+     * Builds the Communication Master from the
+     * confirmed Guided Brief.
      *
-     * The Guided Brief has been saved,
-     * but it is NOT yet passed into the
-     * existing Expert generation engine.
+     * Then generates selected channel variants.
      *
-     * This route will later be replaced
-     * or extended by channel-aware generation.
+     * Example:
+     *
+     * /create/guided/ready?communicationId=<UUID>
      */
 
     {
@@ -258,6 +265,46 @@ export const router =
             ]}
           >
             <GuidedReady />
+          </RoleGuard>
+        </ProtectedRoute>
+      ),
+    },
+
+
+    /**
+     * ------------------------------------------------------
+     * GUIDED CHANNEL PREVIEW
+     * ------------------------------------------------------
+     *
+     * Displays generated A/B/C variants for
+     * every selected channel.
+     *
+     * Current channels:
+     *
+     * - Email
+     * - WhatsApp
+     * - Leaflet
+     *
+     * Creator selects one variant per channel.
+     *
+     * Example:
+     *
+     * /create/guided/channels?communicationId=<UUID>
+     */
+
+    {
+      path:
+        "/create/guided/channels",
+
+      element: (
+        <ProtectedRoute>
+          <RoleGuard
+            allowedRoles={[
+              "creator",
+              "admin",
+            ]}
+          >
+            <GuidedChannelPreview />
           </RoleGuard>
         </ProtectedRoute>
       ),
@@ -419,10 +466,6 @@ export const router =
      * ------------------------------------------------------
      * APPROVAL STATUS / AUDIT TRAIL
      * ------------------------------------------------------
-     *
-     * Canonical route:
-     *
-     * /approval/status?communicationId=<UUID>
      */
 
     {
