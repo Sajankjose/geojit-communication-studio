@@ -232,3 +232,112 @@ export async function understandGuidedInput({
 
   return payload as GuidedUnderstandingResponse;
 }
+
+export interface GuidedBriefData {
+  audience:
+    string;
+
+  purpose:
+    | "awareness"
+    | "education"
+    | "action"
+    | "update"
+    | "explanation";
+
+  personalisation: {
+    mode:
+      | "brand"
+      | "branch"
+      | "customer";
+  };
+
+  channels: Array<
+    | "email"
+    | "whatsapp"
+    | "leaflet"
+  >;
+}
+
+/**
+ * Save the confirmed Guided Brief inside the existing
+ * communications.input_data JSON structure.
+ *
+ * No database schema change is required.
+ */
+export async function saveGuidedBrief({
+  communicationId,
+  brief,
+}: {
+  communicationId:
+    string;
+
+  brief:
+    GuidedBriefData;
+}) {
+  const communication =
+    await getCommunicationById(
+      communicationId
+    );
+
+  const currentInput =
+    communication.input_data ||
+    {};
+
+  const currentGuided =
+    (
+      currentInput.guided &&
+      typeof currentInput.guided ===
+        "object" &&
+      !Array.isArray(
+        currentInput.guided
+      )
+    )
+      ? currentInput.guided as Record<string, unknown>
+      : {};
+
+  return updateCommunication(
+    communicationId,
+    {
+      audience:
+        brief.audience,
+
+      objective:
+        brief.purpose,
+
+      input_data: {
+        ...currentInput,
+
+        creationMode:
+          "guided",
+
+        guided: {
+          ...currentGuided,
+
+          brief,
+
+          briefConfirmedAt:
+            new Date().toISOString(),
+        },
+      },
+
+      classification_data: {
+        ...(
+          communication.classification_data ||
+          {}
+        ),
+
+        creationMode:
+          "guided",
+
+        guidedPurpose:
+          brief.purpose,
+
+        guidedChannels:
+          brief.channels,
+
+        personalisationMode:
+          brief.personalisation.mode,
+      },
+    }
+  );
+}
