@@ -784,7 +784,7 @@ function ChannelContentPreview({
             {
               content.message
             }
-          />
+          </p>
 
           <SimplePoints
             points={
