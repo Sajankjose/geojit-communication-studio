@@ -23,7 +23,12 @@ import {
 } from "../components/TopNavBar";
 
 import {
+  useAuth,
+} from "../auth/useAuth";
+
+import {
   buildGuidedApprovalPackage,
+  getGuidedApprovalPackage,
   GuidedApprovalPackage as GuidedApprovalPackageData,
 } from "../services/channels/guidedApprovalPackage";
 
@@ -37,6 +42,13 @@ export function GuidedApprovalPackage() {
   const navigate =
     useNavigate();
 
+  const {
+    profile,
+    loading:
+      authLoading,
+  } =
+    useAuth();
+
   const [searchParams] =
     useSearchParams();
 
@@ -44,6 +56,22 @@ export function GuidedApprovalPackage() {
     searchParams.get(
       "communicationId"
     );
+
+  const mode =
+    searchParams.get(
+      "mode"
+    );
+
+  const isReviewer =
+    profile?.role ===
+      "marketing_reviewer" ||
+    profile?.role ===
+      "corpcom_reviewer";
+
+  const isReviewMode =
+    mode ===
+      "review" &&
+    isReviewer;
 
   const [
     loading,
@@ -66,6 +94,12 @@ export function GuidedApprovalPackage() {
     >(null);
 
   useEffect(() => {
+    if (
+      authLoading
+    ) {
+      return;
+    }
+
     async function prepare() {
       if (
         !communicationId
@@ -90,24 +124,44 @@ export function GuidedApprovalPackage() {
           ""
         );
 
+        /**
+         * REVIEWER MODE
+         *
+         * Reviewers must never rebuild or modify the
+         * Creator's approval package. They only read
+         * the package that was already frozen/saved.
+         *
+         * CREATOR / ADMIN MODE
+         *
+         * Creator-side access may build/refresh the
+         * package from the selected channel variants.
+         */
         const result =
-          await buildGuidedApprovalPackage(
-            communicationId
-          );
+          isReviewMode
+            ? await getGuidedApprovalPackage(
+                communicationId
+              )
+            : await buildGuidedApprovalPackage(
+                communicationId
+              );
 
         setApprovalPackage(
           result
         );
       } catch (err) {
         console.error(
-          "Unable to build Guided approval package:",
+          isReviewMode
+            ? "Unable to load Guided approval package:"
+            : "Unable to build Guided approval package:",
           err
         );
 
         setError(
           err instanceof Error
             ? err.message
-            : "Unable to prepare the approval package."
+            : isReviewMode
+              ? "Unable to load the approval package."
+              : "Unable to prepare the approval package."
         );
       } finally {
         setLoading(
@@ -117,9 +171,23 @@ export function GuidedApprovalPackage() {
     }
 
     void prepare();
-  }, [communicationId]);
+  }, [
+    authLoading,
+    communicationId,
+    isReviewMode,
+  ]);
 
   function handleBack() {
+    if (
+      isReviewMode
+    ) {
+      navigate(
+        "/reviews"
+      );
+
+      return;
+    }
+
     if (
       !communicationId
     ) {
@@ -135,6 +203,7 @@ export function GuidedApprovalPackage() {
   }
 
   if (
+    authLoading ||
     loading
   ) {
     return (
@@ -164,7 +233,9 @@ export function GuidedApprovalPackage() {
           className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#07877B]"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Channel Selection
+          {isReviewMode
+            ? "Back to Review Queue"
+            : "Back to Channel Selection"}
         </button>
 
         {error && (
@@ -185,14 +256,15 @@ export function GuidedApprovalPackage() {
               </div>
 
               <h1 className="text-3xl text-gray-900">
-                Ready for review
+                {isReviewMode
+                  ? "Review communication package"
+                  : "Ready for review"}
               </h1>
 
               <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
-                These are the versions you selected.
-                They will move together as one
-                communication package through the
-                approval workflow.
+                {isReviewMode
+                  ? "Review the Creator's selected Email, WhatsApp and Leaflet outputs together. This page is read-only; return to the Review Queue to record your decision."
+                  : "These are the versions you selected. They will move together as one communication package through the approval workflow."}
               </p>
             </div>
 
@@ -274,25 +346,47 @@ export function GuidedApprovalPackage() {
             </div>
 
             <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-medium text-gray-900">
-                Next checkpoint
-              </p>
+              {isReviewMode ? (
+                <>
+                  <p className="text-sm font-medium text-gray-900">
+                    Reviewer mode
+                  </p>
 
-              <p className="mt-2 text-sm leading-6 text-gray-600">
-                This approval package is now saved in
-                Supabase. The next implementation will
-                connect this package to the existing
-                Marketing → CorpCom workflow without
-                changing the working Expert approval flow.
-              </p>
+                  <p className="mt-2 text-sm leading-6 text-gray-600">
+                    This package is read-only. Return to the Review Queue to approve, request changes or reject the communication.
+                  </p>
 
-              <button
-                type="button"
-                disabled
-                className="mt-5 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white opacity-40"
-              >
-                Submit for Marketing Review
-              </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/reviews"
+                      )
+                    }
+                    className="mt-5 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white hover:bg-[#06766a]"
+                  >
+                    Return to Review Queue
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-medium text-gray-900">
+                    Next checkpoint
+                  </p>
+
+                  <p className="mt-2 text-sm leading-6 text-gray-600">
+                    This approval package is saved in Supabase. Submission to the existing Marketing → CorpCom workflow will be enabled only after reviewer access is fully verified.
+                  </p>
+
+                  <button
+                    type="button"
+                    disabled
+                    className="mt-5 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white opacity-40"
+                  >
+                    Submit for Marketing Review
+                  </button>
+                </>
+              )}
             </div>
           </>
         )}
