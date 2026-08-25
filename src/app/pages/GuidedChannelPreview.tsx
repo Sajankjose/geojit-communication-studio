@@ -346,11 +346,11 @@ export function GuidedChannelPreview() {
         "Your channel selections have been saved."
       );
 
-      /**
-       * Safe checkpoint:
-       * We stop here before connecting Guided outputs
-       * to the existing approval workflow.
-       */
+      navigate(
+        `/create/guided/approval-package?communicationId=${encodeURIComponent(
+          communicationId
+        )}`
+      );
     } catch (err) {
       console.error(
         "Unable to save channel selections:",
