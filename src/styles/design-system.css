@@ -1,45 +1,19 @@
 /* -------------------------
- * FORM FIELD
+ * TEXTAREA FIELD
  * ------------------------- */
 
-.ds-field {
-  width: 100%;
-}
-
-.ds-field-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-
-  margin-bottom: 8px;
-
-  font-family: var(--font-ui);
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 500;
-
-  color: var(--ds-text-primary);
-}
-
-.ds-field-required {
-  color: var(--ds-error);
-}
-
-.ds-input-shell {
-  min-height: 46px;
-
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
+.ds-textarea-shell {
   width: 100%;
 
-  border: 1px solid var(--ds-border-default);
-  border-radius: var(--ds-radius-md);
+  border:
+    1px solid
+    var(--ds-border-default);
 
-  background: var(--ds-white);
+  border-radius:
+    var(--ds-radius-md);
 
-  padding: 0 14px;
+  background:
+    var(--ds-white);
 
   transition:
     border-color 160ms ease,
@@ -47,99 +21,126 @@
     background-color 160ms ease;
 }
 
-.ds-input-shell:hover {
-  border-color: var(--ds-border-strong);
+.ds-textarea-shell:hover {
+  border-color:
+    var(--ds-border-strong);
 }
 
-.ds-input-shell:focus-within {
-  border-color: var(--ds-brand-primary);
+.ds-textarea-shell:focus-within {
+  border-color:
+    var(--ds-brand-primary);
 
   box-shadow:
     0 0 0 3px
     rgba(7, 135, 123, 0.1);
 }
 
-.ds-input-shell-error {
-  border-color: var(--ds-error);
+.ds-textarea-shell-error {
+  border-color:
+    var(--ds-error);
 }
 
-.ds-input-shell-error:focus-within {
-  border-color: var(--ds-error);
+.ds-textarea-shell-error:focus-within {
+  border-color:
+    var(--ds-error);
 
   box-shadow:
     0 0 0 3px
     rgba(220, 38, 38, 0.08);
 }
 
-.ds-input-shell-disabled {
+.ds-textarea-shell-disabled {
   background:
     var(--ds-surface-muted);
 
-  cursor: not-allowed;
+  cursor:
+    not-allowed;
 
-  opacity: 0.65;
+  opacity:
+    0.65;
 }
 
-.ds-input-control {
-  width: 100%;
-  min-width: 0;
+.ds-textarea-control {
+  display:
+    block;
 
-  border: 0;
-  outline: 0;
+  width:
+    100%;
 
-  background: transparent;
+  min-height:
+    140px;
 
-  padding: 11px 0;
+  border:
+    0;
 
-  font-family: var(--font-ui);
-  font-size: 16px;
-  line-height: 24px;
+  outline:
+    0;
+
+  resize:
+    vertical;
+
+  border-radius:
+    inherit;
+
+  background:
+    transparent;
+
+  padding:
+    14px 16px;
+
+  font-family:
+    var(--font-ui);
+
+  font-size:
+    16px;
+
+  line-height:
+    24px;
 
   color:
     var(--ds-text-primary);
 }
 
-.ds-input-control::placeholder {
+.ds-textarea-control::placeholder {
   color:
     var(--ds-text-tertiary);
 }
 
-.ds-input-control:disabled {
+.ds-textarea-control:disabled {
   cursor:
     not-allowed;
 }
 
-.ds-input-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.ds-field-meta {
+  display:
+    flex;
 
-  flex: 0 0 auto;
+  align-items:
+    flex-start;
 
-  color:
-    var(--ds-text-secondary);
+  justify-content:
+    space-between;
+
+  gap:
+    var(--ds-space-4);
 }
 
-.ds-input-icon svg {
-  width: 18px;
-  height: 18px;
-}
+.ds-field-count {
+  flex:
+    0 0 auto;
 
-.ds-field-helper,
-.ds-field-error {
-  margin-top: 7px;
+  margin-top:
+    7px;
 
-  font-family: var(--font-ui);
-  font-size: 12px;
-  line-height: 18px;
-}
+  font-family:
+    var(--font-ui);
 
-.ds-field-helper {
+  font-size:
+    12px;
+
+  line-height:
+    18px;
+
   color:
     var(--ds-text-tertiary);
-}
-
-.ds-field-error {
-  color:
-    var(--ds-error);
 }
