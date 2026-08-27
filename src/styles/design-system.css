@@ -16,30 +16,115 @@
   --font-ui: "Radio Canada Big", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   /* ---------------------------------------------------------
-   * CORE COLORS
+   * COLOR FOUNDATIONS
+   * ---------------------------------------------------------
+   *
+   * Figma library structure confirmed:
+   * - Brand collection with Neutral/N-0 ... Neutral/N-10
+   * - Mapping collection with semantic Text, Icon,
+   *   BG & Surface, Borders & Dividers and CTA variables.
+   *
+   * The exact additional Figma values could not be retrieved
+   * in this pass because the Figma MCP Starter-plan call limit
+   * was reached. Therefore:
+   *
+   * - known/previously confirmed values are retained;
+   * - semantic aliases are introduced now;
+   * - no new "Figma exact" value is being invented.
+   *
+   * When Figma access is available again, only the foundation
+   * values below need to be replaced. Feature screens should
+   * use the semantic aliases further down.
    * --------------------------------------------------------- */
 
   --ds-white: #ffffff;
 
+  /* Confirmed/established Geojit neutral anchors */
   --ds-neutral-boldest: #022f2d;
   --ds-neutral-bolder: #4a6361;
 
-  /* Existing product semantic colors retained until the full
-   * Figma color library is mapped node-by-node.
+  /* Existing Communication Studio brand value.
+   * Keep as the temporary implementation value until the
+   * exact Mapping/BG & Surface/CTA/Primary variable is read.
    */
   --ds-brand-primary: #07877b;
   --ds-brand-primary-hover: #06766a;
 
-  --ds-surface-page: #ffffff;
-  --ds-surface-subtle: #f7fbfa;
-  --ds-surface-muted: #f3f4fa;
+  /* Brand tints derived from the current implementation value.
+   * These are application aliases, NOT claimed as raw Figma
+   * Brand variables.
+   */
+  --ds-brand-soft: #e8f5f4;
+  --ds-brand-subtle: #f3fbfa;
+  --ds-brand-muted: #eef8f6;
 
-  --ds-border-subtle: rgba(2, 47, 45, 0.1);
-  --ds-border-default: rgba(2, 47, 45, 0.16);
+  /* ---------------------------------------------------------
+   * SEMANTIC TEXT
+   * --------------------------------------------------------- */
 
   --ds-text-primary: var(--ds-neutral-boldest);
   --ds-text-secondary: var(--ds-neutral-bolder);
+  --ds-text-tertiary: #718481;
+  --ds-text-disabled: #9aa9a7;
+  --ds-text-brand: var(--ds-brand-primary);
   --ds-text-inverse: var(--ds-white);
+
+  /* ---------------------------------------------------------
+   * SEMANTIC SURFACES
+   * --------------------------------------------------------- */
+
+  --ds-surface-page: #f7f9f9;
+  --ds-surface-card: var(--ds-white);
+  --ds-surface-raised: var(--ds-white);
+  --ds-surface-subtle: var(--ds-brand-subtle);
+  --ds-surface-muted: #f3f5f5;
+  --ds-surface-selected: var(--ds-brand-muted);
+  --ds-surface-interactive-hover: #f5faf9;
+
+  /* ---------------------------------------------------------
+   * SEMANTIC BORDERS / DIVIDERS
+   * --------------------------------------------------------- */
+
+  --ds-border-subtle: #e1e8e7;
+  --ds-border-default: #cfdad8;
+  --ds-border-strong: #aebfbc;
+  --ds-border-interactive: #8fc8c1;
+  --ds-border-selected: var(--ds-brand-primary);
+
+  /* ---------------------------------------------------------
+   * STATUS / FEEDBACK
+   * ---------------------------------------------------------
+   * Existing semantic values are retained as implementation
+   * values until their Figma Mapping variables are read.
+   * --------------------------------------------------------- */
+
+  --ds-success: #15803d;
+  --ds-success-soft: #f0fdf4;
+  --ds-success-border: #bbf7d0;
+
+  --ds-warning: #b45309;
+  --ds-warning-soft: #fffbeb;
+  --ds-warning-border: #fde68a;
+
+  --ds-error: #dc2626;
+  --ds-error-soft: #fef2f2;
+  --ds-error-border: #fecaca;
+
+  --ds-info: #2563eb;
+  --ds-info-soft: #eff6ff;
+  --ds-info-border: #bfdbfe;
+
+  /* ---------------------------------------------------------
+   * CTA SEMANTICS
+   * --------------------------------------------------------- */
+
+  --ds-cta-primary-bg: var(--ds-brand-primary);
+  --ds-cta-primary-bg-hover: var(--ds-brand-primary-hover);
+  --ds-cta-primary-text: var(--ds-white);
+
+  --ds-cta-secondary-bg: var(--ds-white);
+  --ds-cta-secondary-text: var(--ds-text-primary);
+  --ds-cta-secondary-border: var(--ds-border-default);
 
   /* ---------------------------------------------------------
    * RADII
@@ -68,15 +153,22 @@
   --ds-space-16: 64px;
 
   /* ---------------------------------------------------------
-   * SHADOWS
+   * ELEVATION
+   * ---------------------------------------------------------
+   * Figma confirms Shadow 1 / Shadow 2 exist. These values are
+   * implementation placeholders until the exact effect-style
+   * values can be retrieved.
    * --------------------------------------------------------- */
 
-  --ds-shadow-card:
+  --ds-shadow-1:
     0 1px 2px rgba(2, 47, 45, 0.04),
     0 4px 12px rgba(2, 47, 45, 0.06);
 
-  --ds-shadow-raised:
-    0 8px 24px rgba(2, 47, 45, 0.08);
+  --ds-shadow-2:
+    0 8px 24px rgba(2, 47, 45, 0.10);
+
+  --ds-shadow-card: var(--ds-shadow-1);
+  --ds-shadow-raised: var(--ds-shadow-2);
 
   /* ---------------------------------------------------------
    * DESKTOP TYPOGRAPHY — FIGMA SOURCE
@@ -432,11 +524,22 @@
  * BASE COMPONENT FOUNDATIONS
  * ----------------------------------------------------------- */
 
-.ds-card {
+.ds-page {
+  min-height: 100vh;
   background: var(--ds-surface-page);
+  color: var(--ds-text-primary);
+  font-family: var(--font-ui);
+}
+
+/* -------------------------
+ * CARDS
+ * ------------------------- */
+
+.ds-card {
+  background: var(--ds-surface-card);
   border: 1px solid var(--ds-border-subtle);
   border-radius: var(--ds-radius-lg);
-  box-shadow: var(--ds-shadow-card);
+  box-shadow: var(--ds-shadow-1);
 }
 
 .ds-card-muted {
@@ -445,44 +548,97 @@
   border-radius: var(--ds-radius-lg);
 }
 
-.ds-button-primary {
+.ds-card-interactive {
+  background: var(--ds-surface-card);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-1);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease,
+    background-color 160ms ease;
+}
+
+.ds-card-interactive:hover {
+  background: var(--ds-surface-interactive-hover);
+  border-color: var(--ds-border-interactive);
+  box-shadow: var(--ds-shadow-2);
+  transform: translateY(-2px);
+}
+
+.ds-card-selected {
+  background: var(--ds-surface-selected);
+  border: 1px solid var(--ds-border-selected);
+  border-radius: var(--ds-radius-lg);
+  box-shadow:
+    var(--ds-shadow-1),
+    0 0 0 1px rgba(7, 135, 123, 0.06);
+}
+
+.ds-card-accent {
+  background: var(--ds-surface-subtle);
+  border: 1px solid var(--ds-border-interactive);
+  border-radius: var(--ds-radius-lg);
+}
+
+/* -------------------------
+ * BUTTONS
+ * ------------------------- */
+
+.ds-button-primary,
+.ds-button-secondary {
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--ds-space-2);
-  border: 0;
   border-radius: var(--ds-radius-sm);
-  background: var(--ds-brand-primary);
-  color: var(--ds-text-inverse);
   padding: 12px 20px;
   cursor: pointer;
   transition:
     background-color 160ms ease,
+    border-color 160ms ease,
     box-shadow 160ms ease,
+    color 160ms ease,
     opacity 160ms ease;
 }
 
-.ds-button-primary:hover {
-  background: var(--ds-brand-primary-hover);
+.ds-button-primary {
+  border: 1px solid var(--ds-cta-primary-bg);
+  background: var(--ds-cta-primary-bg);
+  color: var(--ds-cta-primary-text);
+  box-shadow: 0 2px 6px rgba(2, 47, 45, 0.10);
 }
 
-.ds-button-primary:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
+.ds-button-primary:hover {
+  border-color: var(--ds-cta-primary-bg-hover);
+  background: var(--ds-cta-primary-bg-hover);
+  box-shadow: 0 4px 10px rgba(2, 47, 45, 0.14);
 }
 
 .ds-button-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--ds-space-2);
-  border: 1px solid var(--ds-border-default);
-  border-radius: var(--ds-radius-sm);
-  background: var(--ds-white);
-  color: var(--ds-text-primary);
-  padding: 12px 20px;
-  cursor: pointer;
+  border: 1px solid var(--ds-cta-secondary-border);
+  background: var(--ds-cta-secondary-bg);
+  color: var(--ds-cta-secondary-text);
 }
+
+.ds-button-secondary:hover {
+  border-color: var(--ds-border-interactive);
+  background: var(--ds-surface-interactive-hover);
+  color: var(--ds-text-brand);
+}
+
+.ds-button-primary:disabled,
+.ds-button-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  box-shadow: none;
+}
+
+/* -------------------------
+ * INPUTS
+ * ------------------------- */
 
 .ds-input,
 .ds-textarea {
@@ -497,7 +653,8 @@
   outline: none;
   transition:
     border-color 160ms ease,
-    box-shadow 160ms ease;
+    box-shadow 160ms ease,
+    background-color 160ms ease;
 }
 
 .ds-input {
@@ -506,15 +663,24 @@
 }
 
 .ds-textarea {
-  padding: 12px;
+  padding: 14px 16px;
   resize: vertical;
+}
+
+.ds-input:hover,
+.ds-textarea:hover {
+  border-color: var(--ds-border-strong);
 }
 
 .ds-input:focus,
 .ds-textarea:focus {
   border-color: var(--ds-brand-primary);
-  box-shadow: 0 0 0 3px rgba(7, 135, 123, 0.1);
+  box-shadow: 0 0 0 3px rgba(7, 135, 123, 0.10);
 }
+
+/* -------------------------
+ * CHIPS / BADGES
+ * ------------------------- */
 
 .ds-chip {
   display: inline-flex;
@@ -527,13 +693,87 @@
   padding: 6px 10px;
 }
 
-.ds-page {
-  min-height: 100vh;
-  background: var(--ds-surface-page);
-  color: var(--ds-text-primary);
-  font-family: var(--font-ui);
+.ds-chip-selected {
+  border-color: var(--ds-border-selected);
+  background: var(--ds-surface-selected);
+  color: var(--ds-text-brand);
 }
 
+/* -------------------------
+ * ICON CONTAINERS
+ * ------------------------- */
+
+.ds-icon-container {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-muted);
+}
+
+.ds-icon-container-brand {
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand-primary);
+}
+
+.ds-icon-container-success {
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
+}
+
+.ds-icon-container-warning {
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
+}
+
+.ds-icon-container-error {
+  background: var(--ds-error-soft);
+  color: var(--ds-error);
+}
+
+/* -------------------------
+ * FEEDBACK / ALERTS
+ * ------------------------- */
+
+.ds-alert {
+  border-radius: var(--ds-radius-md);
+  border: 1px solid var(--ds-border-default);
+  padding: var(--ds-space-4);
+}
+
+.ds-alert-info {
+  border-color: var(--ds-info-border);
+  background: var(--ds-info-soft);
+  color: var(--ds-text-primary);
+}
+
+.ds-alert-success {
+  border-color: var(--ds-success-border);
+  background: var(--ds-success-soft);
+  color: var(--ds-text-primary);
+}
+
+.ds-alert-warning {
+  border-color: var(--ds-warning-border);
+  background: var(--ds-warning-soft);
+  color: var(--ds-text-primary);
+}
+
+.ds-alert-error {
+  border-color: var(--ds-error-border);
+  background: var(--ds-error-soft);
+  color: var(--ds-text-primary);
+}
+
+/* -------------------------
+ * DIVIDERS
+ * ------------------------- */
+
+.ds-divider {
+  border: 0;
+  border-top: 1px solid var(--ds-border-subtle);
+  margin: 0;
+}
 
 /* ===========================================================
  * DESIGN SYSTEM COMPONENT CONTRACTS — PHASE 2
@@ -575,21 +815,24 @@
 
 .ds-icon-action,
 .ds-icon-action-secondary,
-.ds-icon-info,
 .ds-icon-color {
   color: var(--ds-brand-primary);
 }
 
+.ds-icon-info {
+  color: var(--ds-info);
+}
+
 .ds-icon-success {
-  color: #15803d;
+  color: var(--ds-success);
 }
 
 .ds-icon-warning {
-  color: #b45309;
+  color: var(--ds-warning);
 }
 
 .ds-icon-error {
-  color: #dc2626;
+  color: var(--ds-error);
 }
 
 .ds-icon-disabled,
