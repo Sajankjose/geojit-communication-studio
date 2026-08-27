@@ -1,846 +1,145 @@
-/*
- * Communication Studio Design System Foundations
- * Source: Geojit Website Design System (Figma)
- *
- * IMPORTANT:
- * - These variables are the foundation layer only.
- * - Do not remove existing Tailwind classes yet.
- * - Migrate screen-by-screen after this file is verified in production.
- */
-
-:root {
-  /* ---------------------------------------------------------
-   * FONT FAMILIES
-   * --------------------------------------------------------- */
-
-  --font-ui: "Radio Canada Big", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-
-  /* ---------------------------------------------------------
-   * COLOR FOUNDATIONS
-   * ---------------------------------------------------------
-   *
-   * Figma library structure confirmed:
-   * - Brand collection with Neutral/N-0 ... Neutral/N-10
-   * - Mapping collection with semantic Text, Icon,
-   *   BG & Surface, Borders & Dividers and CTA variables.
-   *
-   * The exact additional Figma values could not be retrieved
-   * in this pass because the Figma MCP Starter-plan call limit
-   * was reached. Therefore:
-   *
-   * - known/previously confirmed values are retained;
-   * - semantic aliases are introduced now;
-   * - no new "Figma exact" value is being invented.
-   *
-   * When Figma access is available again, only the foundation
-   * values below need to be replaced. Feature screens should
-   * use the semantic aliases further down.
-   * --------------------------------------------------------- */
-
-  --ds-white: #ffffff;
-
-  /* Confirmed/established Geojit neutral anchors */
-  --ds-neutral-boldest: #022f2d;
-  --ds-neutral-bolder: #4a6361;
-
-  /* Existing Communication Studio brand value.
-   * Keep as the temporary implementation value until the
-   * exact Mapping/BG & Surface/CTA/Primary variable is read.
-   */
-  --ds-brand-primary: #07877b;
-  --ds-brand-primary-hover: #06766a;
-
-  /* Brand tints derived from the current implementation value.
-   * These are application aliases, NOT claimed as raw Figma
-   * Brand variables.
-   */
-  --ds-brand-soft: #e8f5f4;
-  --ds-brand-subtle: #f3fbfa;
-  --ds-brand-muted: #eef8f6;
-
-  /* ---------------------------------------------------------
-   * SEMANTIC TEXT
-   * --------------------------------------------------------- */
-
-  --ds-text-primary: var(--ds-neutral-boldest);
-  --ds-text-secondary: var(--ds-neutral-bolder);
-  --ds-text-tertiary: #718481;
-  --ds-text-disabled: #9aa9a7;
-  --ds-text-brand: var(--ds-brand-primary);
-  --ds-text-inverse: var(--ds-white);
-
-  /* ---------------------------------------------------------
-   * SEMANTIC SURFACES
-   * --------------------------------------------------------- */
-
-  --ds-surface-page: #f7f9f9;
-  --ds-surface-card: var(--ds-white);
-  --ds-surface-raised: var(--ds-white);
-  --ds-surface-subtle: var(--ds-brand-subtle);
-  --ds-surface-muted: #f3f5f5;
-  --ds-surface-selected: var(--ds-brand-muted);
-  --ds-surface-interactive-hover: #f5faf9;
-
-  /* ---------------------------------------------------------
-   * SEMANTIC BORDERS / DIVIDERS
-   * --------------------------------------------------------- */
-
-  --ds-border-subtle: #e1e8e7;
-  --ds-border-default: #cfdad8;
-  --ds-border-strong: #aebfbc;
-  --ds-border-interactive: #8fc8c1;
-  --ds-border-selected: var(--ds-brand-primary);
-
-  /* ---------------------------------------------------------
-   * STATUS / FEEDBACK
-   * ---------------------------------------------------------
-   * Existing semantic values are retained as implementation
-   * values until their Figma Mapping variables are read.
-   * --------------------------------------------------------- */
-
-  --ds-success: #15803d;
-  --ds-success-soft: #f0fdf4;
-  --ds-success-border: #bbf7d0;
-
-  --ds-warning: #b45309;
-  --ds-warning-soft: #fffbeb;
-  --ds-warning-border: #fde68a;
-
-  --ds-error: #dc2626;
-  --ds-error-soft: #fef2f2;
-  --ds-error-border: #fecaca;
-
-  --ds-info: #2563eb;
-  --ds-info-soft: #eff6ff;
-  --ds-info-border: #bfdbfe;
-
-  /* ---------------------------------------------------------
-   * CTA SEMANTICS
-   * --------------------------------------------------------- */
-
-  --ds-cta-primary-bg: var(--ds-brand-primary);
-  --ds-cta-primary-bg-hover: var(--ds-brand-primary-hover);
-  --ds-cta-primary-text: var(--ds-white);
-
-  --ds-cta-secondary-bg: var(--ds-white);
-  --ds-cta-secondary-text: var(--ds-text-primary);
-  --ds-cta-secondary-border: var(--ds-border-default);
-
-  /* ---------------------------------------------------------
-   * RADII
-   * --------------------------------------------------------- */
-
-  --ds-radius-sm: 8px;
-  --ds-radius-md: 12px;
-  --ds-radius-lg: 16px;
-  --ds-radius-xl: 24px;
-  --ds-radius-2xl: 30px;
-  --ds-radius-display: 48px;
-
-  /* ---------------------------------------------------------
-   * SPACING
-   * --------------------------------------------------------- */
-
-  --ds-space-1: 4px;
-  --ds-space-2: 8px;
-  --ds-space-3: 12px;
-  --ds-space-4: 16px;
-  --ds-space-5: 20px;
-  --ds-space-6: 24px;
-  --ds-space-8: 32px;
-  --ds-space-10: 40px;
-  --ds-space-12: 48px;
-  --ds-space-16: 64px;
-
-  /* ---------------------------------------------------------
-   * ELEVATION
-   * ---------------------------------------------------------
-   * Figma confirms Shadow 1 / Shadow 2 exist. These values are
-   * implementation placeholders until the exact effect-style
-   * values can be retrieved.
-   * --------------------------------------------------------- */
-
-  --ds-shadow-1:
-    0 1px 2px rgba(2, 47, 45, 0.04),
-    0 4px 12px rgba(2, 47, 45, 0.06);
-
-  --ds-shadow-2:
-    0 8px 24px rgba(2, 47, 45, 0.10);
-
-  --ds-shadow-card: var(--ds-shadow-1);
-  --ds-shadow-raised: var(--ds-shadow-2);
-
-  /* ---------------------------------------------------------
-   * DESKTOP TYPOGRAPHY — FIGMA SOURCE
-   * --------------------------------------------------------- */
-
-  --ds-display-size: 82px;
-  --ds-display-line: 1.2;
-  --ds-display-weight: 700;
-
-  --ds-heading-1-size: 72px;
-  --ds-heading-1-line: 1.1;
-  --ds-heading-1-weight: 600;
-
-  --ds-heading-2-size: 60px;
-  --ds-heading-2-line: 1.2;
-  --ds-heading-2-weight: 600;
-
-  --ds-heading-3-size: 52px;
-  --ds-heading-3-line: 1.3;
-  --ds-heading-3-weight: 600;
-
-  --ds-heading-4-size: 40px;
-  --ds-heading-4-line: 1.3;
-  --ds-heading-4-weight: 600;
-
-  --ds-title-1-size: 40px;
-  --ds-title-1-line: 1.4;
-  --ds-title-1-weight: 400;
-
-  --ds-title-2-size: 32px;
-  --ds-title-2-line: 1.3;
-  --ds-title-2-weight: 600;
-
-  --ds-title-3-size: 24px;
-  --ds-title-3-line: 1.3;
-  --ds-title-3-weight: 600;
-
-  --ds-title-4-size: 20px;
-  --ds-title-4-line: 1.3;
-  --ds-title-4-weight: 600;
-
-  --ds-subtitle-size: 22px;
-  --ds-subtitle-line: 1.4;
-  --ds-subtitle-weight: 400;
-
-  --ds-body-lg-size: 20px;
-  --ds-body-lg-line: 1.5;
-  --ds-body-lg-weight: 400;
-
-  --ds-body-md-size: 18px;
-  --ds-body-md-line: 1.5;
-  --ds-body-md-weight: 400;
-
-  --ds-body-sm-size: 16px;
-  --ds-body-sm-line: 1.5;
-  --ds-body-sm-weight: 400;
-
-  --ds-body-xs-size: 14px;
-  --ds-body-xs-line: 1.5;
-  --ds-body-xs-weight: 400;
-
-  --ds-button-lg-size: 16px;
-  --ds-button-lg-line: 1.1;
-  --ds-button-lg-weight: 400;
-
-  --ds-button-md-size: 14px;
-  --ds-button-md-line: 1.1;
-  --ds-button-md-weight: 400;
-
-  --ds-label-1-size: 24px;
-  --ds-label-1-line: 1.4;
-  --ds-label-1-weight: 400;
-
-  --ds-label-2-size: 20px;
-  --ds-label-2-line: 1.4;
-  --ds-label-2-weight: 400;
-
-  --ds-label-3-size: 14px;
-  --ds-label-3-line: 1.4;
-  --ds-label-3-weight: 400;
-
-  --ds-chip-lg-size: 16px;
-  --ds-chip-lg-line: 1;
-  --ds-chip-lg-weight: 500;
-
-  --ds-chip-sm-size: 14px;
-  --ds-chip-sm-line: 1;
-  --ds-chip-sm-weight: 500;
-
-  --ds-tab-active-size: 24px;
-  --ds-tab-active-line: 1.5;
-  --ds-tab-active-weight: 600;
-
-  --ds-tab-nav-size: 22px;
-  --ds-tab-nav-line: 1.4;
-  --ds-tab-nav-weight: 500;
-}
-
-/* -----------------------------------------------------------
- * MOBILE TYPOGRAPHY — FIGMA SOURCE
- * ----------------------------------------------------------- */
-
-@media (max-width: 767px) {
-  :root {
-    --ds-display-size: 60px;
-    --ds-display-line: 1.2;
-    --ds-display-weight: 700;
-
-    --ds-heading-1-size: 40px;
-    --ds-heading-1-line: 1.1;
-    --ds-heading-1-weight: 700;
-
-    --ds-heading-2-size: 32px;
-    --ds-heading-2-line: 1;
-    --ds-heading-2-weight: 600;
-
-    --ds-heading-3-size: 24px;
-    --ds-heading-3-line: 1.2;
-    --ds-heading-3-weight: 600;
-
-    --ds-title-1-size: 24px;
-    --ds-title-1-line: 1.4;
-    --ds-title-1-weight: 600;
-
-    --ds-title-2-size: 20px;
-    --ds-title-2-line: 1.3;
-    --ds-title-2-weight: 600;
-
-    --ds-title-3-size: 18px;
-    --ds-title-3-line: 1.3;
-    --ds-title-3-weight: 600;
-
-    --ds-title-4-size: 16px;
-    --ds-title-4-line: 1.3;
-    --ds-title-4-weight: 600;
-
-    --ds-subtitle-size: 20px;
-    --ds-subtitle-line: 1.4;
-    --ds-subtitle-weight: 500;
-
-    --ds-body-lg-size: 18px;
-    --ds-body-lg-line: 1.5;
-
-    --ds-body-md-size: 16px;
-    --ds-body-md-line: 1.5;
-
-    --ds-body-sm-size: 14px;
-    --ds-body-sm-line: 1.5;
-
-    --ds-body-xs-size: 12px;
-    --ds-body-xs-line: 1.5;
-
-    --ds-label-1-size: 18px;
-    --ds-label-2-size: 14px;
-    --ds-label-3-size: 12px;
-  }
-}
-
-/* -----------------------------------------------------------
- * TYPOGRAPHY UTILITIES
- * ----------------------------------------------------------- */
-
-.ds-text {
-  font-family: var(--font-ui);
-  color: var(--ds-text-primary);
-}
-
-.ds-display {
-  font-family: var(--font-ui);
-  font-size: var(--ds-display-size);
-  line-height: var(--ds-display-line);
-  font-weight: var(--ds-display-weight);
-  color: var(--ds-text-primary);
-}
-
-.ds-heading-1 {
-  font-family: var(--font-ui);
-  font-size: var(--ds-heading-1-size);
-  line-height: var(--ds-heading-1-line);
-  font-weight: var(--ds-heading-1-weight);
-  color: var(--ds-text-primary);
-}
-
-.ds-heading-2 {
-  font-family: var(--font-ui);
-  font-size: var(--ds-heading-2-size);
-  line-height: var(--ds-heading-2-line);
-  font-weight: var(--ds-heading-2-weight);
-  color: var(--ds-text-primary);
-}
-
-.ds-heading-3 {
-  font-family: var(--font-ui);
-  font-size: var(--ds-heading-3-size);
-  line-height: var(--ds-heading-3-line);
-  font-weight: var(--ds-heading-3-weight);
-  color: var(--ds-text-primary);
-}
-
-.ds-heading-4 {
-  font-family: var(--font-ui);
-  font-size: var(--ds-heading-4-size);
-  line-height: var(--ds-heading-4-line);
-  font-weight: var(--ds-heading-4-weight);
-  color: var(--ds-text-primary);
-}
-
-.ds-title-1 {
-  font-family: var(--font-ui);
-  font-size: var(--ds-title-1-size);
-  line-height: var(--ds-title-1-line);
-  font-weight: var(--ds-title-1-weight);
-  color: var(--ds-text-primary);
-}
-
-.ds-title-2 {
-  font-family: var(--font-ui);
-  font-size: var(--ds-title-2-size);
-  line-height: var(--ds-title-2-line);
-  font-weight: var(--ds-title-2-weight);
-  color: var(--ds-text-primary);
-}
-
-.ds-title-3 {
-  font-family: var(--font-ui);
-  font-size: var(--ds-title-3-size);
-  line-height: var(--ds-title-3-line);
-  font-weight: var(--ds-title-3-weight);
-  color: var(--ds-text-primary);
-}
-
-.ds-title-4 {
-  font-family: var(--font-ui);
-  font-size: var(--ds-title-4-size);
-  line-height: var(--ds-title-4-line);
-  font-weight: var(--ds-title-4-weight);
-  color: var(--ds-text-primary);
-}
-
-.ds-subtitle {
-  font-family: var(--font-ui);
-  font-size: var(--ds-subtitle-size);
-  line-height: var(--ds-subtitle-line);
-  font-weight: var(--ds-subtitle-weight);
-  color: var(--ds-text-primary);
-}
-
-.ds-body-lg {
-  font-family: var(--font-ui);
-  font-size: var(--ds-body-lg-size);
-  line-height: var(--ds-body-lg-line);
-  font-weight: var(--ds-body-lg-weight);
-  color: var(--ds-text-secondary);
-}
-
-.ds-body-md {
-  font-family: var(--font-ui);
-  font-size: var(--ds-body-md-size);
-  line-height: var(--ds-body-md-line);
-  font-weight: var(--ds-body-md-weight);
-  color: var(--ds-text-secondary);
-}
-
-.ds-body-sm {
-  font-family: var(--font-ui);
-  font-size: var(--ds-body-sm-size);
-  line-height: var(--ds-body-sm-line);
-  font-weight: var(--ds-body-sm-weight);
-  color: var(--ds-text-secondary);
-}
-
-.ds-body-xs {
-  font-family: var(--font-ui);
-  font-size: var(--ds-body-xs-size);
-  line-height: var(--ds-body-xs-line);
-  font-weight: var(--ds-body-xs-weight);
-  color: var(--ds-text-secondary);
-}
-
-.ds-button-lg {
-  font-family: var(--font-ui);
-  font-size: var(--ds-button-lg-size);
-  line-height: var(--ds-button-lg-line);
-  font-weight: var(--ds-button-lg-weight);
-  text-transform: capitalize;
-}
-
-.ds-button-md {
-  font-family: var(--font-ui);
-  font-size: var(--ds-button-md-size);
-  line-height: var(--ds-button-md-line);
-  font-weight: var(--ds-button-md-weight);
-  text-transform: capitalize;
-}
-
-.ds-label-1,
-.ds-label-2,
-.ds-label-3 {
-  font-family: var(--font-ui);
-  color: var(--ds-text-primary);
-  text-transform: uppercase;
-}
-
-.ds-label-1 {
-  font-size: var(--ds-label-1-size);
-  line-height: var(--ds-label-1-line);
-  font-weight: var(--ds-label-1-weight);
-}
-
-.ds-label-2 {
-  font-size: var(--ds-label-2-size);
-  line-height: var(--ds-label-2-line);
-  font-weight: var(--ds-label-2-weight);
-}
-
-.ds-label-3 {
-  font-size: var(--ds-label-3-size);
-  line-height: var(--ds-label-3-line);
-  font-weight: var(--ds-label-3-weight);
-}
-
-.ds-chip-lg {
-  font-family: var(--font-ui);
-  font-size: var(--ds-chip-lg-size);
-  line-height: var(--ds-chip-lg-line);
-  font-weight: var(--ds-chip-lg-weight);
-}
-
-.ds-chip-sm {
-  font-family: var(--font-ui);
-  font-size: var(--ds-chip-sm-size);
-  line-height: var(--ds-chip-sm-line);
-  font-weight: var(--ds-chip-sm-weight);
-}
-
-.ds-tab-active {
-  font-family: var(--font-ui);
-  font-size: var(--ds-tab-active-size);
-  line-height: var(--ds-tab-active-line);
-  font-weight: var(--ds-tab-active-weight);
-  color: var(--ds-text-primary);
-}
-
-.ds-tab-nav {
-  font-family: var(--font-ui);
-  font-size: var(--ds-tab-nav-size);
-  line-height: var(--ds-tab-nav-line);
-  font-weight: var(--ds-tab-nav-weight);
-  color: var(--ds-text-primary);
-}
-
-/* -----------------------------------------------------------
- * BASE COMPONENT FOUNDATIONS
- * ----------------------------------------------------------- */
-
-.ds-page {
-  min-height: 100vh;
-  background: var(--ds-surface-page);
-  color: var(--ds-text-primary);
-  font-family: var(--font-ui);
-}
-
 /* -------------------------
- * CARDS
+ * FORM FIELD
  * ------------------------- */
 
-.ds-card {
-  background: var(--ds-surface-card);
-  border: 1px solid var(--ds-border-subtle);
-  border-radius: var(--ds-radius-lg);
-  box-shadow: var(--ds-shadow-1);
+.ds-field {
+  width: 100%;
 }
 
-.ds-card-muted {
-  background: var(--ds-surface-muted);
-  border: 1px solid var(--ds-border-subtle);
-  border-radius: var(--ds-radius-lg);
-}
-
-.ds-card-interactive {
-  background: var(--ds-surface-card);
-  border: 1px solid var(--ds-border-subtle);
-  border-radius: var(--ds-radius-lg);
-  box-shadow: var(--ds-shadow-1);
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease,
-    background-color 160ms ease;
-}
-
-.ds-card-interactive:hover {
-  background: var(--ds-surface-interactive-hover);
-  border-color: var(--ds-border-interactive);
-  box-shadow: var(--ds-shadow-2);
-  transform: translateY(-2px);
-}
-
-.ds-card-selected {
-  background: var(--ds-surface-selected);
-  border: 1px solid var(--ds-border-selected);
-  border-radius: var(--ds-radius-lg);
-  box-shadow:
-    var(--ds-shadow-1),
-    0 0 0 1px rgba(7, 135, 123, 0.06);
-}
-
-.ds-card-accent {
-  background: var(--ds-surface-subtle);
-  border: 1px solid var(--ds-border-interactive);
-  border-radius: var(--ds-radius-lg);
-}
-
-/* -------------------------
- * BUTTONS
- * ------------------------- */
-
-.ds-button-primary,
-.ds-button-secondary {
-  min-height: 44px;
+.ds-field-label {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--ds-space-2);
-  border-radius: var(--ds-radius-sm);
-  padding: 12px 20px;
-  cursor: pointer;
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    color 160ms ease,
-    opacity 160ms ease;
+  gap: 4px;
+
+  margin-bottom: 8px;
+
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+
+  color: var(--ds-text-primary);
 }
 
-.ds-button-primary {
-  border: 1px solid var(--ds-cta-primary-bg);
-  background: var(--ds-cta-primary-bg);
-  color: var(--ds-cta-primary-text);
-  box-shadow: 0 2px 6px rgba(2, 47, 45, 0.10);
+.ds-field-required {
+  color: var(--ds-error);
 }
 
-.ds-button-primary:hover {
-  border-color: var(--ds-cta-primary-bg-hover);
-  background: var(--ds-cta-primary-bg-hover);
-  box-shadow: 0 4px 10px rgba(2, 47, 45, 0.14);
-}
+.ds-input-shell {
+  min-height: 46px;
 
-.ds-button-secondary {
-  border: 1px solid var(--ds-cta-secondary-border);
-  background: var(--ds-cta-secondary-bg);
-  color: var(--ds-cta-secondary-text);
-}
+  display: flex;
+  align-items: center;
+  gap: 10px;
 
-.ds-button-secondary:hover {
-  border-color: var(--ds-border-interactive);
-  background: var(--ds-surface-interactive-hover);
-  color: var(--ds-text-brand);
-}
-
-.ds-button-primary:disabled,
-.ds-button-secondary:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-  box-shadow: none;
-}
-
-/* -------------------------
- * INPUTS
- * ------------------------- */
-
-.ds-input,
-.ds-textarea {
   width: 100%;
+
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md);
+
   background: var(--ds-white);
-  color: var(--ds-text-primary);
-  font-family: var(--font-ui);
-  font-size: var(--ds-body-sm-size);
-  line-height: var(--ds-body-sm-line);
-  outline: none;
+
+  padding: 0 14px;
+
   transition:
     border-color 160ms ease,
     box-shadow 160ms ease,
     background-color 160ms ease;
 }
 
-.ds-input {
-  min-height: 44px;
-  padding: 10px 12px;
-}
-
-.ds-textarea {
-  padding: 14px 16px;
-  resize: vertical;
-}
-
-.ds-input:hover,
-.ds-textarea:hover {
+.ds-input-shell:hover {
   border-color: var(--ds-border-strong);
 }
 
-.ds-input:focus,
-.ds-textarea:focus {
+.ds-input-shell:focus-within {
   border-color: var(--ds-brand-primary);
-  box-shadow: 0 0 0 3px rgba(7, 135, 123, 0.10);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(7, 135, 123, 0.1);
 }
 
-/* -------------------------
- * CHIPS / BADGES
- * ------------------------- */
-
-.ds-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-radius: 999px;
-  border: 1px solid var(--ds-border-subtle);
-  background: var(--ds-surface-subtle);
-  color: var(--ds-text-primary);
-  padding: 6px 10px;
+.ds-input-shell-error {
+  border-color: var(--ds-error);
 }
 
-.ds-chip-selected {
-  border-color: var(--ds-border-selected);
-  background: var(--ds-surface-selected);
-  color: var(--ds-text-brand);
+.ds-input-shell-error:focus-within {
+  border-color: var(--ds-error);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(220, 38, 38, 0.08);
 }
 
-/* -------------------------
- * ICON CONTAINERS
- * ------------------------- */
+.ds-input-shell-disabled {
+  background:
+    var(--ds-surface-muted);
 
-.ds-icon-container {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--ds-radius-md);
-  background: var(--ds-surface-muted);
+  cursor: not-allowed;
+
+  opacity: 0.65;
 }
 
-.ds-icon-container-brand {
-  background: var(--ds-brand-soft);
-  color: var(--ds-brand-primary);
-}
-
-.ds-icon-container-success {
-  background: var(--ds-success-soft);
-  color: var(--ds-success);
-}
-
-.ds-icon-container-warning {
-  background: var(--ds-warning-soft);
-  color: var(--ds-warning);
-}
-
-.ds-icon-container-error {
-  background: var(--ds-error-soft);
-  color: var(--ds-error);
-}
-
-/* -------------------------
- * FEEDBACK / ALERTS
- * ------------------------- */
-
-.ds-alert {
-  border-radius: var(--ds-radius-md);
-  border: 1px solid var(--ds-border-default);
-  padding: var(--ds-space-4);
-}
-
-.ds-alert-info {
-  border-color: var(--ds-info-border);
-  background: var(--ds-info-soft);
-  color: var(--ds-text-primary);
-}
-
-.ds-alert-success {
-  border-color: var(--ds-success-border);
-  background: var(--ds-success-soft);
-  color: var(--ds-text-primary);
-}
-
-.ds-alert-warning {
-  border-color: var(--ds-warning-border);
-  background: var(--ds-warning-soft);
-  color: var(--ds-text-primary);
-}
-
-.ds-alert-error {
-  border-color: var(--ds-error-border);
-  background: var(--ds-error-soft);
-  color: var(--ds-text-primary);
-}
-
-/* -------------------------
- * DIVIDERS
- * ------------------------- */
-
-.ds-divider {
-  border: 0;
-  border-top: 1px solid var(--ds-border-subtle);
-  margin: 0;
-}
-
-/* ===========================================================
- * DESIGN SYSTEM COMPONENT CONTRACTS — PHASE 2
- * ===========================================================
- *
- * Semantic icon roles are mapped here.
- * Exact color values are intentionally inherited from the
- * existing semantic palette until the corresponding Figma
- * variable values are read from a concrete component node.
- *
- * Do not add arbitrary icon colors inside feature screens.
- */
-
-.ds-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-}
-
-.ds-icon > svg,
-.ds-icon > img {
+.ds-input-control {
   width: 100%;
-  height: 100%;
+  min-width: 0;
+
+  border: 0;
+  outline: 0;
+
+  background: transparent;
+
+  padding: 11px 0;
+
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 24px;
+
+  color:
+    var(--ds-text-primary);
 }
 
-.ds-icon-primary {
-  color: var(--ds-text-primary);
+.ds-input-control::placeholder {
+  color:
+    var(--ds-text-tertiary);
 }
 
-.ds-icon-secondary {
-  color: var(--ds-text-secondary);
+.ds-input-control:disabled {
+  cursor:
+    not-allowed;
 }
 
-.ds-icon-tertiary {
-  color: var(--ds-text-secondary);
-  opacity: 0.72;
+.ds-input-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 auto;
+
+  color:
+    var(--ds-text-secondary);
 }
 
-.ds-icon-action,
-.ds-icon-action-secondary,
-.ds-icon-color {
-  color: var(--ds-brand-primary);
+.ds-input-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
-.ds-icon-info {
-  color: var(--ds-info);
+.ds-field-helper,
+.ds-field-error {
+  margin-top: 7px;
+
+  font-family: var(--font-ui);
+  font-size: 12px;
+  line-height: 18px;
 }
 
-.ds-icon-success {
-  color: var(--ds-success);
+.ds-field-helper {
+  color:
+    var(--ds-text-tertiary);
 }
 
-.ds-icon-warning {
-  color: var(--ds-warning);
-}
-
-.ds-icon-error {
-  color: var(--ds-error);
-}
-
-.ds-icon-disabled,
-.ds-icon-disabled-secondary {
-  color: var(--ds-text-secondary);
-  opacity: 0.4;
-}
-
-.ds-icon-on-dark {
-  color: var(--ds-white);
+.ds-field-error {
+  color:
+    var(--ds-error);
 }
