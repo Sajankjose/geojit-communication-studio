@@ -451,11 +451,11 @@ export function GuidedCreation() {
               </p>
             </div>
 
-            <h1 className="ds-title-2">
+            <h1 className="text-4xl font-semibold leading-tight text-[#022F2D]">
               What's on your mind?
             </h1>
 
-            <p className="ds-body-sm mt-4 max-w-2xl">
+            <p className="mt-4 max-w-2xl text-base leading-7 text-[#4A6361]">
               Tell us the idea in your own
               words. Don't worry about
               grammar, spelling or how to
@@ -465,7 +465,7 @@ export function GuidedCreation() {
           </div>
         </div>
 
-        <div className="mb-8 rounded-[var(--ds-radius-md)] border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-subtle)] px-5 py-4">
+        <div className="mb-8 rounded-2xl border border-[#c9e1dd] bg-[#eef8f6] px-5 py-4 shadow-sm">
           <div className="flex items-start gap-3">
             <DesignSystemIcon
               size="md"
@@ -476,11 +476,11 @@ export function GuidedCreation() {
             </DesignSystemIcon>
 
             <div>
-              <p className="ds-body-sm font-medium">
+              <p className="text-sm font-semibold text-[#022F2D]">
                 Just explain it naturally
               </p>
 
-              <p className="ds-body-xs mt-1">
+              <p className="mt-1 text-sm leading-6 text-[#4A6361]">
                 Short notes, incomplete
                 sentences, simple English or
                 mixed-language thoughts are
@@ -496,17 +496,17 @@ export function GuidedCreation() {
         <section className="mb-8">
 
           <div className="mb-4">
-            <h2 className="ds-title-4">
+            <h2 className="text-2xl font-semibold text-[#022F2D]">
               Need help getting started?
             </h2>
 
-            <p className="ds-body-xs mt-1">
+            <p className="mt-1 text-sm text-[#4A6361]">
               Choose a starting point, or
               simply type your idea below.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {STARTER_PROMPTS.map(
               (prompt) => {
                 const Icon =
@@ -527,17 +527,17 @@ export function GuidedCreation() {
                         prompt
                       )
                     }
-                    className={`ds-card p-4 text-left transition-all ${
+                    className={`rounded-2xl border p-5 text-left transition-all ${
                       selected
-                        ? "border-[var(--ds-brand-primary)] bg-[var(--ds-surface-subtle)] shadow-[var(--ds-shadow-card)]"
-                        : "hover:border-[var(--ds-brand-primary)] hover:bg-[var(--ds-surface-muted)]"
+                        ? "border-[#07877B] bg-[#eef8f6] shadow-md ring-1 ring-[#07877B]/10"
+                        : "border-[#d9e3e1] bg-white shadow-sm hover:-translate-y-0.5 hover:border-[#8fc8c1] hover:shadow-md"
                     }`}
                   >
                     <div
-                      className={`mb-3 flex h-9 w-9 items-center justify-center rounded-[var(--ds-radius-sm)] ${
+                      className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${
                         selected
-                          ? "bg-[var(--ds-surface-subtle)]"
-                          : "bg-[var(--ds-surface-muted)]"
+                          ? "bg-[#dff2ef]"
+                          : "bg-[#f1f4f4]"
                       }`}
                     >
                       <DesignSystemIcon
@@ -552,13 +552,13 @@ export function GuidedCreation() {
                       </DesignSystemIcon>
                     </div>
 
-                    <p className="ds-body-sm font-medium">
+                    <p className="text-base font-semibold leading-6 text-[#022F2D]">
                       {
                         prompt.title
                       }
                     </p>
 
-                    <p className="ds-body-xs mt-2">
+                    <p className="mt-2 text-sm leading-6 text-[#4A6361]">
                       {
                         prompt.helper
                       }
@@ -571,14 +571,14 @@ export function GuidedCreation() {
 
         </section>
 
-        <DesignSystemCard className="p-6 sm:p-8">
+        <section className="rounded-2xl border border-[#cfdcda] bg-white p-6 shadow-md sm:p-8">
 
           <div className="mb-5">
-            <h2 className="ds-title-4">
+            <h2 className="text-2xl font-semibold text-[#022F2D]">
               Tell us your idea
             </h2>
 
-            <p className="ds-body-xs mt-2">
+            <p className="mt-2 text-sm leading-6 text-[#4A6361]">
               Imagine you're explaining it
               to a colleague sitting next to
               you. That's enough.
@@ -586,7 +586,7 @@ export function GuidedCreation() {
           </div>
 
           {selectedPrompt && (
-            <div className="mb-4 rounded-[var(--ds-radius-sm)] bg-[var(--ds-surface-muted)] px-4 py-3">
+            <div className="mb-4 rounded-xl border border-[#d9e3e1] bg-[#f7f9f9] px-4 py-3">
               <p className="ds-label-3">
                 Starting point
               </p>
@@ -621,13 +621,12 @@ export function GuidedCreation() {
             rows={9}
             autoFocus
             placeholder="For example: customer asking market down again or now invest. many waiting correction. i normally tell cannot know exact bottom and can think about investing small amount at different times..."
-            className="ds-textarea min-h-[216px] resize-none px-5 py-4 text-base leading-7 placeholder:text-gray-400"
+            className="min-h-[240px] w-full resize-none rounded-2xl border border-[#c7d4d2] bg-white px-5 py-4 text-base leading-7 text-[#022F2D] outline-none transition placeholder:text-[#8da09d] focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10"
           />
 
           <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="ds-body-xs">
-              Grammar doesn't matter.
-              Meaning does.
+            <p className="text-xs font-medium text-[#4A6361]">
+              Grammar doesn't matter. Meaning does.
             </p>
 
             <p
@@ -642,9 +641,9 @@ export function GuidedCreation() {
             </p>
           </div>
 
-        </DesignSystemCard>
+        </section>
 
-        <div className="mt-6 rounded-[var(--ds-radius-md)] border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-muted)] px-5 py-4">
+        <div className="mt-6 rounded-xl border border-[#d9e3e1] bg-[#f7f9f9] px-5 py-4">
           <p className="ds-body-sm font-medium">
             What happens next?
           </p>
@@ -665,11 +664,12 @@ export function GuidedCreation() {
           </div>
         )}
 
-        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-[var(--ds-border-subtle)] pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-[#d9e3e1] pt-6 sm:flex-row sm:items-center sm:justify-between">
 
           <DesignSystemButton
             variant="secondary"
             size="medium"
+            className="min-h-11 rounded-xl border border-[#c7d4d2] bg-white px-5 py-3 text-[#022F2D] hover:bg-[#f7f9f9]"
             onClick={
               handleBack
             }
@@ -691,6 +691,7 @@ export function GuidedCreation() {
           <DesignSystemButton
             variant="primary"
             size="large"
+            className="min-h-12 rounded-xl bg-[#07877B] px-7 py-3 font-semibold text-white shadow-sm hover:bg-[#06766a]"
             onClick={() =>
               void handleUnderstandIdea()
             }
@@ -732,9 +733,9 @@ export function GuidedCreation() {
 
 
         {understanding && (
-          <DesignSystemCard
+          <section
             id="guided-understanding"
-            className="mt-12 scroll-mt-6 border-[var(--ds-brand-primary)] p-6 sm:p-8"
+            className="mt-12 scroll-mt-6 rounded-2xl border border-[#9bcfc9] bg-white p-6 shadow-md sm:p-8"
           >
             <div className="mb-6 flex items-start gap-3">
               <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[var(--ds-surface-subtle)]">
@@ -751,7 +752,7 @@ export function GuidedCreation() {
                   Here's what I understood
                 </p>
 
-                <h2 className="ds-title-3 mt-1">
+                <h2 className="mt-1 text-2xl font-semibold text-[#022F2D]">
                   Is this what you mean?
                 </h2>
               </div>
@@ -916,7 +917,7 @@ export function GuidedCreation() {
               </DesignSystemButton>
             </div>
 
-          </DesignSystemCard>
+          </section>
         )}
 
       </main>
@@ -939,15 +940,15 @@ function UnderstandingItem({
   }
 
   return (
-    <DesignSystemCard className="p-4">
-      <p className="ds-label-3">
+    <div className="rounded-xl border border-[#d9e3e1] bg-white p-4 shadow-sm">
+      <p className="text-xs font-medium uppercase tracking-wide text-[#7a8e8b]">
         {label}
       </p>
 
-      <p className="ds-body-sm mt-2">
+      <p className="mt-2 text-sm leading-6 text-[#344b49]">
         {value}
       </p>
-    </DesignSystemCard>
+    </div>
   );
 }
 
