@@ -56,6 +56,13 @@ import {
   ReviewQueueItem,
 } from "../services/reviews";
 
+/**
+ * Dashboard uses the shared design-system components, while the
+ * explicit utility classes below act as a visual fallback so the
+ * dashboard does not lose hierarchy if the global design-system
+ * stylesheet is loaded after/before Tailwind differently.
+ */
+
 type DashboardFilter =
   | "all"
   | "draft"
@@ -551,7 +558,7 @@ export function Dashboard() {
 
       <main className="mx-auto max-w-7xl px-6 py-10 md:px-8 md:py-12">
 
-        <DesignSystemCard className="mb-12 overflow-hidden bg-gradient-to-br from-[var(--ds-white)] to-[var(--ds-surface-subtle)] p-8 md:p-10">
+        <DesignSystemCard className="mb-10 overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-[#f3fbfa] p-8 shadow-sm md:p-10">
           <div className="mx-auto max-w-3xl text-center">
 
             <div className="mb-5 flex justify-center">
@@ -574,13 +581,13 @@ export function Dashboard() {
               </div>
             </div>
 
-            <h1 className="ds-title-2 mb-4">
+            <h1 className="ds-title-2 mb-3 text-3xl font-semibold text-[#022F2D]">
               {isReviewer
                 ? "Review Communications"
                 : "Create New Communication"}
             </h1>
 
-            <p className="ds-body-md mb-8">
+            <p className="ds-body-md mb-7 text-base leading-7 text-[#4A6361]">
               {isReviewer
                 ? "Review communications waiting for your action and move them through the approval workflow."
                 : "Create structured, compliant, Geojit-aligned communications with AI-assisted guidance."}
@@ -603,7 +610,7 @@ export function Dashboard() {
                     <ArrowRight />
                   </DesignSystemIcon>
                 }
-                className="px-8 py-4"
+                className="rounded-lg bg-[#07877B] px-8 py-4 font-medium text-white shadow-sm hover:bg-[#06766a]"
               >
                 Open Review Queue
               </DesignSystemButton>
@@ -625,7 +632,7 @@ export function Dashboard() {
                     <Plus />
                   </DesignSystemIcon>
                 }
-                className="px-8 py-4"
+                className="rounded-lg bg-[#07877B] px-8 py-4 font-medium text-white shadow-sm hover:bg-[#06766a]"
               >
                 {creating
                   ? "Creating..."
@@ -710,10 +717,10 @@ export function Dashboard() {
             disabled={
               isReviewer
             }
-            className={`ds-card p-6 text-left transition-all ${
+            className={`ds-card rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all ${
               isReviewer
                 ? "cursor-default"
-                : "hover:-translate-y-0.5 hover:border-[var(--ds-brand-primary)] hover:shadow-[var(--ds-shadow-raised)]"
+                : "hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
             }`}
           >
             <div className="mb-2 flex items-center gap-3">
@@ -728,8 +735,8 @@ export function Dashboard() {
 
               <h3 className={
                 isReviewer
-                  ? "ds-title-4"
-                  : "ds-title-3"
+                  ? "ds-title-4 text-lg font-semibold text-[#022F2D]"
+                  : "ds-title-3 text-2xl font-semibold text-[#022F2D]"
               }>
                 {loading
                   ? "—"
@@ -742,14 +749,14 @@ export function Dashboard() {
               </h3>
             </div>
 
-            <p className="ds-body-xs">
+            <p className="ds-body-xs text-sm text-[#4A6361]">
               {isReviewer
                 ? "Current Review Stage"
                 : "Total Drafts"}
             </p>
 
             {!isReviewer && (
-              <p className="ds-button-md mt-2 flex items-center gap-1 text-[var(--ds-brand-primary)]">
+              <p className="ds-button-md mt-3 flex items-center gap-1 text-xs font-medium text-[#07877B]">
                 View drafts
                 <DesignSystemIcon
                   size="sm"
@@ -776,7 +783,7 @@ export function Dashboard() {
                 );
               }
             }}
-            className="ds-card p-6 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--ds-brand-primary)] hover:shadow-[var(--ds-shadow-raised)]"
+            className="ds-card rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
           >
             <div className="mb-2 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-[var(--ds-radius-sm)] bg-amber-50">
@@ -788,18 +795,18 @@ export function Dashboard() {
                 </DesignSystemIcon>
               </div>
 
-              <h3 className="ds-title-3">
+              <h3 className="ds-title-3 text-2xl font-semibold text-[#022F2D]">
                 {loading
                   ? "—"
                   : pendingApproval}
               </h3>
             </div>
 
-            <p className="ds-body-xs">
+            <p className="ds-body-xs text-sm text-[#4A6361]">
               Pending Approval
             </p>
 
-            <p className="ds-button-md mt-2 flex items-center gap-1 text-[var(--ds-brand-primary)]">
+            <p className="ds-button-md mt-3 flex items-center gap-1 text-xs font-medium text-[#07877B]">
               {canReview
                 ? "View review queue"
                 : "View pending"}
@@ -827,7 +834,7 @@ export function Dashboard() {
                 );
               }
             }}
-            className="ds-card p-6 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--ds-brand-primary)] hover:shadow-[var(--ds-shadow-raised)]"
+            className="ds-card rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
           >
             <div className="mb-2 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-[var(--ds-radius-sm)] bg-green-50">
@@ -839,7 +846,7 @@ export function Dashboard() {
                 </DesignSystemIcon>
               </div>
 
-              <h3 className="ds-title-3">
+              <h3 className="ds-title-3 text-2xl font-semibold text-[#022F2D]">
                 {loading
                   ? "—"
                   : isReviewer
@@ -848,13 +855,13 @@ export function Dashboard() {
               </h3>
             </div>
 
-            <p className="ds-body-xs">
+            <p className="ds-body-xs text-sm text-[#4A6361]">
               {isReviewer
                 ? "Revised & Resubmitted"
                 : "Approved"}
             </p>
 
-            <p className="ds-button-md mt-2 flex items-center gap-1 text-[var(--ds-brand-primary)]">
+            <p className="ds-button-md mt-3 flex items-center gap-1 text-xs font-medium text-[#07877B]">
               View
               <DesignSystemIcon
                   size="sm"
@@ -882,15 +889,15 @@ export function Dashboard() {
               isReviewer ||
               !mostUsedCategory
             }
-            className={`ds-card p-6 text-left transition-all ${
+            className={`ds-card rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all ${
               !isReviewer &&
               mostUsedCategory
-                ? "hover:-translate-y-0.5 hover:border-[var(--ds-brand-primary)] hover:shadow-[var(--ds-shadow-raised)]"
+                ? "hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
                 : "cursor-default"
             }`}
           >
             <div className="mb-2">
-              <h3 className="ds-body-xs">
+              <h3 className="ds-body-xs text-sm text-[#4A6361]">
                 Most Used Category
               </h3>
             </div>
@@ -912,7 +919,7 @@ export function Dashboard() {
 
             {!isReviewer &&
               mostUsedCategory && (
-                <p className="ds-button-md mt-2 flex items-center gap-1 text-[var(--ds-brand-primary)]">
+                <p className="ds-button-md mt-3 flex items-center gap-1 text-xs font-medium text-[#07877B]">
                   Filter communications
                   <DesignSystemIcon
                   size="sm"
@@ -927,7 +934,7 @@ export function Dashboard() {
 
         {profile?.role ===
           "admin" && (
-          <DesignSystemCard className="mb-8 p-6">
+          <DesignSystemCard className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="ds-body-xs font-medium text-[var(--ds-brand-primary)]">
@@ -1013,11 +1020,11 @@ export function Dashboard() {
 
         <DesignSystemCard
           ref={recentRef}
-          className="scroll-mt-6 p-8"
+          className="scroll-mt-6 rounded-xl border border-gray-200 bg-white p-8 shadow-sm"
         >
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="ds-title-4">
+              <h2 className="ds-title-4 text-xl font-semibold text-[#022F2D]">
                 {isReviewer
                   ? "Pending Reviews"
                   : "Recent Communications"}
@@ -1079,7 +1086,7 @@ export function Dashboard() {
                   </DesignSystemIcon>
                 </div>
 
-                <h3 className="ds-title-4 mb-2">
+                <h3 className="ds-title-4 mb-2 text-lg font-semibold text-[#022F2D]">
                   You're all caught up
                 </h3>
 
@@ -1109,7 +1116,7 @@ export function Dashboard() {
                       className="group flex w-full items-center gap-4 rounded-[var(--ds-radius-sm)] border border-transparent p-4 text-left hover:border-[var(--ds-border-subtle)] hover:bg-[var(--ds-surface-muted)]"
                     >
                       <div className="flex-1">
-                        <h3 className="ds-body-sm mb-2 font-medium">
+                        <h3 className="ds-body-sm mb-2 text-sm font-medium text-[#022F2D]">
                           {item.communication
                             ?.title ||
                             "Untitled Communication"}
@@ -1174,7 +1181,7 @@ export function Dashboard() {
                   </DesignSystemIcon>
                 </div>
 
-                <h3 className="ds-title-4 mb-2">
+                <h3 className="ds-title-4 mb-2 text-lg font-semibold text-[#022F2D]">
                   No communications found
                 </h3>
 
@@ -1223,7 +1230,7 @@ export function Dashboard() {
                             }
                             className="min-w-0 flex-1 text-left"
                           >
-                            <h3 className="ds-body-sm mb-2 font-medium">
+                            <h3 className="ds-body-sm mb-2 text-sm font-medium text-[#022F2D]">
                               {comm.title}
                             </h3>
 
@@ -1436,7 +1443,7 @@ function DeleteDraftModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 px-4">
-      <DesignSystemCard className="w-full max-w-md p-6 shadow-[var(--ds-shadow-raised)]">
+      <DesignSystemCard className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
         <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-red-50">
           <DesignSystemIcon
             size="md"
