@@ -1544,6 +1544,15 @@ function openCommunication(
     "approved",
   ];
 
+  /**
+   * Once a communication enters the formal approval
+   * workflow, both Expert and Guided Creation use the
+   * common Approval Status page.
+   *
+   * ApprovalStatus itself now decides whether to open:
+   * - Expert Full Preview
+   * - Guided multi-channel Approval Package
+   */
   if (
     approvalStatuses.includes(
       comm.status
@@ -1556,6 +1565,71 @@ function openCommunication(
     return;
   }
 
+  /**
+   * PHASE 2 — GUIDED CREATION
+   *
+   * Guided communications can remain in "draft" status
+   * through several internal checkpoints. Therefore status
+   * alone is not enough to decide where the Creator should
+   * resume.
+   *
+   * We inspect input_data and reopen the most advanced
+   * completed Guided checkpoint.
+   */
+  const guidedState =
+    getGuidedResumeState(
+      comm
+    );
+
+  if (
+    guidedState
+  ) {
+    switch (
+      guidedState
+    ) {
+      case "approval_package":
+        navigate(
+          `/create/guided/approval-package?${communicationParam}`
+        );
+        return;
+
+      case "channels":
+        navigate(
+          `/create/guided/channels?${communicationParam}`
+        );
+        return;
+
+      case "ready":
+        navigate(
+          `/create/guided/ready?${communicationParam}`
+        );
+        return;
+
+      case "brief":
+        navigate(
+          `/create/guided/brief?${communicationParam}`
+        );
+        return;
+
+      case "idea":
+        navigate(
+          `/create/guided?${communicationParam}`
+        );
+        return;
+
+      case "mode":
+        navigate(
+          `/create/mode?${communicationParam}`
+        );
+        return;
+    }
+  }
+
+  /**
+   * EXISTING EXPERT CREATION FLOW
+   *
+   * Keep the working Phase 1 routing unchanged.
+   */
   const category =
     comm.category
       ? mapDatabaseCategory(
@@ -1564,13 +1638,6 @@ function openCommunication(
       : null;
 
   if (!category) {
-    /**
-     * A brand-new Phase 2 draft may exist before the user
-     * chooses Guided or Expert Creation.
-     *
-     * Reopen that draft at the mode-selection screen instead
-     * of silently pushing the user into Expert Creation.
-     */
     navigate(
       `/create/mode?${communicationParam}`
     );
@@ -1626,6 +1693,155 @@ function openCommunication(
       return;
   }
 }
+
+
+type GuidedResumeState =
+  | "mode"
+  | "idea"
+  | "brief"
+  | "ready"
+  | "channels"
+  | "approval_package";
+
+
+function getGuidedResumeState(
+  comm:
+    CommunicationRecord
+): GuidedResumeState | null {
+  const inputData =
+    comm.input_data;
+
+  if (
+    !inputData ||
+    typeof inputData !==
+      "object" ||
+    Array.isArray(
+      inputData
+    )
+  ) {
+    return null;
+  }
+
+  const input =
+    inputData as
+      Record<string, any>;
+
+  const guided =
+    input.guided &&
+    typeof input.guided ===
+      "object" &&
+    !Array.isArray(
+      input.guided
+    )
+      ? input.guided as
+          Record<string, any>
+      : null;
+
+  const explicitlyGuided =
+    input.creationMode ===
+      "guided" ||
+    Boolean(
+      guided
+    ) ||
+    Boolean(
+      input.communicationMaster
+    );
+
+  if (
+    !explicitlyGuided
+  ) {
+    return null;
+  }
+
+  /**
+   * Most advanced checkpoint first.
+   */
+
+  if (
+    guided?.approvalPackage &&
+    typeof guided.approvalPackage ===
+      "object" &&
+    !Array.isArray(
+      guided.approvalPackage
+    )
+  ) {
+    return "approval_package";
+  }
+
+  if (
+    guided?.selectedChannelVariants &&
+    typeof guided.selectedChannelVariants ===
+      "object" &&
+    !Array.isArray(
+      guided.selectedChannelVariants
+    )
+  ) {
+    return "channels";
+  }
+
+  if (
+    guided?.channelGeneration?.status ===
+      "ready"
+  ) {
+    return "channels";
+  }
+
+  if (
+    input.communicationMaster &&
+    typeof input.communicationMaster ===
+      "object" &&
+    !Array.isArray(
+      input.communicationMaster
+    )
+  ) {
+    return "ready";
+  }
+
+  if (
+    guided?.brief &&
+    typeof guided.brief ===
+      "object" &&
+    !Array.isArray(
+      guided.brief
+    )
+  ) {
+    return "ready";
+  }
+
+  if (
+    guided?.understanding &&
+    typeof guided.understanding ===
+      "object" &&
+    !Array.isArray(
+      guided.understanding
+    )
+  ) {
+    return "idea";
+  }
+
+  if (
+    guided?.rawInput &&
+    typeof guided.rawInput ===
+      "object" &&
+    !Array.isArray(
+      guided.rawInput
+    )
+  ) {
+    return "idea";
+  }
+
+  /**
+   * Guided mode selected but no idea captured yet.
+   */
+  if (
+    explicitlyGuided
+  ) {
+    return "idea";
+  }
+
+  return "mode";
+}
+
 
 function getRevisionState(
   comm:
