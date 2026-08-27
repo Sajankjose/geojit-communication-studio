@@ -27,8 +27,6 @@ import {
 } from "../components/TopNavBar";
 
 import {
-  DesignSystemButton,
-  DesignSystemCard,
   DesignSystemIcon,
 } from "../design-system";
 
@@ -55,13 +53,6 @@ import {
   getReviewerQueue,
   ReviewQueueItem,
 } from "../services/reviews";
-
-/**
- * Dashboard uses the shared design-system components, while the
- * explicit utility classes below act as a visual fallback so the
- * dashboard does not lose hierarchy if the global design-system
- * stylesheet is loaded after/before Tailwind differently.
- */
 
 type DashboardFilter =
   | "all"
@@ -553,155 +544,150 @@ export function Dashboard() {
   }
 
   return (
-    <div className="ds-page">
+    <div className="min-h-screen bg-[#f7f8f8] text-[#022F2D]">
       <TopNavBar />
 
-      <main className="mx-auto max-w-7xl px-6 py-10 md:px-8 md:py-12">
+      <main className="mx-auto max-w-7xl px-6 py-8 md:px-8 md:py-10">
 
-        <DesignSystemCard className="mb-10 overflow-hidden rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-[#f3fbfa] p-8 shadow-sm md:p-10">
-          <div className="mx-auto max-w-3xl text-center">
+        <section className="mb-8 rounded-2xl border border-[#d9e3e1] bg-white p-7 shadow-sm md:p-8">
+          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
 
-            <div className="mb-5 flex justify-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--ds-surface-subtle)]">
-                {isReviewer ? (
-                  <DesignSystemIcon
-                    size="lg"
-                    tone="action"
-                  >
-                    <ClipboardCheck />
-                  </DesignSystemIcon>
-                ) : (
-                  <DesignSystemIcon
-                    size="lg"
-                    tone="action"
-                  >
-                    <Plus />
-                  </DesignSystemIcon>
-                )}
+            <div className="max-w-3xl">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e8f5f4]">
+                  {isReviewer ? (
+                    <DesignSystemIcon
+                      size="md"
+                      tone="action"
+                    >
+                      <ClipboardCheck />
+                    </DesignSystemIcon>
+                  ) : (
+                    <DesignSystemIcon
+                      size="md"
+                      tone="action"
+                    >
+                      <Plus />
+                    </DesignSystemIcon>
+                  )}
+                </div>
+
+                <p className="text-sm font-medium text-[#07877B]">
+                  {isReviewer
+                    ? "Approval Workspace"
+                    : "Communication Studio"}
+                </p>
               </div>
+
+              <h1 className="text-3xl font-semibold leading-tight text-[#022F2D]">
+                {isReviewer
+                  ? "Review Communications"
+                  : "Create New Communication"}
+              </h1>
+
+              <p className="mt-3 max-w-2xl text-base leading-7 text-[#4A6361]">
+                {isReviewer
+                  ? "Review communications waiting for your action and move them through the approval workflow."
+                  : "Create structured, compliant, Geojit-aligned communications with AI-assisted guidance."}
+              </p>
+
+              {!isReviewer && (
+                <div className="mt-5 flex flex-wrap items-center gap-4 text-sm">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      applyFilter(
+                        "draft"
+                      )
+                    }
+                    className="font-medium text-[#4A6361] hover:text-[#07877B]"
+                  >
+                    View Drafts
+                  </button>
+
+                  <span className="text-[#b6c6c3]">
+                    •
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      applyFilter(
+                        "all"
+                      )
+                    }
+                    className="font-medium text-[#4A6361] hover:text-[#07877B]"
+                  >
+                    View Recent Communications
+                  </button>
+
+                  {profile?.role ===
+                    "admin" && (
+                    <>
+                      <span className="text-[#b6c6c3]">
+                        •
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          navigate(
+                            "/settings/rules"
+                          )
+                        }
+                        className="font-medium text-[#4A6361] hover:text-[#07877B]"
+                      >
+                        Templates / Rules
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
-            <h1 className="ds-title-2 mb-3 text-3xl font-semibold text-[#022F2D]">
-              {isReviewer
-                ? "Review Communications"
-                : "Create New Communication"}
-            </h1>
-
-            <p className="ds-body-md mb-7 text-base leading-7 text-[#4A6361]">
-              {isReviewer
-                ? "Review communications waiting for your action and move them through the approval workflow."
-                : "Create structured, compliant, Geojit-aligned communications with AI-assisted guidance."}
-            </p>
-
-            {isReviewer ? (
-              <DesignSystemButton
-                variant="primary"
-                size="large"
-                onClick={() =>
-                  navigate(
-                    "/reviews"
-                  )
-                }
-                trailingIcon={
-                  <DesignSystemIcon
-                    size="md"
-                    tone="onDark"
-                  >
-                    <ArrowRight />
-                  </DesignSystemIcon>
-                }
-                className="rounded-lg bg-[#07877B] px-8 py-4 font-medium text-white shadow-sm hover:bg-[#06766a]"
-              >
-                Open Review Queue
-              </DesignSystemButton>
-            ) : canCreate ? (
-              <DesignSystemButton
-                variant="primary"
-                size="large"
-                onClick={
-                  handleStartCreating
-                }
-                disabled={
-                  creating
-                }
-                leadingIcon={
-                  <DesignSystemIcon
-                    size="md"
-                    tone="onDark"
-                  >
-                    <Plus />
-                  </DesignSystemIcon>
-                }
-                className="rounded-lg bg-[#07877B] px-8 py-4 font-medium text-white shadow-sm hover:bg-[#06766a]"
-              >
-                {creating
-                  ? "Creating..."
-                  : "Start Creating"}
-              </DesignSystemButton>
-            ) : null}
-
-            {error && (
-              <div className="mx-auto mt-5 max-w-lg rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
-
-            {!isReviewer && (
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <div className="flex shrink-0">
+              {isReviewer ? (
                 <button
                   type="button"
                   onClick={() =>
-                    applyFilter(
-                      "draft"
+                    navigate(
+                      "/reviews"
                     )
                   }
-                  className="ds-button-md text-[var(--ds-text-secondary)] hover:text-[var(--ds-brand-primary)]"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#07877B] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#06766a]"
                 >
-                  View Drafts
+                  Open Review Queue
+                  <ArrowRight className="h-4 w-4" />
                 </button>
-
-                <span className="text-[var(--ds-border-default)]">
-                  •
-                </span>
-
+              ) : canCreate ? (
                 <button
                   type="button"
-                  onClick={() =>
-                    applyFilter(
-                      "all"
-                    )
+                  onClick={
+                    handleStartCreating
                   }
-                  className="ds-button-md text-[var(--ds-text-secondary)] hover:text-[var(--ds-brand-primary)]"
+                  disabled={
+                    creating
+                  }
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#07877B] px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  View Recent Communications
+                  <Plus className="h-4 w-4" />
+
+                  {creating
+                    ? "Creating..."
+                    : "Start Creating"}
                 </button>
-
-                {profile?.role ===
-                  "admin" && (
-                  <>
-                    <span className="text-[var(--ds-border-default)]">
-                      •
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        navigate(
-                          "/settings/rules"
-                        )
-                      }
-                      className="ds-button-md text-[var(--ds-text-secondary)] hover:text-[var(--ds-brand-primary)]"
-                    >
-                      Templates / Rules
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+              ) : null}
+            </div>
           </div>
-        </DesignSystemCard>
 
-        <div className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {error && (
+            <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+        </section>
+
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
           <button
             type="button"
@@ -717,7 +703,7 @@ export function Dashboard() {
             disabled={
               isReviewer
             }
-            className={`ds-card rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all ${
+            className={`rounded-2xl border border-[#d9e3e1] bg-white p-5 text-left shadow-sm transition-all ${
               isReviewer
                 ? "cursor-default"
                 : "hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
@@ -735,8 +721,8 @@ export function Dashboard() {
 
               <h3 className={
                 isReviewer
-                  ? "ds-title-4 text-lg font-semibold text-[#022F2D]"
-                  : "ds-title-3 text-2xl font-semibold text-[#022F2D]"
+                  ? "text-lg font-semibold text-[#022F2D]"
+                  : "text-2xl font-semibold text-[#022F2D]"
               }>
                 {loading
                   ? "—"
@@ -749,14 +735,14 @@ export function Dashboard() {
               </h3>
             </div>
 
-            <p className="ds-body-xs text-sm text-[#4A6361]">
+            <p className="text-sm text-[#4A6361]">
               {isReviewer
                 ? "Current Review Stage"
                 : "Total Drafts"}
             </p>
 
             {!isReviewer && (
-              <p className="ds-button-md mt-3 flex items-center gap-1 text-xs font-medium text-[#07877B]">
+              <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-[#07877B]">
                 View drafts
                 <DesignSystemIcon
                   size="sm"
@@ -783,7 +769,7 @@ export function Dashboard() {
                 );
               }
             }}
-            className="ds-card rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
+            className="rounded-2xl border border-[#d9e3e1] bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
           >
             <div className="mb-2 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-[var(--ds-radius-sm)] bg-amber-50">
@@ -795,18 +781,18 @@ export function Dashboard() {
                 </DesignSystemIcon>
               </div>
 
-              <h3 className="ds-title-3 text-2xl font-semibold text-[#022F2D]">
+              <h3 className="text-2xl font-semibold text-[#022F2D]">
                 {loading
                   ? "—"
                   : pendingApproval}
               </h3>
             </div>
 
-            <p className="ds-body-xs text-sm text-[#4A6361]">
+            <p className="text-sm text-[#4A6361]">
               Pending Approval
             </p>
 
-            <p className="ds-button-md mt-3 flex items-center gap-1 text-xs font-medium text-[#07877B]">
+            <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-[#07877B]">
               {canReview
                 ? "View review queue"
                 : "View pending"}
@@ -834,7 +820,7 @@ export function Dashboard() {
                 );
               }
             }}
-            className="ds-card rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
+            className="rounded-2xl border border-[#d9e3e1] bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
           >
             <div className="mb-2 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-[var(--ds-radius-sm)] bg-green-50">
@@ -846,7 +832,7 @@ export function Dashboard() {
                 </DesignSystemIcon>
               </div>
 
-              <h3 className="ds-title-3 text-2xl font-semibold text-[#022F2D]">
+              <h3 className="text-2xl font-semibold text-[#022F2D]">
                 {loading
                   ? "—"
                   : isReviewer
@@ -855,13 +841,13 @@ export function Dashboard() {
               </h3>
             </div>
 
-            <p className="ds-body-xs text-sm text-[#4A6361]">
+            <p className="text-sm text-[#4A6361]">
               {isReviewer
                 ? "Revised & Resubmitted"
                 : "Approved"}
             </p>
 
-            <p className="ds-button-md mt-3 flex items-center gap-1 text-xs font-medium text-[#07877B]">
+            <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-[#07877B]">
               View
               <DesignSystemIcon
                   size="sm"
@@ -889,7 +875,7 @@ export function Dashboard() {
               isReviewer ||
               !mostUsedCategory
             }
-            className={`ds-card rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all ${
+            className={`rounded-2xl border border-[#d9e3e1] bg-white p-5 text-left shadow-sm transition-all ${
               !isReviewer &&
               mostUsedCategory
                 ? "hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
@@ -897,7 +883,7 @@ export function Dashboard() {
             }`}
           >
             <div className="mb-2">
-              <h3 className="ds-body-xs text-sm text-[#4A6361]">
+              <h3 className="text-sm font-medium text-[#4A6361]">
                 Most Used Category
               </h3>
             </div>
@@ -912,14 +898,14 @@ export function Dashboard() {
                 size="sm"
               />
             ) : (
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-[#8da09d]">
                 No data yet
               </p>
             )}
 
             {!isReviewer &&
               mostUsedCategory && (
-                <p className="ds-button-md mt-3 flex items-center gap-1 text-xs font-medium text-[#07877B]">
+                <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-[#07877B]">
                   Filter communications
                   <DesignSystemIcon
                   size="sm"
@@ -934,7 +920,7 @@ export function Dashboard() {
 
         {profile?.role ===
           "admin" && (
-          <DesignSystemCard className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <section className="mb-8 rounded-2xl border border-[#d9e3e1] bg-white p-6 shadow-sm">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="ds-body-xs font-medium text-[var(--ds-brand-primary)]">
@@ -1015,16 +1001,16 @@ export function Dashboard() {
                 </DesignSystemIcon>
               </button>
             </div>
-          </DesignSystemCard>
+          </section>
         )}
 
-        <DesignSystemCard
+        <section
           ref={recentRef}
-          className="scroll-mt-6 rounded-xl border border-gray-200 bg-white p-8 shadow-sm"
+          className="scroll-mt-6 rounded-2xl border border-[#d9e3e1] bg-white p-6 shadow-sm md:p-8"
         >
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="ds-title-4 text-xl font-semibold text-[#022F2D]">
+              <h2 className="text-xl font-semibold text-[#022F2D]">
                 {isReviewer
                   ? "Pending Reviews"
                   : "Recent Communications"}
@@ -1086,7 +1072,7 @@ export function Dashboard() {
                   </DesignSystemIcon>
                 </div>
 
-                <h3 className="ds-title-4 mb-2 text-lg font-semibold text-[#022F2D]">
+                <h3 className="mb-2 text-lg font-semibold text-[#022F2D]">
                   You're all caught up
                 </h3>
 
@@ -1113,10 +1099,10 @@ export function Dashboard() {
                           "/reviews"
                         )
                       }
-                      className="group flex w-full items-center gap-4 rounded-[var(--ds-radius-sm)] border border-transparent p-4 text-left hover:border-[var(--ds-border-subtle)] hover:bg-[var(--ds-surface-muted)]"
+                      className="group flex w-full items-center gap-4 rounded-xl border border-transparent p-4 text-left transition hover:border-[#d9e3e1] hover:bg-[#f7fbfa]"
                     >
                       <div className="flex-1">
-                        <h3 className="ds-body-sm mb-2 text-sm font-medium text-[#022F2D]">
+                        <h3 className="mb-2 text-sm font-medium text-[#022F2D]">
                           {item.communication
                             ?.title ||
                             "Untitled Communication"}
@@ -1181,7 +1167,7 @@ export function Dashboard() {
                   </DesignSystemIcon>
                 </div>
 
-                <h3 className="ds-title-4 mb-2 text-lg font-semibold text-[#022F2D]">
+                <h3 className="mb-2 text-lg font-semibold text-[#022F2D]">
                   No communications found
                 </h3>
 
@@ -1218,7 +1204,7 @@ export function Dashboard() {
                           key={
                             comm.id
                           }
-                          className="group relative flex items-center gap-4 rounded-[var(--ds-radius-sm)] border border-transparent p-4 hover:border-[var(--ds-border-subtle)] hover:bg-[var(--ds-surface-muted)]"
+                          className="group relative flex items-center gap-4 rounded-xl border border-transparent p-4 transition hover:border-[#d9e3e1] hover:bg-[#f7fbfa]"
                         >
                           <button
                             type="button"
@@ -1230,7 +1216,7 @@ export function Dashboard() {
                             }
                             className="min-w-0 flex-1 text-left"
                           >
-                            <h3 className="ds-body-sm mb-2 text-sm font-medium text-[#022F2D]">
+                            <h3 className="mb-2 text-sm font-medium text-[#022F2D]">
                               {comm.title}
                             </h3>
 
@@ -1290,7 +1276,7 @@ export function Dashboard() {
                                   comm
                                 )
                               }
-                              className="ds-button-md rounded-[var(--ds-radius-sm)] border border-[var(--ds-border-subtle)] px-3 py-2 text-[var(--ds-text-primary)] hover:border-[var(--ds-brand-primary)] hover:text-[var(--ds-brand-primary)]"
+                              className="rounded-lg border border-[#d9e3e1] px-3 py-2 text-xs font-semibold text-[#022F2D] hover:border-[#07877B] hover:text-[#07877B]"
                             >
                               {
                                 actionLabel
@@ -1338,7 +1324,7 @@ export function Dashboard() {
 
                             {menuOpenId ===
                               comm.id && (
-                              <DesignSystemCard className="absolute right-0 z-20 mt-2 w-44 overflow-hidden p-1">
+                              <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-xl border border-[#d9e3e1] bg-white p-1 shadow-lg">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1372,7 +1358,7 @@ export function Dashboard() {
                                     Delete Draft
                                   </button>
                                 )}
-                              </DesignSystemCard>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -1381,7 +1367,7 @@ export function Dashboard() {
                   )}
               </div>
             )}
-        </DesignSystemCard>
+        </section>
       </main>
 
       {deleteTarget && (
@@ -1443,7 +1429,7 @@ function DeleteDraftModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 px-4">
-      <DesignSystemCard className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl border border-[#d9e3e1] bg-white p-6 shadow-2xl">
         <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-red-50">
           <DesignSystemIcon
             size="md"
@@ -1487,18 +1473,18 @@ function DeleteDraftModal({
         )}
 
         <div className="mt-6 flex justify-end gap-3">
-          <DesignSystemButton
-            variant="secondary"
-            size="medium"
+          <button
+            type="button"
             onClick={
               onCancel
             }
             disabled={
               deleting
             }
+            className="rounded-lg border border-[#cbd7d5] bg-white px-4 py-2.5 text-sm font-medium text-[#022F2D] hover:bg-[#f7fbfa] disabled:opacity-50"
           >
             Cancel
-          </DesignSystemButton>
+          </button>
 
           <button
             type="button"
@@ -1517,7 +1503,7 @@ function DeleteDraftModal({
                 : "Continue"}
           </button>
         </div>
-      </DesignSystemCard>
+      </div>
     </div>
   );
 }
