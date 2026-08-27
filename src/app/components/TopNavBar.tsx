@@ -27,6 +27,11 @@ import {
 } from "../auth/useAuth";
 
 import {
+  DesignSystemCard,
+  DesignSystemIcon,
+} from "../design-system";
+
+import {
   AppNotification,
   formatNotificationTime,
   getNotificationCentreItems,
@@ -99,16 +104,6 @@ export function TopNavBar() {
           (item) =>
             !item.is_read
         ).length,
-      [notifications]
-    );
-
-  const hasHistory =
-    useMemo(
-      () =>
-        notifications.some(
-          (item) =>
-            item.is_historical
-        ),
       [notifications]
     );
 
@@ -276,7 +271,7 @@ export function TopNavBar() {
   }
 
   return (
-    <header className="border-b border-gray-200 bg-white">
+    <header className="border-b border-[var(--ds-border-subtle)] bg-[var(--ds-white)]">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center px-6">
 
         <button
@@ -286,11 +281,11 @@ export function TopNavBar() {
           className="flex items-center gap-4 text-left"
         >
           <div>
-            <p className="text-lg font-semibold text-[#07877B]">
+            <p className="ds-title-4 text-[var(--ds-brand-primary)]">
               Geojit Communication Engine
             </p>
 
-            <p className="text-xs text-gray-500">
+            <p className="ds-body-xs">
               AI-powered email creation
             </p>
           </div>
@@ -298,17 +293,10 @@ export function TopNavBar() {
 
         <div className="ml-auto flex items-center gap-4">
 
-          {/* Notifications */}
           <div className="relative">
             <button
               type="button"
-              aria-label={
-                unreadCount > 0
-                  ? `${unreadCount} unread notifications`
-                  : hasHistory
-                    ? "Notifications with activity history"
-                    : "Notifications"
-              }
+              aria-label="Notifications"
               onClick={() => {
                 setIsNotificationOpen(
                   (current) =>
@@ -321,11 +309,15 @@ export function TopNavBar() {
 
                 void loadNotifications();
               }}
-              className="relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
+              className="relative flex h-9 w-9 items-center justify-center rounded-[var(--ds-radius-sm)] transition-colors hover:bg-[var(--ds-surface-muted)]"
             >
-              <Bell className="h-5 w-5" />
+              <DesignSystemIcon
+                size="md"
+                tone="secondary"
+              >
+                <Bell />
+              </DesignSystemIcon>
 
-              {/* New / unread notifications */}
               {unreadCount >
                 0 && (
                 <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white">
@@ -335,16 +327,6 @@ export function TopNavBar() {
                     : unreadCount}
                 </span>
               )}
-
-              {/* Historical activity exists, but nothing is unread */}
-              {unreadCount ===
-                0 &&
-                hasHistory && (
-                  <span
-                    className="absolute right-0.5 top-0.5 h-2.5 w-2.5 rounded-full bg-[#07877B] ring-2 ring-white"
-                    aria-hidden="true"
-                  />
-                )}
             </button>
 
             {isNotificationOpen && (
@@ -358,15 +340,15 @@ export function TopNavBar() {
                   }
                 />
 
-                <div className="absolute right-0 z-40 mt-2 w-[380px] max-w-[calc(100vw-24px)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
+                <DesignSystemCard className="absolute right-0 z-40 mt-2 w-[380px] max-w-[calc(100vw-24px)] overflow-hidden">
 
                   <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
                     <div>
-                      <p className="font-semibold text-gray-900">
+                      <p className="ds-title-4">
                         Notifications
                       </p>
 
-                      <p className="mt-0.5 text-xs text-gray-500">
+                      <p className="ds-body-xs mt-0.5">
                         {unreadCount}
                         {" "}
                         unread
@@ -380,9 +362,14 @@ export function TopNavBar() {
                         onClick={() =>
                           void handleMarkAllRead()
                         }
-                        className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-[#07877B] hover:bg-[#F3FBFA]"
+                        className="ds-button-md flex items-center gap-1.5 rounded-[var(--ds-radius-sm)] px-2 py-1.5 text-[var(--ds-brand-primary)] hover:bg-[var(--ds-surface-subtle)]"
                       >
-                        <CheckCheck className="h-4 w-4" />
+                        <DesignSystemIcon
+                          size="sm"
+                          tone="action"
+                        >
+                          <CheckCheck />
+                        </DesignSystemIcon>
                         Mark all read
                       </button>
                     )}
@@ -402,13 +389,20 @@ export function TopNavBar() {
                     ) : notifications.length ===
                       0 ? (
                       <div className="px-5 py-10 text-center">
-                        <Bell className="mx-auto mb-3 h-7 w-7 text-gray-300" />
+                        <div className="mx-auto mb-3 flex justify-center">
+                          <DesignSystemIcon
+                            size="lg"
+                            tone="disabled"
+                          >
+                            <Bell />
+                          </DesignSystemIcon>
+                        </div>
 
-                        <p className="text-sm font-medium text-gray-700">
+                        <p className="ds-title-4">
                           You're all caught up
                         </p>
 
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="ds-body-xs mt-1">
                           Workflow updates and your recent activity will appear here.
                         </p>
                       </div>
@@ -441,7 +435,7 @@ export function TopNavBar() {
 
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start gap-2">
-                                <p className="flex-1 text-sm font-medium text-gray-900">
+                                <p className="ds-body-sm flex-1 font-medium">
                                   {
                                     notification.title
                                   }
@@ -452,7 +446,7 @@ export function TopNavBar() {
                                 )}
                               </div>
 
-                              <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-600">
+                              <p className="ds-body-xs mt-1 line-clamp-2">
                                 {
                                   notification.message
                                 }
@@ -477,7 +471,7 @@ export function TopNavBar() {
                       )
                     )}
                   </div>
-                </div>
+                </DesignSystemCard>
               </>
             )}
           </div>
@@ -489,9 +483,14 @@ export function TopNavBar() {
               onClick={
                 handleSettings
               }
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-600 transition-colors hover:bg-gray-100"
+              className="flex h-9 w-9 items-center justify-center rounded-[var(--ds-radius-sm)] transition-colors hover:bg-[var(--ds-surface-muted)]"
             >
-              <Settings className="h-5 w-5" />
+              <DesignSystemIcon
+                size="md"
+                tone="secondary"
+              >
+                <Settings />
+              </DesignSystemIcon>
             </button>
           )}
 
@@ -508,27 +507,37 @@ export function TopNavBar() {
                   false
                 );
               }}
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-gray-700 transition-colors hover:bg-gray-100"
+              className="flex items-center gap-2 rounded-[var(--ds-radius-sm)] px-3 py-2 text-[var(--ds-text-primary)] transition-colors hover:bg-[var(--ds-surface-muted)]"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#07877B] text-white">
-                <User className="h-4 w-4" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--ds-brand-primary)]">
+                <DesignSystemIcon
+                  size="sm"
+                  tone="onDark"
+                >
+                  <User />
+                </DesignSystemIcon>
               </div>
 
               <div className="hidden text-left sm:block">
-                <p className="text-sm font-medium">
+                <p className="ds-body-sm font-medium">
                   {
                     employeeName
                   }
                 </p>
 
-                <p className="text-xs text-gray-500">
+                <p className="ds-body-xs">
                   {
                     employeeInfo
                   }
                 </p>
               </div>
 
-              <ChevronDown className="h-4 w-4 text-gray-500" />
+              <DesignSystemIcon
+                size="sm"
+                tone="secondary"
+              >
+                <ChevronDown />
+              </DesignSystemIcon>
             </button>
 
             {isUserMenuOpen && (
@@ -542,7 +551,7 @@ export function TopNavBar() {
                   }
                 />
 
-                <div className="absolute right-0 z-20 mt-2 w-64 rounded-xl border border-gray-200 bg-white shadow-lg">
+                <DesignSystemCard className="absolute right-0 z-20 mt-2 w-64 overflow-hidden">
 
                   <div className="border-b border-gray-100 p-4">
                     <p className="text-sm font-medium text-gray-900">
@@ -575,7 +584,7 @@ export function TopNavBar() {
 
                     {profile?.role && (
                       <div className="mt-3">
-                        <span className="inline-flex rounded-full bg-[#e8f5f4] px-2.5 py-1 text-xs font-medium text-[#07877B]">
+                        <span className="ds-chip ds-chip-sm">
                           {formatRole(
                             profile.role
                           )}
@@ -592,13 +601,18 @@ export function TopNavBar() {
                       }
                       className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
                     >
-                      <LogOut className="h-4 w-4" />
+                      <DesignSystemIcon
+                        size="sm"
+                        tone="error"
+                      >
+                        <LogOut />
+                      </DesignSystemIcon>
                       <span>
                         Sign Out
                       </span>
                     </button>
                   </div>
-                </div>
+                </DesignSystemCard>
               </>
             )}
           </div>
@@ -620,50 +634,66 @@ function NotificationIcon({
     case "approved":
     case "final_approved":
       return (
-        <div
-          className={`${base} bg-green-50 text-green-700`}
-        >
-          <CircleCheck className="h-4 w-4" />
+        <div className={`${base} bg-green-50`}>
+          <DesignSystemIcon
+            size="sm"
+            tone="success"
+          >
+            <CircleCheck />
+          </DesignSystemIcon>
         </div>
       );
 
     case "rejected":
       return (
-        <div
-          className={`${base} bg-red-50 text-red-600`}
-        >
-          <CircleX className="h-4 w-4" />
+        <div className={`${base} bg-red-50`}>
+          <DesignSystemIcon
+            size="sm"
+            tone="error"
+          >
+            <CircleX />
+          </DesignSystemIcon>
         </div>
       );
 
     case "changes_requested":
       return (
-        <div
-          className={`${base} bg-amber-50 text-amber-700`}
-        >
-          <MessageSquareWarning className="h-4 w-4" />
+        <div className={`${base} bg-amber-50`}>
+          <DesignSystemIcon
+            size="sm"
+            tone="warning"
+          >
+            <MessageSquareWarning />
+          </DesignSystemIcon>
         </div>
       );
 
     case "review_required":
       return (
-        <div
-          className={`${base} bg-blue-50 text-blue-700`}
-        >
-          <Clock3 className="h-4 w-4" />
+        <div className={`${base} bg-blue-50`}>
+          <DesignSystemIcon
+            size="sm"
+            tone="info"
+          >
+            <Clock3 />
+          </DesignSystemIcon>
         </div>
       );
 
     default:
       return (
-        <div
-          className={`${base} bg-gray-100 text-gray-600`}
-        >
-          <Bell className="h-4 w-4" />
+        <div className={`${base} bg-[var(--ds-surface-muted)]`}>
+          <DesignSystemIcon
+            size="sm"
+            tone="secondary"
+          >
+            <Bell />
+          </DesignSystemIcon>
         </div>
       );
   }
 }
+
 
 function formatRole(
   role: string
