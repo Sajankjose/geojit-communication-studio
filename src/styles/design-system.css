@@ -533,3 +533,71 @@
   color: var(--ds-text-primary);
   font-family: var(--font-ui);
 }
+
+
+/* ===========================================================
+ * DESIGN SYSTEM COMPONENT CONTRACTS — PHASE 2
+ * ===========================================================
+ *
+ * Semantic icon roles are mapped here.
+ * Exact color values are intentionally inherited from the
+ * existing semantic palette until the corresponding Figma
+ * variable values are read from a concrete component node.
+ *
+ * Do not add arbitrary icon colors inside feature screens.
+ */
+
+.ds-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.ds-icon > svg,
+.ds-icon > img {
+  width: 100%;
+  height: 100%;
+}
+
+.ds-icon-primary {
+  color: var(--ds-text-primary);
+}
+
+.ds-icon-secondary {
+  color: var(--ds-text-secondary);
+}
+
+.ds-icon-tertiary {
+  color: var(--ds-text-secondary);
+  opacity: 0.72;
+}
+
+.ds-icon-action,
+.ds-icon-action-secondary,
+.ds-icon-info,
+.ds-icon-color {
+  color: var(--ds-brand-primary);
+}
+
+.ds-icon-success {
+  color: #15803d;
+}
+
+.ds-icon-warning {
+  color: #b45309;
+}
+
+.ds-icon-error {
+  color: #dc2626;
+}
+
+.ds-icon-disabled,
+.ds-icon-disabled-secondary {
+  color: var(--ds-text-secondary);
+  opacity: 0.4;
+}
+
+.ds-icon-on-dark {
+  color: var(--ds-white);
+}
