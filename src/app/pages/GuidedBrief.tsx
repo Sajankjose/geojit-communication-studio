@@ -27,6 +27,13 @@ import {
 } from "../components/TopNavBar";
 
 import {
+  DesignSystemButton,
+  DesignSystemCard,
+  DesignSystemIcon,
+  DesignSystemInput,
+} from "../design-system";
+
+import {
   getCommunicationById,
 } from "../services/communications";
 
@@ -472,11 +479,11 @@ export function GuidedBrief() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="ds-page">
         <TopNavBar />
 
         <div className="flex min-h-[70vh] items-center justify-center">
-          <p className="text-sm text-gray-500">
+          <p className="ds-body-sm">
             Preparing your guided brief...
           </p>
         </div>
@@ -485,36 +492,49 @@ export function GuidedBrief() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="ds-page">
       <TopNavBar />
 
       <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
 
-        <button
-          type="button"
+        <DesignSystemButton
+          variant="tertiary"
+          size="medium"
           onClick={
             handleBack
           }
-          className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#07877B]"
+          leadingIcon={
+            <DesignSystemIcon
+              size="sm"
+              tone="action"
+            >
+              <ArrowLeft />
+            </DesignSystemIcon>
+          }
+          className="mb-6 px-0"
         >
-          <ArrowLeft className="h-4 w-4" />
           Back
-        </button>
+        </DesignSystemButton>
 
         <div className="mb-9 max-w-3xl">
           <div className="mb-3 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#07877B]" />
+            <DesignSystemIcon
+              size="md"
+              tone="action"
+            >
+              <Sparkles />
+            </DesignSystemIcon>
 
-            <p className="text-sm font-medium text-[#07877B]">
+            <p className="ds-label-3 text-[var(--ds-text-brand)]">
               Guided Brief
             </p>
           </div>
 
-          <h1 className="text-3xl text-gray-900">
+          <h1 className="ds-title-2">
             Let's shape the communication
           </h1>
 
-          <p className="mt-3 text-base leading-7 text-gray-600">
+          <p className="ds-body-sm mt-3 max-w-2xl">
             We already understand your idea.
             Confirm a few simple choices so
             Communication Studio can adapt it
@@ -523,45 +543,49 @@ export function GuidedBrief() {
         </div>
 
         {understandingSummary && (
-          <div className="mb-8 rounded-xl border border-[#bfe4df] bg-[#f3fbfa] px-5 py-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-[#07877B]">
+          <DesignSystemCard
+            surface="accent"
+            className="mb-8 px-5 py-4"
+          >
+            <p className="ds-label-3 text-[var(--ds-text-brand)]">
               Your idea
             </p>
 
-            <p className="mt-2 text-sm leading-6 text-gray-700">
+            <p className="ds-body-sm mt-2">
               {
                 understandingSummary
               }
             </p>
-          </div>
+          </DesignSystemCard>
         )}
 
         {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="ds-alert ds-alert-error mb-6 text-sm">
             {error}
           </div>
         )}
 
         <div className="space-y-8">
 
-          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <DesignSystemCard className="p-6 sm:p-8">
             <div className="mb-5">
-              <p className="text-sm font-medium text-[#07877B]">
+              <p className="ds-label-3 text-[var(--ds-text-brand)]">
                 1. Audience
               </p>
 
-              <h2 className="mt-1 text-xl text-gray-900">
+              <h2 className="ds-title-4 mt-1">
                 Who should receive this?
               </h2>
 
-              <p className="mt-2 text-sm leading-6 text-gray-500">
+              <p className="ds-body-xs mt-2">
                 We've pre-filled this from
                 what we understood. Change it
                 only if needed.
               </p>
             </div>
 
-            <input
+            <DesignSystemInput
+              label="Audience"
               value={
                 audience
               }
@@ -572,18 +596,19 @@ export function GuidedBrief() {
                 setError("");
               }}
               placeholder="e.g., Customers considering starting an SIP"
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10"
+              helperText="Describe the main group this communication is intended for."
+              requiredLabel
             />
-          </section>
+          </DesignSystemCard>
 
 
-          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <DesignSystemCard className="p-6 sm:p-8">
             <div className="mb-5">
-              <p className="text-sm font-medium text-[#07877B]">
+              <p className="ds-label-3 text-[var(--ds-text-brand)]">
                 2. Purpose
               </p>
 
-              <h2 className="mt-1 text-xl text-gray-900">
+              <h2 className="ds-title-4 mt-1">
                 What should this communication achieve?
               </h2>
             </div>
@@ -606,21 +631,25 @@ export function GuidedBrief() {
                           option.value
                         )
                       }
-                      className={`rounded-xl border p-4 text-left transition-all ${
-                        selected
-                          ? "border-[#07877B] bg-[#f3fbfa]"
-                          : "border-gray-200 hover:border-[#9bcfc9]"
-                      }`}
+                      className="group text-left"
+                    >
+                      <DesignSystemCard
+                        surface={
+                          selected
+                            ? "selected"
+                            : "interactive"
+                        }
+                        className="h-full p-4"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="ds-body-sm font-medium">
                             {
                               option.label
                             }
                           </p>
 
-                          <p className="mt-1 text-xs leading-5 text-gray-500">
+                          <p className="ds-body-xs mt-1">
                             {
                               option.helper
                             }
@@ -628,30 +657,36 @@ export function GuidedBrief() {
                         </div>
 
                         {selected && (
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#07877B]">
-                            <Check className="h-3.5 w-3.5 text-white" />
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--ds-brand-primary)]">
+                            <DesignSystemIcon
+                              size="sm"
+                              tone="onDark"
+                            >
+                              <Check />
+                            </DesignSystemIcon>
                           </div>
                         )}
                       </div>
+                      </DesignSystemCard>
                     </button>
                   );
                 }
               )}
             </div>
-          </section>
+          </DesignSystemCard>
 
 
-          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <DesignSystemCard className="p-6 sm:p-8">
             <div className="mb-5">
-              <p className="text-sm font-medium text-[#07877B]">
+              <p className="ds-label-3 text-[var(--ds-text-brand)]">
                 3. Personalisation
               </p>
 
-              <h2 className="mt-1 text-xl text-gray-900">
+              <h2 className="ds-title-4 mt-1">
                 How personal should it feel?
               </h2>
 
-              <p className="mt-2 text-sm leading-6 text-gray-500">
+              <p className="ds-body-xs mt-2">
                 You don't need to choose a
                 writing tone. Communication
                 Studio will apply the right
@@ -680,62 +715,79 @@ export function GuidedBrief() {
                           option.value
                         )
                       }
-                      className={`rounded-xl border p-5 text-left transition-all ${
-                        selected
-                          ? "border-[#07877B] bg-[#f3fbfa]"
-                          : "border-gray-200 hover:border-[#9bcfc9]"
-                      }`}
+                      className="group text-left"
+                    >
+                      <DesignSystemCard
+                        surface={
+                          selected
+                            ? "selected"
+                            : "interactive"
+                        }
+                        className="h-full p-5"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-lg ${
-                          selected
-                            ? "bg-[#dff2ef]"
-                            : "bg-gray-100"
-                        }`}>
-                          <Icon className={`h-5 w-5 ${
+                        <div
+                          className={`mb-4 flex h-10 w-10 items-center justify-center ds-icon-container ${
                             selected
-                              ? "text-[#07877B]"
-                              : "text-gray-600"
-                          }`} />
+                              ? "ds-icon-container-brand"
+                              : ""
+                          }`}
+                        >
+                          <DesignSystemIcon
+                            size="md"
+                            tone={
+                              selected
+                                ? "action"
+                                : "secondary"
+                            }
+                          >
+                            <Icon />
+                          </DesignSystemIcon>
                         </div>
 
                         {selected && (
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#07877B]">
-                            <Check className="h-3.5 w-3.5 text-white" />
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--ds-brand-primary)]">
+                            <DesignSystemIcon
+                              size="sm"
+                              tone="onDark"
+                            >
+                              <Check />
+                            </DesignSystemIcon>
                           </div>
                         )}
                       </div>
 
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="ds-body-sm font-medium">
                         {
                           option.label
                         }
                       </p>
 
-                      <p className="mt-2 text-xs leading-5 text-gray-500">
+                      <p className="ds-body-xs mt-2">
                         {
                           option.helper
                         }
                       </p>
+                      </DesignSystemCard>
                     </button>
                   );
                 }
               )}
             </div>
-          </section>
+          </DesignSystemCard>
 
 
-          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <DesignSystemCard className="p-6 sm:p-8">
             <div className="mb-5">
-              <p className="text-sm font-medium text-[#07877B]">
+              <p className="ds-label-3 text-[var(--ds-text-brand)]">
                 4. Channels
               </p>
 
-              <h2 className="mt-1 text-xl text-gray-900">
+              <h2 className="ds-title-4 mt-1">
                 Where would you like to use it?
               </h2>
 
-              <p className="mt-2 text-sm leading-6 text-gray-500">
+              <p className="ds-body-xs mt-2">
                 You can choose more than one.
                 Each output will be adapted to
                 the channel rather than simply
@@ -765,47 +817,66 @@ export function GuidedBrief() {
                           option.value
                         )
                       }
-                      className={`rounded-xl border p-5 text-left transition-all ${
-                        selected
-                          ? "border-[#07877B] bg-[#f3fbfa]"
-                          : "border-gray-200 hover:border-[#9bcfc9]"
-                      }`}
+                      className="group text-left"
+                    >
+                      <DesignSystemCard
+                        surface={
+                          selected
+                            ? "selected"
+                            : "interactive"
+                        }
+                        className="h-full p-5"
                     >
                       <div className="flex items-start justify-between gap-3">
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                          selected
-                            ? "bg-[#dff2ef]"
-                            : "bg-gray-100"
-                        }`}>
-                          <Icon className={`h-5 w-5 ${
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center ds-icon-container ${
                             selected
-                              ? "text-[#07877B]"
-                              : "text-gray-600"
-                          }`} />
+                              ? "ds-icon-container-brand"
+                              : ""
+                          }`}
+                        >
+                          <DesignSystemIcon
+                            size="md"
+                            tone={
+                              selected
+                                ? "action"
+                                : "secondary"
+                            }
+                          >
+                            <Icon />
+                          </DesignSystemIcon>
                         </div>
 
-                        <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${
-                          selected
-                            ? "border-[#07877B] bg-[#07877B]"
-                            : "border-gray-300 bg-white"
-                        }`}>
+                        <div
+                          className={`flex h-6 w-6 items-center justify-center rounded-full border ${
+                            selected
+                              ? "border-[var(--ds-brand-primary)] bg-[var(--ds-brand-primary)]"
+                              : "border-[var(--ds-border-default)] bg-[var(--ds-white)]"
+                          }`}
+                        >
                           {selected && (
-                            <Check className="h-3.5 w-3.5 text-white" />
+                            <DesignSystemIcon
+                              size="sm"
+                              tone="onDark"
+                            >
+                              <Check />
+                            </DesignSystemIcon>
                           )}
                         </div>
                       </div>
 
-                      <p className="mt-4 text-sm font-medium text-gray-900">
+                      <p className="ds-body-sm mt-4 font-medium">
                         {
                           option.label
                         }
                       </p>
 
-                      <p className="mt-2 text-xs leading-5 text-gray-500">
+                      <p className="ds-body-xs mt-2">
                         {
                           option.helper
                         }
                       </p>
+                      </DesignSystemCard>
                     </button>
                   );
                 }
@@ -814,7 +885,7 @@ export function GuidedBrief() {
 
             {channels.length >
               0 && (
-              <p className="mt-4 text-xs text-gray-500">
+              <p className="ds-body-xs mt-4">
                 Selected:{" "}
                 {
                   selectedChannelLabels.join(
@@ -823,44 +894,57 @@ export function GuidedBrief() {
                 }
               </p>
             )}
-          </section>
+          </DesignSystemCard>
 
         </div>
 
 
-        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-gray-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <button
-            type="button"
+        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-[var(--ds-border-subtle)] pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <DesignSystemButton
+            variant="secondary"
+            size="medium"
             onClick={
               handleBack
             }
             disabled={
               saving
             }
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            leadingIcon={
+              <DesignSystemIcon
+                size="sm"
+                tone="secondary"
+              >
+                <ArrowLeft />
+              </DesignSystemIcon>
+            }
           >
-            <ArrowLeft className="h-4 w-4" />
             Back
-          </button>
+          </DesignSystemButton>
 
-          <button
-            type="button"
+          <DesignSystemButton
+            variant="primary"
+            size="large"
             onClick={() =>
               void handleContinue()
             }
             disabled={
               !canContinue
             }
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-7 py-3 text-sm font-medium text-white shadow-sm hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
+            loading={
+              saving
+            }
+            loadingLabel="Saving..."
+            trailingIcon={
+              <DesignSystemIcon
+                size="sm"
+                tone="onDark"
+              >
+                <ArrowRight />
+              </DesignSystemIcon>
+            }
           >
-            {saving
-              ? "Saving..."
-              : "Confirm Guided Brief"}
-
-            {!saving && (
-              <ArrowRight className="h-4 w-4" />
-            )}
-          </button>
+            Confirm Guided Brief
+          </DesignSystemButton>
         </div>
 
       </main>
