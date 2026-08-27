@@ -73,10 +73,29 @@ export function GuidedApprovalPackage() {
     profile?.role ===
       "corpcom_reviewer";
 
-  const isReviewMode =
+  /**
+   * mode=review means the package is frozen/read-only.
+   *
+   * This applies to:
+   * - Creator viewing a submitted/approved package
+   * - Marketing Reviewer
+   * - CorpCom Reviewer
+   * - Admin oversight
+   *
+   * Reviewer identity is handled separately through isReviewer.
+   */
+  const isReadOnlyMode =
     mode ===
-      "review" &&
+      "review";
+
+  const isReviewerReadOnly =
+    isReadOnlyMode &&
     isReviewer;
+
+  const isCreatorReadOnly =
+    isReadOnlyMode &&
+    profile?.role ===
+      "creator";
 
   const [
     loading,
@@ -148,11 +167,11 @@ export function GuidedApprovalPackage() {
         );
 
         /**
-         * REVIEWER MODE
+         * READ-ONLY MODE
          *
-         * Reviewers must never rebuild or modify the
-         * Creator's approval package. They only read
-         * the package that was already frozen/saved.
+         * Any mode=review access must never rebuild or modify the
+         * Creator's approval package. It only reads the
+         * package that was already frozen/saved.
          *
          * CREATOR / ADMIN MODE
          *
@@ -160,7 +179,7 @@ export function GuidedApprovalPackage() {
          * package from the selected channel variants.
          */
         const result =
-          isReviewMode
+          isReadOnlyMode
             ? await getGuidedApprovalPackage(
                 communicationId
               )
@@ -173,7 +192,7 @@ export function GuidedApprovalPackage() {
         );
       } catch (err) {
         console.error(
-          isReviewMode
+          isReadOnlyMode
             ? "Unable to load Guided approval package:"
             : "Unable to build Guided approval package:",
           err
@@ -182,7 +201,7 @@ export function GuidedApprovalPackage() {
         setError(
           err instanceof Error
             ? err.message
-            : isReviewMode
+            : isReadOnlyMode
               ? "Unable to load the approval package."
               : "Unable to prepare the approval package."
         );
@@ -197,13 +216,13 @@ export function GuidedApprovalPackage() {
   }, [
     authLoading,
     communicationId,
-    isReviewMode,
+    isReadOnlyMode,
   ]);
 
   async function handleSubmitForMarketingReview() {
     if (
       !communicationId ||
-      isReviewMode ||
+      isReadOnlyMode ||
       submitting
     ) {
       return;
@@ -276,11 +295,29 @@ export function GuidedApprovalPackage() {
 
   function handleBack() {
     if (
-      isReviewMode
+      isReviewerReadOnly
     ) {
       navigate(
         "/reviews"
       );
+
+      return;
+    }
+
+    if (
+      isCreatorReadOnly
+    ) {
+      if (
+        communicationId
+      ) {
+        navigate(
+          `/approval/status?communicationId=${encodeURIComponent(
+            communicationId
+          )}`
+        );
+      } else {
+        navigate("/");
+      }
 
       return;
     }
@@ -330,9 +367,11 @@ export function GuidedApprovalPackage() {
           className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#07877B]"
         >
           <ArrowLeft className="h-4 w-4" />
-          {isReviewMode
+          {isReviewerReadOnly
             ? "Back to Review Queue"
-            : "Back to Channel Selection"}
+            : isCreatorReadOnly
+              ? "Back to Approval Status"
+              : "Back to Channel Selection"}
         </button>
 
         {error && (
@@ -353,15 +392,19 @@ export function GuidedApprovalPackage() {
               </div>
 
               <h1 className="text-3xl text-gray-900">
-                {isReviewMode
+                {isReviewerReadOnly
                   ? "Review communication package"
-                  : "Ready for review"}
+                  : isCreatorReadOnly
+                    ? "Communication package"
+                    : "Ready for review"}
               </h1>
 
               <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
-                {isReviewMode
+                {isReviewerReadOnly
                   ? "Review the Creator's selected Email, WhatsApp and Leaflet outputs together. This page is read-only; return to the Review Queue to record your decision."
-                  : "These are the versions you selected. They will move together as one communication package through the approval workflow."}
+                  : isCreatorReadOnly
+                    ? "These are the selected Email, WhatsApp and Leaflet outputs submitted through the approval workflow. This view is read-only."
+                    : "These are the versions you selected. They will move together as one communication package through the approval workflow."}
               </p>
             </div>
 
@@ -443,7 +486,7 @@ export function GuidedApprovalPackage() {
             </div>
 
             <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              {isReviewMode ? (
+              {isReviewerReadOnly ? (
                 <>
                   <p className="text-sm font-medium text-gray-900">
                     Reviewer mode
@@ -465,10 +508,40 @@ export function GuidedApprovalPackage() {
                     Return to Review Queue
                   </button>
                 </>
+              ) : isCreatorReadOnly ? (
+                <>
+                  <p className="text-sm font-medium text-gray-900">
+                    Submitted communication
+                  </p>
+
+                  <p className="mt-2 text-sm leading-6 text-gray-600">
+                    This is the frozen communication package that moved through the approval workflow. Viewing it will not modify the communication or its approval status.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (
+                        communicationId
+                      ) {
+                        navigate(
+                          `/approval/status?communicationId=${encodeURIComponent(
+                            communicationId
+                          )}`
+                        );
+                      } else {
+                        navigate("/");
+                      }
+                    }}
+                    className="mt-5 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:border-[#07877B] hover:text-[#07877B]"
+                  >
+                    Back to Approval Status
+                  </button>
+                </>
               ) : (
                 <>
                   <p className="text-sm font-medium text-gray-900">
-                    Next checkpoint
+                    Submit for approval
                   </p>
 
                   <p className="mt-2 text-sm leading-6 text-gray-600">
