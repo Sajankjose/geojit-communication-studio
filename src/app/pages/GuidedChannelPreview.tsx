@@ -24,6 +24,12 @@ import {
 } from "../components/TopNavBar";
 
 import {
+  DesignSystemButton,
+  DesignSystemCard,
+  DesignSystemIcon,
+} from "../design-system";
+
+import {
   getGuidedChannelOutputs,
   saveGuidedChannelSelections,
 } from "../services/channels/guidedChannelGeneration";
@@ -371,11 +377,11 @@ export function GuidedChannelPreview() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="ds-page">
         <TopNavBar />
 
         <main className="mx-auto flex min-h-[70vh] max-w-4xl items-center justify-center px-6">
-          <p className="text-sm text-gray-500">
+          <p className="ds-body-sm">
             Loading channel options...
           </p>
         </main>
@@ -384,36 +390,49 @@ export function GuidedChannelPreview() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="ds-page">
       <TopNavBar />
 
       <main className="mx-auto max-w-7xl px-6 py-10">
 
-        <button
-          type="button"
+        <DesignSystemButton
+          variant="tertiary"
+          size="medium"
           onClick={
             handleBack
           }
-          className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#07877B]"
+          leadingIcon={
+            <DesignSystemIcon
+              size="sm"
+              tone="action"
+            >
+              <ArrowLeft />
+            </DesignSystemIcon>
+          }
+          className="mb-6 px-0"
         >
-          <ArrowLeft className="h-4 w-4" />
           Back
-        </button>
+        </DesignSystemButton>
 
         <div className="mb-8">
           <div className="mb-2 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#07877B]" />
+            <DesignSystemIcon
+              size="md"
+              tone="action"
+            >
+              <Sparkles />
+            </DesignSystemIcon>
 
-            <p className="text-sm font-medium text-[#07877B]">
+            <p className="ds-label-3 text-[var(--ds-text-brand)]">
               Channel Preview
             </p>
           </div>
 
-          <h1 className="text-3xl text-gray-900">
+          <h1 className="ds-title-2">
             Choose the best version for each channel
           </h1>
 
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
+          <p className="ds-body-sm mt-3 max-w-3xl leading-7">
             The core meaning stays the same.
             Compare the channel-specific
             variants and choose the version
@@ -422,26 +441,33 @@ export function GuidedChannelPreview() {
         </div>
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div className="ds-alert ds-alert-error mb-6 text-sm">
             {error}
           </div>
         )}
 
         {outputs.length ===
           0 ? (
-          <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-sm">
-            <RefreshCw className="mx-auto mb-4 h-8 w-8 text-gray-400" />
+          <DesignSystemCard className="p-10 text-center">
+            <div className="ds-icon-container mx-auto mb-4 h-12 w-12">
+              <DesignSystemIcon
+                size="lg"
+                tone="secondary"
+              >
+                <RefreshCw />
+              </DesignSystemIcon>
+            </div>
 
-            <h2 className="text-lg text-gray-900">
+            <h2 className="ds-title-4">
               No channel outputs found
             </h2>
 
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="ds-body-sm mt-2">
               Return to Communication Master
               and generate the channel options
               first.
             </p>
-          </div>
+          </DesignSystemCard>
         ) : (
           <>
             <div className="mb-6 flex flex-wrap gap-2">
@@ -469,8 +495,8 @@ export function GuidedChannelPreview() {
                       }
                       className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all ${
                         active
-                          ? "border-[#07877B] bg-[#07877B] text-white"
-                          : "border-gray-200 bg-white text-gray-700 hover:border-[#9bcfc9]"
+                          ? "border-[var(--ds-brand-primary)] bg-[var(--ds-brand-primary)] text-[var(--ds-text-inverse)]"
+                          : "border-[var(--ds-border-subtle)] bg-[var(--ds-surface-card)] text-[var(--ds-text-primary)] hover:border-[var(--ds-border-interactive)] hover:bg-[var(--ds-surface-interactive-hover)]"
                       }`}
                     >
                       <ChannelIcon
@@ -488,7 +514,7 @@ export function GuidedChannelPreview() {
                           className={`rounded-full px-2 py-0.5 text-xs ${
                             active
                               ? "bg-white/20 text-white"
-                              : "bg-green-50 text-green-700"
+                              : "bg-[var(--ds-success-soft)] text-[var(--ds-success)]"
                           }`}
                         >
                           {selected} selected
@@ -516,30 +542,31 @@ export function GuidedChannelPreview() {
                       output.variant;
 
                     return (
-                      <article
+                      <DesignSystemCard
                         key={
                           output.id
                         }
-                        className={`flex min-h-[560px] flex-col overflow-hidden rounded-2xl border bg-white shadow-sm transition-all ${
+                        surface={
                           selected
-                            ? "border-[#07877B] ring-2 ring-[#07877B]/10"
-                            : "border-gray-200"
-                        }`}
+                            ? "selected"
+                            : "default"
+                        }
+                        className="flex min-h-[560px] flex-col overflow-hidden"
                       >
-                        <div className="border-b border-gray-200 px-5 py-4">
+                        <div className="border-b border-[var(--ds-border-subtle)] px-5 py-4">
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="text-xs font-medium uppercase tracking-wide text-[#07877B]">
+                              <p className="ds-label-3 text-[var(--ds-text-brand)]">
                                 Variant {output.variant}
                               </p>
 
-                              <h2 className="mt-1 text-lg text-gray-900">
+                              <h2 className="ds-title-4 mt-1">
                                 {
                                   variantInfo.title
                                 }
                               </h2>
 
-                              <p className="mt-1 text-xs leading-5 text-gray-500">
+                              <p className="ds-body-xs mt-1">
                                 {
                                   variantInfo.helper
                                 }
@@ -547,15 +574,20 @@ export function GuidedChannelPreview() {
                             </div>
 
                             {selected && (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#07877B]">
-                                <Check className="h-4 w-4 text-white" />
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--ds-brand-primary)]">
+                                <DesignSystemIcon
+                                  size="sm"
+                                  tone="onDark"
+                                >
+                                  <Check />
+                                </DesignSystemIcon>
                               </div>
                             )}
                           </div>
                         </div>
 
-                        <div className="flex-1 overflow-auto bg-gray-50 p-4">
-                          <div className="mx-auto max-w-xl rounded-xl border border-gray-200 bg-white p-5">
+                        <div className="flex-1 overflow-auto bg-[var(--ds-surface-muted)] p-4">
+                          <div className="mx-auto max-w-xl rounded-xl border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-card)] p-5">
                             <ChannelContentPreview
                               output={
                                 output
@@ -564,41 +596,52 @@ export function GuidedChannelPreview() {
                           </div>
                         </div>
 
-                        <div className="border-t border-gray-200 bg-white p-4">
-                          <button
-                            type="button"
+                        <div className="border-t border-[var(--ds-border-subtle)] bg-[var(--ds-surface-card)] p-4">
+                          <DesignSystemButton
+                            variant={
+                              selected
+                                ? "secondary"
+                                : "primary"
+                            }
+                            size="medium"
+                            fullWidth
                             onClick={() =>
                               selectVariant(
                                 output.channel,
                                 output.variant
                               )
                             }
-                            className={`w-full rounded-lg px-4 py-3 text-sm font-medium transition-all ${
-                              selected
-                                ? "bg-[#e8f5f4] text-[#075f58]"
-                                : "bg-[#07877B] text-white hover:bg-[#06766a]"
-                            }`}
+                            leadingIcon={
+                              selected ? (
+                                <DesignSystemIcon
+                                  size="sm"
+                                  tone="action"
+                                >
+                                  <Check />
+                                </DesignSystemIcon>
+                              ) : undefined
+                            }
                           >
                             {selected
                               ? "Selected"
                               : `Choose Variant ${output.variant}`}
-                          </button>
+                          </DesignSystemButton>
                         </div>
-                      </article>
+                      </DesignSystemCard>
                     );
                   }
                 )}
               </div>
             )}
 
-            <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+            <DesignSystemCard className="mt-8 p-6">
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="ds-body-sm font-medium">
                     Channel selection
                   </p>
 
-                  <p className="mt-1 text-sm leading-6 text-gray-500">
+                  <p className="ds-body-sm mt-1">
                     Choose one variant for
                     every selected channel
                     before continuing.
@@ -615,8 +658,8 @@ export function GuidedChannelPreview() {
                             selections[
                               channel
                             ]
-                              ? "bg-green-50 text-green-700"
-                              : "bg-gray-100 text-gray-500"
+                              ? "bg-[var(--ds-success-soft)] text-[var(--ds-success)]"
+                              : "bg-[var(--ds-surface-muted)] text-[var(--ds-text-tertiary)]"
                           }`}
                         >
                           {formatChannel(
@@ -632,8 +675,9 @@ export function GuidedChannelPreview() {
                   </div>
                 </div>
 
-                <button
-                  type="button"
+                <DesignSystemButton
+                  variant="primary"
+                  size="large"
                   onClick={() =>
                     void handleSaveSelections()
                   }
@@ -641,22 +685,23 @@ export function GuidedChannelPreview() {
                     !allSelected ||
                     saving
                   }
-                  className="rounded-lg bg-[#07877B] px-7 py-3 text-sm font-medium text-white shadow-sm hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
+                  loading={
+                    saving
+                  }
+                  loadingLabel="Saving..."
                 >
-                  {saving
-                    ? "Saving..."
-                    : "Save Channel Selections"}
-                </button>
+                  Save Channel Selections
+                </DesignSystemButton>
               </div>
 
               {savedMessage && (
-                <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                <div className="ds-alert ds-alert-success mt-5 text-sm">
                   {
                     savedMessage
                   }
                 </div>
               )}
-            </div>
+            </DesignSystemCard>
           </>
         )}
 
@@ -696,13 +741,13 @@ function ChannelContentPreview({
           }
         />
 
-        <h3 className="mt-6 text-xl font-semibold leading-7 text-gray-900">
+        <h3 className="mt-6 text-xl font-semibold leading-7 text-[var(--ds-text-primary)]">
           {
             content.headline
           }
         </h3>
 
-        <p className="mt-4 text-sm leading-7 text-gray-700">
+        <p className="mt-4 text-sm leading-7 text-[var(--ds-text-secondary)]">
           {
             content.opening
           }
@@ -720,14 +765,14 @@ function ChannelContentPreview({
               className="mt-5"
             >
               {section.heading && (
-                <h4 className="text-sm font-semibold text-gray-900">
+                <h4 className="text-sm font-semibold text-[var(--ds-text-primary)]">
                   {
                     section.heading
                   }
                 </h4>
               )}
 
-              <p className="mt-1 text-sm leading-7 text-gray-700">
+              <p className="mt-1 text-sm leading-7 text-[var(--ds-text-secondary)]">
                 {
                   section.content
                 }
@@ -744,7 +789,7 @@ function ChannelContentPreview({
 
         {content.cta && (
           <div className="mt-5">
-            <span className="inline-flex rounded-lg bg-[#07877B] px-4 py-2 text-sm font-medium text-white">
+            <span className="inline-flex rounded-lg bg-[var(--ds-brand-primary)] px-4 py-2 text-sm font-medium text-[var(--ds-text-inverse)]">
               {
                 content.cta.label
               }
@@ -773,14 +818,14 @@ function ChannelContentPreview({
       <div>
         <div className="mx-auto max-w-sm rounded-2xl bg-[#eaf7e8] p-4">
           {content.headline && (
-            <h3 className="text-sm font-semibold text-gray-900">
+            <h3 className="text-sm font-semibold text-[var(--ds-text-primary)]">
               {
                 content.headline
               }
             </h3>
           )}
 
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-800">
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--ds-text-primary)]">
             {
               content.message
             }
@@ -793,7 +838,7 @@ function ChannelContentPreview({
           />
 
           {content.cta && (
-            <p className="mt-4 text-sm font-medium text-[#075f58]">
+            <p className="mt-4 text-sm font-medium text-[var(--ds-text-brand)]">
               {
                 content.cta.label
               }
@@ -816,25 +861,25 @@ function ChannelContentPreview({
 
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-[#07877B]">
+      <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-brand)]">
         Leaflet concept
       </p>
 
-      <h3 className="mt-3 text-2xl font-semibold leading-8 text-gray-900">
+      <h3 className="mt-3 text-2xl font-semibold leading-8 text-[var(--ds-text-primary)]">
         {
           content.headline
         }
       </h3>
 
       {content.subheadline && (
-        <p className="mt-2 text-base leading-6 text-gray-600">
+        <p className="mt-2 text-base leading-6 text-[var(--ds-text-secondary)]">
           {
             content.subheadline
           }
         </p>
       )}
 
-      <p className="mt-5 text-sm leading-7 text-gray-700">
+      <p className="mt-5 text-sm leading-7 text-[var(--ds-text-secondary)]">
         {
           content.intro
         }
@@ -850,15 +895,15 @@ function ChannelContentPreview({
               key={
                 `${point.title}-${index}`
               }
-              className="rounded-lg border border-gray-200 bg-gray-50 p-3"
+              className="rounded-lg border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-muted)] p-3"
             >
-              <p className="text-sm font-semibold text-gray-900">
+              <p className="text-sm font-semibold text-[var(--ds-text-primary)]">
                 {
                   point.title
                 }
               </p>
 
-              <p className="mt-1 text-xs leading-5 text-gray-600">
+              <p className="mt-1 text-xs leading-5 text-[var(--ds-text-secondary)]">
                 {
                   point.description
                 }
@@ -869,7 +914,7 @@ function ChannelContentPreview({
       </div>
 
       {content.cta && (
-        <div className="mt-5 rounded-lg bg-[#07877B] px-4 py-3 text-white">
+        <div className="mt-5 rounded-lg bg-[var(--ds-brand-primary)] px-4 py-3 text-[var(--ds-text-inverse)]">
           <p className="text-sm font-medium">
             {
               content.cta.label
@@ -887,12 +932,12 @@ function ChannelContentPreview({
       )}
 
       {content.visualDirection && (
-        <div className="mt-5 border-t border-dashed border-gray-300 pt-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+        <div className="mt-5 border-t border-dashed border-[var(--ds-border-default)] pt-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-tertiary)]">
             Visual direction
           </p>
 
-          <p className="mt-1 text-xs leading-5 text-gray-600">
+          <p className="mt-1 text-xs leading-5 text-[var(--ds-text-secondary)]">
             {
               content.visualDirection
             }
@@ -922,11 +967,11 @@ function PreviewMeta({
 }) {
   return (
     <div className="mb-3">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+      <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--ds-text-tertiary)]">
         {label}
       </p>
 
-      <p className="mt-1 text-sm leading-6 text-gray-700">
+      <p className="mt-1 text-sm leading-6 text-[var(--ds-text-secondary)]">
         {value}
       </p>
     </div>
@@ -958,9 +1003,9 @@ function SimplePoints({
             key={
               `${point}-${index}`
             }
-            className="flex gap-2 text-sm leading-6 text-gray-700"
+            className="flex gap-2 text-sm leading-6 text-[var(--ds-text-secondary)]"
           >
-            <span className="text-[#07877B]">
+            <span className="text-[var(--ds-text-brand)]">
               •
             </span>
 
@@ -989,7 +1034,7 @@ function MandatoryNotes({
   }
 
   return (
-    <div className="mt-6 border-t border-gray-200 pt-4">
+    <div className="mt-6 border-t border-[var(--ds-border-subtle)] pt-4">
       {notes.map(
         (
           note,
@@ -999,7 +1044,7 @@ function MandatoryNotes({
             key={
               `${note}-${index}`
             }
-            className="mt-1 text-[11px] leading-5 text-gray-500"
+            className="mt-1 text-[11px] leading-5 text-[var(--ds-text-tertiary)]"
           >
             {note}
           </p>
