@@ -1,0 +1,535 @@
+/*
+ * Communication Studio Design System Foundations
+ * Source: Geojit Website Design System (Figma)
+ *
+ * IMPORTANT:
+ * - These variables are the foundation layer only.
+ * - Do not remove existing Tailwind classes yet.
+ * - Migrate screen-by-screen after this file is verified in production.
+ */
+
+:root {
+  /* ---------------------------------------------------------
+   * FONT FAMILIES
+   * --------------------------------------------------------- */
+
+  --font-ui: "Radio Canada Big", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+
+  /* ---------------------------------------------------------
+   * CORE COLORS
+   * --------------------------------------------------------- */
+
+  --ds-white: #ffffff;
+
+  --ds-neutral-boldest: #022f2d;
+  --ds-neutral-bolder: #4a6361;
+
+  /* Existing product semantic colors retained until the full
+   * Figma color library is mapped node-by-node.
+   */
+  --ds-brand-primary: #07877b;
+  --ds-brand-primary-hover: #06766a;
+
+  --ds-surface-page: #ffffff;
+  --ds-surface-subtle: #f7fbfa;
+  --ds-surface-muted: #f3f4fa;
+
+  --ds-border-subtle: rgba(2, 47, 45, 0.1);
+  --ds-border-default: rgba(2, 47, 45, 0.16);
+
+  --ds-text-primary: var(--ds-neutral-boldest);
+  --ds-text-secondary: var(--ds-neutral-bolder);
+  --ds-text-inverse: var(--ds-white);
+
+  /* ---------------------------------------------------------
+   * RADII
+   * --------------------------------------------------------- */
+
+  --ds-radius-sm: 8px;
+  --ds-radius-md: 12px;
+  --ds-radius-lg: 16px;
+  --ds-radius-xl: 24px;
+  --ds-radius-2xl: 30px;
+  --ds-radius-display: 48px;
+
+  /* ---------------------------------------------------------
+   * SPACING
+   * --------------------------------------------------------- */
+
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 20px;
+  --ds-space-6: 24px;
+  --ds-space-8: 32px;
+  --ds-space-10: 40px;
+  --ds-space-12: 48px;
+  --ds-space-16: 64px;
+
+  /* ---------------------------------------------------------
+   * SHADOWS
+   * --------------------------------------------------------- */
+
+  --ds-shadow-card:
+    0 1px 2px rgba(2, 47, 45, 0.04),
+    0 4px 12px rgba(2, 47, 45, 0.06);
+
+  --ds-shadow-raised:
+    0 8px 24px rgba(2, 47, 45, 0.08);
+
+  /* ---------------------------------------------------------
+   * DESKTOP TYPOGRAPHY — FIGMA SOURCE
+   * --------------------------------------------------------- */
+
+  --ds-display-size: 82px;
+  --ds-display-line: 1.2;
+  --ds-display-weight: 700;
+
+  --ds-heading-1-size: 72px;
+  --ds-heading-1-line: 1.1;
+  --ds-heading-1-weight: 600;
+
+  --ds-heading-2-size: 60px;
+  --ds-heading-2-line: 1.2;
+  --ds-heading-2-weight: 600;
+
+  --ds-heading-3-size: 52px;
+  --ds-heading-3-line: 1.3;
+  --ds-heading-3-weight: 600;
+
+  --ds-heading-4-size: 40px;
+  --ds-heading-4-line: 1.3;
+  --ds-heading-4-weight: 600;
+
+  --ds-title-1-size: 40px;
+  --ds-title-1-line: 1.4;
+  --ds-title-1-weight: 400;
+
+  --ds-title-2-size: 32px;
+  --ds-title-2-line: 1.3;
+  --ds-title-2-weight: 600;
+
+  --ds-title-3-size: 24px;
+  --ds-title-3-line: 1.3;
+  --ds-title-3-weight: 600;
+
+  --ds-title-4-size: 20px;
+  --ds-title-4-line: 1.3;
+  --ds-title-4-weight: 600;
+
+  --ds-subtitle-size: 22px;
+  --ds-subtitle-line: 1.4;
+  --ds-subtitle-weight: 400;
+
+  --ds-body-lg-size: 20px;
+  --ds-body-lg-line: 1.5;
+  --ds-body-lg-weight: 400;
+
+  --ds-body-md-size: 18px;
+  --ds-body-md-line: 1.5;
+  --ds-body-md-weight: 400;
+
+  --ds-body-sm-size: 16px;
+  --ds-body-sm-line: 1.5;
+  --ds-body-sm-weight: 400;
+
+  --ds-body-xs-size: 14px;
+  --ds-body-xs-line: 1.5;
+  --ds-body-xs-weight: 400;
+
+  --ds-button-lg-size: 16px;
+  --ds-button-lg-line: 1.1;
+  --ds-button-lg-weight: 400;
+
+  --ds-button-md-size: 14px;
+  --ds-button-md-line: 1.1;
+  --ds-button-md-weight: 400;
+
+  --ds-label-1-size: 24px;
+  --ds-label-1-line: 1.4;
+  --ds-label-1-weight: 400;
+
+  --ds-label-2-size: 20px;
+  --ds-label-2-line: 1.4;
+  --ds-label-2-weight: 400;
+
+  --ds-label-3-size: 14px;
+  --ds-label-3-line: 1.4;
+  --ds-label-3-weight: 400;
+
+  --ds-chip-lg-size: 16px;
+  --ds-chip-lg-line: 1;
+  --ds-chip-lg-weight: 500;
+
+  --ds-chip-sm-size: 14px;
+  --ds-chip-sm-line: 1;
+  --ds-chip-sm-weight: 500;
+
+  --ds-tab-active-size: 24px;
+  --ds-tab-active-line: 1.5;
+  --ds-tab-active-weight: 600;
+
+  --ds-tab-nav-size: 22px;
+  --ds-tab-nav-line: 1.4;
+  --ds-tab-nav-weight: 500;
+}
+
+/* -----------------------------------------------------------
+ * MOBILE TYPOGRAPHY — FIGMA SOURCE
+ * ----------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  :root {
+    --ds-display-size: 60px;
+    --ds-display-line: 1.2;
+    --ds-display-weight: 700;
+
+    --ds-heading-1-size: 40px;
+    --ds-heading-1-line: 1.1;
+    --ds-heading-1-weight: 700;
+
+    --ds-heading-2-size: 32px;
+    --ds-heading-2-line: 1;
+    --ds-heading-2-weight: 600;
+
+    --ds-heading-3-size: 24px;
+    --ds-heading-3-line: 1.2;
+    --ds-heading-3-weight: 600;
+
+    --ds-title-1-size: 24px;
+    --ds-title-1-line: 1.4;
+    --ds-title-1-weight: 600;
+
+    --ds-title-2-size: 20px;
+    --ds-title-2-line: 1.3;
+    --ds-title-2-weight: 600;
+
+    --ds-title-3-size: 18px;
+    --ds-title-3-line: 1.3;
+    --ds-title-3-weight: 600;
+
+    --ds-title-4-size: 16px;
+    --ds-title-4-line: 1.3;
+    --ds-title-4-weight: 600;
+
+    --ds-subtitle-size: 20px;
+    --ds-subtitle-line: 1.4;
+    --ds-subtitle-weight: 500;
+
+    --ds-body-lg-size: 18px;
+    --ds-body-lg-line: 1.5;
+
+    --ds-body-md-size: 16px;
+    --ds-body-md-line: 1.5;
+
+    --ds-body-sm-size: 14px;
+    --ds-body-sm-line: 1.5;
+
+    --ds-body-xs-size: 12px;
+    --ds-body-xs-line: 1.5;
+
+    --ds-label-1-size: 18px;
+    --ds-label-2-size: 14px;
+    --ds-label-3-size: 12px;
+  }
+}
+
+/* -----------------------------------------------------------
+ * TYPOGRAPHY UTILITIES
+ * ----------------------------------------------------------- */
+
+.ds-text {
+  font-family: var(--font-ui);
+  color: var(--ds-text-primary);
+}
+
+.ds-display {
+  font-family: var(--font-ui);
+  font-size: var(--ds-display-size);
+  line-height: var(--ds-display-line);
+  font-weight: var(--ds-display-weight);
+  color: var(--ds-text-primary);
+}
+
+.ds-heading-1 {
+  font-family: var(--font-ui);
+  font-size: var(--ds-heading-1-size);
+  line-height: var(--ds-heading-1-line);
+  font-weight: var(--ds-heading-1-weight);
+  color: var(--ds-text-primary);
+}
+
+.ds-heading-2 {
+  font-family: var(--font-ui);
+  font-size: var(--ds-heading-2-size);
+  line-height: var(--ds-heading-2-line);
+  font-weight: var(--ds-heading-2-weight);
+  color: var(--ds-text-primary);
+}
+
+.ds-heading-3 {
+  font-family: var(--font-ui);
+  font-size: var(--ds-heading-3-size);
+  line-height: var(--ds-heading-3-line);
+  font-weight: var(--ds-heading-3-weight);
+  color: var(--ds-text-primary);
+}
+
+.ds-heading-4 {
+  font-family: var(--font-ui);
+  font-size: var(--ds-heading-4-size);
+  line-height: var(--ds-heading-4-line);
+  font-weight: var(--ds-heading-4-weight);
+  color: var(--ds-text-primary);
+}
+
+.ds-title-1 {
+  font-family: var(--font-ui);
+  font-size: var(--ds-title-1-size);
+  line-height: var(--ds-title-1-line);
+  font-weight: var(--ds-title-1-weight);
+  color: var(--ds-text-primary);
+}
+
+.ds-title-2 {
+  font-family: var(--font-ui);
+  font-size: var(--ds-title-2-size);
+  line-height: var(--ds-title-2-line);
+  font-weight: var(--ds-title-2-weight);
+  color: var(--ds-text-primary);
+}
+
+.ds-title-3 {
+  font-family: var(--font-ui);
+  font-size: var(--ds-title-3-size);
+  line-height: var(--ds-title-3-line);
+  font-weight: var(--ds-title-3-weight);
+  color: var(--ds-text-primary);
+}
+
+.ds-title-4 {
+  font-family: var(--font-ui);
+  font-size: var(--ds-title-4-size);
+  line-height: var(--ds-title-4-line);
+  font-weight: var(--ds-title-4-weight);
+  color: var(--ds-text-primary);
+}
+
+.ds-subtitle {
+  font-family: var(--font-ui);
+  font-size: var(--ds-subtitle-size);
+  line-height: var(--ds-subtitle-line);
+  font-weight: var(--ds-subtitle-weight);
+  color: var(--ds-text-primary);
+}
+
+.ds-body-lg {
+  font-family: var(--font-ui);
+  font-size: var(--ds-body-lg-size);
+  line-height: var(--ds-body-lg-line);
+  font-weight: var(--ds-body-lg-weight);
+  color: var(--ds-text-secondary);
+}
+
+.ds-body-md {
+  font-family: var(--font-ui);
+  font-size: var(--ds-body-md-size);
+  line-height: var(--ds-body-md-line);
+  font-weight: var(--ds-body-md-weight);
+  color: var(--ds-text-secondary);
+}
+
+.ds-body-sm {
+  font-family: var(--font-ui);
+  font-size: var(--ds-body-sm-size);
+  line-height: var(--ds-body-sm-line);
+  font-weight: var(--ds-body-sm-weight);
+  color: var(--ds-text-secondary);
+}
+
+.ds-body-xs {
+  font-family: var(--font-ui);
+  font-size: var(--ds-body-xs-size);
+  line-height: var(--ds-body-xs-line);
+  font-weight: var(--ds-body-xs-weight);
+  color: var(--ds-text-secondary);
+}
+
+.ds-button-lg {
+  font-family: var(--font-ui);
+  font-size: var(--ds-button-lg-size);
+  line-height: var(--ds-button-lg-line);
+  font-weight: var(--ds-button-lg-weight);
+  text-transform: capitalize;
+}
+
+.ds-button-md {
+  font-family: var(--font-ui);
+  font-size: var(--ds-button-md-size);
+  line-height: var(--ds-button-md-line);
+  font-weight: var(--ds-button-md-weight);
+  text-transform: capitalize;
+}
+
+.ds-label-1,
+.ds-label-2,
+.ds-label-3 {
+  font-family: var(--font-ui);
+  color: var(--ds-text-primary);
+  text-transform: uppercase;
+}
+
+.ds-label-1 {
+  font-size: var(--ds-label-1-size);
+  line-height: var(--ds-label-1-line);
+  font-weight: var(--ds-label-1-weight);
+}
+
+.ds-label-2 {
+  font-size: var(--ds-label-2-size);
+  line-height: var(--ds-label-2-line);
+  font-weight: var(--ds-label-2-weight);
+}
+
+.ds-label-3 {
+  font-size: var(--ds-label-3-size);
+  line-height: var(--ds-label-3-line);
+  font-weight: var(--ds-label-3-weight);
+}
+
+.ds-chip-lg {
+  font-family: var(--font-ui);
+  font-size: var(--ds-chip-lg-size);
+  line-height: var(--ds-chip-lg-line);
+  font-weight: var(--ds-chip-lg-weight);
+}
+
+.ds-chip-sm {
+  font-family: var(--font-ui);
+  font-size: var(--ds-chip-sm-size);
+  line-height: var(--ds-chip-sm-line);
+  font-weight: var(--ds-chip-sm-weight);
+}
+
+.ds-tab-active {
+  font-family: var(--font-ui);
+  font-size: var(--ds-tab-active-size);
+  line-height: var(--ds-tab-active-line);
+  font-weight: var(--ds-tab-active-weight);
+  color: var(--ds-text-primary);
+}
+
+.ds-tab-nav {
+  font-family: var(--font-ui);
+  font-size: var(--ds-tab-nav-size);
+  line-height: var(--ds-tab-nav-line);
+  font-weight: var(--ds-tab-nav-weight);
+  color: var(--ds-text-primary);
+}
+
+/* -----------------------------------------------------------
+ * BASE COMPONENT FOUNDATIONS
+ * ----------------------------------------------------------- */
+
+.ds-card {
+  background: var(--ds-surface-page);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-card);
+}
+
+.ds-card-muted {
+  background: var(--ds-surface-muted);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-lg);
+}
+
+.ds-button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-2);
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-brand-primary);
+  color: var(--ds-text-inverse);
+  padding: 12px 20px;
+  cursor: pointer;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
+}
+
+.ds-button-primary:hover {
+  background: var(--ds-brand-primary-hover);
+}
+
+.ds-button-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.ds-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ds-space-2);
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-white);
+  color: var(--ds-text-primary);
+  padding: 12px 20px;
+  cursor: pointer;
+}
+
+.ds-input,
+.ds-textarea {
+  width: 100%;
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-white);
+  color: var(--ds-text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--ds-body-sm-size);
+  line-height: var(--ds-body-sm-line);
+  outline: none;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.ds-input {
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.ds-textarea {
+  padding: 12px;
+  resize: vertical;
+}
+
+.ds-input:focus,
+.ds-textarea:focus {
+  border-color: var(--ds-brand-primary);
+  box-shadow: 0 0 0 3px rgba(7, 135, 123, 0.1);
+}
+
+.ds-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--ds-border-subtle);
+  background: var(--ds-surface-subtle);
+  color: var(--ds-text-primary);
+  padding: 6px 10px;
+}
+
+.ds-page {
+  min-height: 100vh;
+  background: var(--ds-surface-page);
+  color: var(--ds-text-primary);
+  font-family: var(--font-ui);
+}
