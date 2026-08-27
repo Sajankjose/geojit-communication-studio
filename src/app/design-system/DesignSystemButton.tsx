@@ -5,7 +5,9 @@ import type {
 
 export type DesignSystemButtonVariant =
   | "primary"
-  | "secondary";
+  | "secondary"
+  | "tertiary"
+  | "destructive";
 
 export type DesignSystemButtonSize =
   | "large"
@@ -24,6 +26,15 @@ export interface DesignSystemButtonProps
 
   trailingIcon?:
     ReactNode;
+
+  loading?:
+    boolean;
+
+  loadingLabel?:
+    string;
+
+  fullWidth?:
+    boolean;
 }
 
 export function DesignSystemButton({
@@ -31,38 +42,73 @@ export function DesignSystemButton({
   size = "large",
   leadingIcon,
   trailingIcon,
+  loading = false,
+  loadingLabel = "Please wait...",
+  fullWidth = false,
   className = "",
   children,
+  disabled,
   type = "button",
   ...props
 }: DesignSystemButtonProps) {
-  const variantClass =
-    variant ===
-      "primary"
-      ? "ds-button-primary"
-      : "ds-button-secondary";
+  const variantClass:
+    Record<
+      DesignSystemButtonVariant,
+      string
+    > = {
+      primary:
+        "ds-button-primary",
 
-  const typeClass =
-    size ===
-      "large"
+      secondary:
+        "ds-button-secondary",
+
+      tertiary:
+        "ds-button-tertiary",
+
+      destructive:
+        "ds-button-destructive",
+    };
+
+  const sizeClass =
+    size === "large"
       ? "ds-button-lg"
       : "ds-button-md";
+
+  const widthClass =
+    fullWidth
+      ? "w-full"
+      : "";
+
+  const isDisabled =
+    disabled ||
+    loading;
 
   return (
     <button
       type={
         type
       }
-      className={`${variantClass} ${typeClass} ${className}`}
+      disabled={
+        isDisabled
+      }
+      aria-busy={
+        loading ||
+        undefined
+      }
+      className={`${variantClass[variant]} ${sizeClass} ${widthClass} ${className}`.trim()}
       {...props}
     >
-      {leadingIcon}
+      {!loading &&
+        leadingIcon}
 
       <span>
-        {children}
+        {loading
+          ? loadingLabel
+          : children}
       </span>
 
-      {trailingIcon}
+      {!loading &&
+        trailingIcon}
     </button>
   );
 }
