@@ -13,6 +13,11 @@ import {
   TopNavBar,
 } from "../components/TopNavBar";
 
+import {
+  DesignSystemCard,
+  DesignSystemIcon,
+} from "../design-system";
+
 export function CreationModeSelection() {
   const navigate =
     useNavigate();
@@ -52,84 +57,115 @@ export function CreationModeSelection() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="ds-page">
       <TopNavBar />
 
-      <main className="mx-auto max-w-5xl px-6 py-16">
+      <main className="mx-auto max-w-5xl px-6 py-12 md:py-16">
 
         <div className="mb-10 text-center">
-          <p className="mb-2 text-sm font-medium text-[#07877B]">
+          <p className="ds-label-3 mb-2 text-[var(--ds-brand-primary)]">
             Create Communication
           </p>
 
-          <h1 className="text-3xl text-gray-900">
+          <h1 className="ds-title-2">
             How would you like to create?
           </h1>
 
-          <p className="mx-auto mt-3 max-w-2xl text-gray-600">
-            Choose the approach that works
-            best for you.
+          <p className="ds-body-sm mx-auto mt-3 max-w-2xl">
+            Choose the approach that best matches how you want to work.
           </p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
 
-          {/* Guided Creation */}
+          <button
+            type="button"
+            onClick={
+              handleGuidedCreation
+            }
+            className="group text-left"
+          >
+            <DesignSystemCard className="h-full p-7 transition-all group-hover:-translate-y-0.5 group-hover:border-[var(--ds-brand-primary)] group-hover:shadow-[var(--ds-shadow-raised)] md:p-8">
+
+              <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-[var(--ds-radius-md)] bg-[var(--ds-surface-subtle)]">
+                <DesignSystemIcon
+                  size="lg"
+                  tone="action"
+                >
+                  <Sparkles />
+                </DesignSystemIcon>
+              </div>
+
+              <h2 className="ds-title-3">
+                Guided Creation
+              </h2>
+
+              <p className="ds-body-sm mt-3">
+                Have an idea but not sure how to structure it? AI will help you capture, understand and shape the idea into a clear communication.
+              </p>
+
+              <div className="ds-button-md mt-8 flex items-center gap-2 text-[var(--ds-brand-primary)]">
+                Start Guided
+
+                <DesignSystemIcon
+                  size="sm"
+                  tone="action"
+                  className="transition-transform group-hover:translate-x-1"
+                >
+                  <ArrowRight />
+                </DesignSystemIcon>
+              </div>
+
+            </DesignSystemCard>
+          </button>
 
           <button
             type="button"
-            onClick={handleGuidedCreation}
-            className="group rounded-2xl border border-gray-200 bg-white p-8 text-left shadow-sm transition-all hover:border-[#07877B] hover:shadow-md"
+            onClick={
+              handleExpertCreation
+            }
+            className="group text-left"
           >
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-[#e8f5f4]">
-              <Sparkles className="h-6 w-6 text-[#07877B]" />
-            </div>
+            <DesignSystemCard className="h-full p-7 transition-all group-hover:-translate-y-0.5 group-hover:border-[var(--ds-brand-primary)] group-hover:shadow-[var(--ds-shadow-raised)] md:p-8">
 
-            <h2 className="text-xl text-gray-900">
-              Guided Creation
-            </h2>
+              <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-[var(--ds-radius-md)] bg-[var(--ds-surface-muted)]">
+                <DesignSystemIcon
+                  size="lg"
+                  tone="secondary"
+                >
+                  <SlidersHorizontal />
+                </DesignSystemIcon>
+              </div>
 
-            <p className="mt-3 leading-6 text-gray-600">
-              Have an idea but not sure how
-              to structure it? AI will help
-              you shape the idea into a clear
-              communication.
-            </p>
+              <h2 className="ds-title-3">
+                Expert Creation
+              </h2>
 
-            <div className="mt-8 flex items-center gap-2 text-sm font-medium text-[#07877B]">
-              Start Guided
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </div>
+              <p className="ds-body-sm mt-3">
+                Know exactly what you want to create? Continue with the structured workflow and provide the required communication details directly.
+              </p>
+
+              <div className="ds-button-md mt-8 flex items-center gap-2 text-[var(--ds-brand-primary)]">
+                Start Expert
+
+                <DesignSystemIcon
+                  size="sm"
+                  tone="action"
+                  className="transition-transform group-hover:translate-x-1"
+                >
+                  <ArrowRight />
+                </DesignSystemIcon>
+              </div>
+
+            </DesignSystemCard>
           </button>
 
-          {/* Expert Creation */}
+        </div>
 
-          <button
-            type="button"
-            onClick={handleExpertCreation}
-            className="group rounded-2xl border border-gray-200 bg-white p-8 text-left shadow-sm transition-all hover:border-[#07877B] hover:shadow-md"
-          >
-            <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100">
-              <SlidersHorizontal className="h-6 w-6 text-gray-700" />
-            </div>
-
-            <h2 className="text-xl text-gray-900">
-              Expert Creation
-            </h2>
-
-            <p className="mt-3 leading-6 text-gray-600">
-              Know what you want to create?
-              Continue with the structured
-              communication workflow and
-              provide the required details.
-            </p>
-
-            <div className="mt-8 flex items-center gap-2 text-sm font-medium text-[#07877B]">
-              Start Expert
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </div>
-          </button>
-
+        <div className="mt-8 rounded-[var(--ds-radius-md)] border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-muted)] px-5 py-4">
+          <p className="ds-body-xs text-center">
+            Guided Creation is ideal when you want help expressing the idea. Expert Creation keeps the existing structured workflow unchanged.
+          </p>
         </div>
 
       </main>
