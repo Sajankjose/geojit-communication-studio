@@ -27,6 +27,12 @@ import {
 } from "../components/TopNavBar";
 
 import {
+  DesignSystemButton,
+  DesignSystemCard,
+  DesignSystemIcon,
+} from "../design-system";
+
+import {
   StatusBadge,
 } from "../components/StatusBadge";
 
@@ -540,65 +546,91 @@ export function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="ds-page">
       <TopNavBar />
 
-      <main className="mx-auto max-w-7xl px-8 py-12">
+      <main className="mx-auto max-w-7xl px-6 py-10 md:px-8 md:py-12">
 
-        <div className="mb-12 rounded-2xl border border-gray-200 bg-gradient-to-br from-white to-[#e8f5f4]/30 p-10 shadow-sm">
+        <DesignSystemCard className="mb-12 overflow-hidden bg-gradient-to-br from-[var(--ds-white)] to-[var(--ds-surface-subtle)] p-8 md:p-10">
           <div className="mx-auto max-w-3xl text-center">
 
             <div className="mb-5 flex justify-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f5f4]">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--ds-surface-subtle)]">
                 {isReviewer ? (
-                  <ClipboardCheck className="h-6 w-6 text-[#07877B]" />
+                  <DesignSystemIcon
+                    size="lg"
+                    tone="action"
+                  >
+                    <ClipboardCheck />
+                  </DesignSystemIcon>
                 ) : (
-                  <Plus className="h-6 w-6 text-[#07877B]" />
+                  <DesignSystemIcon
+                    size="lg"
+                    tone="action"
+                  >
+                    <Plus />
+                  </DesignSystemIcon>
                 )}
               </div>
             </div>
 
-            <h1 className="mb-4 text-3xl text-gray-900">
+            <h1 className="ds-title-2 mb-4">
               {isReviewer
                 ? "Review Communications"
                 : "Create New Communication"}
             </h1>
 
-            <p className="mb-8 text-lg text-gray-600">
+            <p className="ds-body-md mb-8">
               {isReviewer
                 ? "Review communications waiting for your action and move them through the approval workflow."
                 : "Create structured, compliant, Geojit-aligned communications with AI-assisted guidance."}
             </p>
 
             {isReviewer ? (
-              <button
-                type="button"
+              <DesignSystemButton
+                variant="primary"
+                size="large"
                 onClick={() =>
                   navigate(
                     "/reviews"
                   )
                 }
-                className="inline-flex items-center gap-2 rounded-lg bg-[#07877B] px-8 py-4 text-white shadow-md hover:bg-[#06766a]"
+                trailingIcon={
+                  <DesignSystemIcon
+                    size="md"
+                    tone="onDark"
+                  >
+                    <ArrowRight />
+                  </DesignSystemIcon>
+                }
+                className="px-8 py-4"
               >
                 Open Review Queue
-                <ArrowRight className="h-5 w-5" />
-              </button>
+              </DesignSystemButton>
             ) : canCreate ? (
-              <button
-                type="button"
+              <DesignSystemButton
+                variant="primary"
+                size="large"
                 onClick={
                   handleStartCreating
                 }
                 disabled={
                   creating
                 }
-                className="inline-flex items-center gap-2 rounded-lg bg-[#07877B] px-8 py-4 text-white shadow-md hover:bg-[#06766a] disabled:opacity-60"
+                leadingIcon={
+                  <DesignSystemIcon
+                    size="md"
+                    tone="onDark"
+                  >
+                    <Plus />
+                  </DesignSystemIcon>
+                }
+                className="px-8 py-4"
               >
-                <Plus className="h-5 w-5" />
                 {creating
                   ? "Creating..."
                   : "Start Creating"}
-              </button>
+              </DesignSystemButton>
             ) : null}
 
             {error && (
@@ -616,12 +648,12 @@ export function Dashboard() {
                       "draft"
                     )
                   }
-                  className="text-sm text-gray-600 hover:text-[#07877B]"
+                  className="ds-button-md text-[var(--ds-text-secondary)] hover:text-[var(--ds-brand-primary)]"
                 >
                   View Drafts
                 </button>
 
-                <span className="text-gray-300">
+                <span className="text-[var(--ds-border-default)]">
                   •
                 </span>
 
@@ -632,7 +664,7 @@ export function Dashboard() {
                       "all"
                     )
                   }
-                  className="text-sm text-gray-600 hover:text-[#07877B]"
+                  className="ds-button-md text-[var(--ds-text-secondary)] hover:text-[var(--ds-brand-primary)]"
                 >
                   View Recent Communications
                 </button>
@@ -640,7 +672,7 @@ export function Dashboard() {
                 {profile?.role ===
                   "admin" && (
                   <>
-                    <span className="text-gray-300">
+                    <span className="text-[var(--ds-border-default)]">
                       •
                     </span>
 
@@ -651,7 +683,7 @@ export function Dashboard() {
                           "/settings/rules"
                         )
                       }
-                      className="text-sm text-gray-600 hover:text-[#07877B]"
+                      className="ds-button-md text-[var(--ds-text-secondary)] hover:text-[var(--ds-brand-primary)]"
                     >
                       Templates / Rules
                     </button>
@@ -660,7 +692,7 @@ export function Dashboard() {
               </div>
             )}
           </div>
-        </div>
+        </DesignSystemCard>
 
         <div className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
 
@@ -678,21 +710,26 @@ export function Dashboard() {
             disabled={
               isReviewer
             }
-            className={`rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all ${
+            className={`ds-card p-6 text-left transition-all ${
               isReviewer
                 ? "cursor-default"
-                : "hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
+                : "hover:-translate-y-0.5 hover:border-[var(--ds-brand-primary)] hover:shadow-[var(--ds-shadow-raised)]"
             }`}
           >
             <div className="mb-2 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
-                <FileText className="h-5 w-5 text-gray-600" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-[var(--ds-radius-sm)] bg-[var(--ds-surface-muted)]">
+                <DesignSystemIcon
+                  size="md"
+                  tone="secondary"
+                >
+                  <FileText />
+                </DesignSystemIcon>
               </div>
 
               <h3 className={
                 isReviewer
-                  ? "text-lg"
-                  : "text-2xl"
+                  ? "ds-title-4"
+                  : "ds-title-3"
               }>
                 {loading
                   ? "—"
@@ -705,16 +742,21 @@ export function Dashboard() {
               </h3>
             </div>
 
-            <p className="text-sm text-muted-foreground">
+            <p className="ds-body-xs">
               {isReviewer
                 ? "Current Review Stage"
                 : "Total Drafts"}
             </p>
 
             {!isReviewer && (
-              <p className="mt-2 flex items-center gap-1 text-xs font-medium text-[#07877B]">
+              <p className="ds-button-md mt-2 flex items-center gap-1 text-[var(--ds-brand-primary)]">
                 View drafts
-                <ArrowRight className="h-3.5 w-3.5" />
+                <DesignSystemIcon
+                  size="sm"
+                  tone="action"
+                >
+                  <ArrowRight />
+                </DesignSystemIcon>
               </p>
             )}
           </button>
@@ -734,29 +776,39 @@ export function Dashboard() {
                 );
               }
             }}
-            className="rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
+            className="ds-card p-6 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--ds-brand-primary)] hover:shadow-[var(--ds-shadow-raised)]"
           >
             <div className="mb-2 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
-                <Clock className="h-5 w-5 text-amber-600" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-[var(--ds-radius-sm)] bg-amber-50">
+                <DesignSystemIcon
+                  size="md"
+                  tone="warning"
+                >
+                  <Clock />
+                </DesignSystemIcon>
               </div>
 
-              <h3 className="text-2xl">
+              <h3 className="ds-title-3">
                 {loading
                   ? "—"
                   : pendingApproval}
               </h3>
             </div>
 
-            <p className="text-sm text-muted-foreground">
+            <p className="ds-body-xs">
               Pending Approval
             </p>
 
-            <p className="mt-2 flex items-center gap-1 text-xs font-medium text-[#07877B]">
+            <p className="ds-button-md mt-2 flex items-center gap-1 text-[var(--ds-brand-primary)]">
               {canReview
                 ? "View review queue"
                 : "View pending"}
-              <ArrowRight className="h-3.5 w-3.5" />
+              <DesignSystemIcon
+                  size="sm"
+                  tone="action"
+                >
+                  <ArrowRight />
+                </DesignSystemIcon>
             </p>
           </button>
 
@@ -775,14 +827,19 @@ export function Dashboard() {
                 );
               }
             }}
-            className="rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
+            className="ds-card p-6 text-left transition-all hover:-translate-y-0.5 hover:border-[var(--ds-brand-primary)] hover:shadow-[var(--ds-shadow-raised)]"
           >
             <div className="mb-2 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-[var(--ds-radius-sm)] bg-green-50">
+                <DesignSystemIcon
+                  size="md"
+                  tone="success"
+                >
+                  <CheckCircle />
+                </DesignSystemIcon>
               </div>
 
-              <h3 className="text-2xl">
+              <h3 className="ds-title-3">
                 {loading
                   ? "—"
                   : isReviewer
@@ -791,15 +848,20 @@ export function Dashboard() {
               </h3>
             </div>
 
-            <p className="text-sm text-muted-foreground">
+            <p className="ds-body-xs">
               {isReviewer
                 ? "Revised & Resubmitted"
                 : "Approved"}
             </p>
 
-            <p className="mt-2 flex items-center gap-1 text-xs font-medium text-[#07877B]">
+            <p className="ds-button-md mt-2 flex items-center gap-1 text-[var(--ds-brand-primary)]">
               View
-              <ArrowRight className="h-3.5 w-3.5" />
+              <DesignSystemIcon
+                  size="sm"
+                  tone="action"
+                >
+                  <ArrowRight />
+                </DesignSystemIcon>
             </p>
           </button>
 
@@ -820,15 +882,15 @@ export function Dashboard() {
               isReviewer ||
               !mostUsedCategory
             }
-            className={`rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all ${
+            className={`ds-card p-6 text-left transition-all ${
               !isReviewer &&
               mostUsedCategory
-                ? "hover:-translate-y-0.5 hover:border-[#07877B] hover:shadow-md"
+                ? "hover:-translate-y-0.5 hover:border-[var(--ds-brand-primary)] hover:shadow-[var(--ds-shadow-raised)]"
                 : "cursor-default"
             }`}
           >
             <div className="mb-2">
-              <h3 className="text-sm text-muted-foreground">
+              <h3 className="ds-body-xs">
                 Most Used Category
               </h3>
             </div>
@@ -850,9 +912,14 @@ export function Dashboard() {
 
             {!isReviewer &&
               mostUsedCategory && (
-                <p className="mt-2 flex items-center gap-1 text-xs font-medium text-[#07877B]">
+                <p className="ds-button-md mt-2 flex items-center gap-1 text-[var(--ds-brand-primary)]">
                   Filter communications
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <DesignSystemIcon
+                  size="sm"
+                  tone="action"
+                >
+                  <ArrowRight />
+                </DesignSystemIcon>
                 </p>
               )}
           </button>
@@ -860,24 +927,29 @@ export function Dashboard() {
 
         {profile?.role ===
           "admin" && (
-          <div className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+          <DesignSystemCard className="mb-8 p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
-                <p className="text-sm font-medium text-[#07877B]">
+                <p className="ds-body-xs font-medium text-[var(--ds-brand-primary)]">
                   Administration
                 </p>
 
-                <h2 className="mt-1 text-xl text-gray-900">
+                <h2 className="ds-title-4 mt-1">
                   Platform Management
                 </h2>
 
-                <p className="mt-2 text-sm leading-6 text-gray-500">
+                <p className="ds-body-xs mt-2">
                   Manage users, roles and Communication Studio rules.
                 </p>
               </div>
 
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e8f5f4]">
-                <UserCog className="h-5 w-5 text-[#07877B]" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-[var(--ds-radius-md)] bg-[var(--ds-surface-subtle)]">
+                <DesignSystemIcon
+                  size="md"
+                  tone="action"
+                >
+                  <UserCog />
+                </DesignSystemIcon>
               </div>
             </div>
 
@@ -889,19 +961,24 @@ export function Dashboard() {
                     "/settings/users"
                   )
                 }
-                className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-4 text-left hover:border-[#07877B] hover:bg-[#f7fbfa]"
+                className="flex items-center justify-between rounded-[var(--ds-radius-md)] border border-[var(--ds-border-subtle)] px-4 py-4 text-left hover:border-[var(--ds-brand-primary)] hover:bg-[var(--ds-surface-subtle)]"
               >
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="ds-body-sm font-medium">
                     User Management
                   </p>
 
-                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                  <p className="ds-body-xs mt-1">
                     Add users and assign Creator, Marketing, CorpCom or Admin roles.
                   </p>
                 </div>
 
-                <ArrowRight className="h-4 w-4 text-gray-400" />
+                <DesignSystemIcon
+                  size="sm"
+                  tone="tertiary"
+                >
+                  <ArrowRight />
+                </DesignSystemIcon>
               </button>
 
               <button
@@ -911,31 +988,36 @@ export function Dashboard() {
                     "/settings/rules"
                   )
                 }
-                className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-4 text-left hover:border-[#07877B] hover:bg-[#f7fbfa]"
+                className="flex items-center justify-between rounded-[var(--ds-radius-md)] border border-[var(--ds-border-subtle)] px-4 py-4 text-left hover:border-[var(--ds-brand-primary)] hover:bg-[var(--ds-surface-subtle)]"
               >
                 <div>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="ds-body-sm font-medium">
                     Rules & Settings
                   </p>
 
-                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                  <p className="ds-body-xs mt-1">
                     Manage communication rules and controlled settings.
                   </p>
                 </div>
 
-                <ArrowRight className="h-4 w-4 text-gray-400" />
+                <DesignSystemIcon
+                  size="sm"
+                  tone="tertiary"
+                >
+                  <ArrowRight />
+                </DesignSystemIcon>
               </button>
             </div>
-          </div>
+          </DesignSystemCard>
         )}
 
-        <div
+        <DesignSystemCard
           ref={recentRef}
-          className="scroll-mt-6 rounded-xl border border-gray-200 bg-white p-8 shadow-sm"
+          className="scroll-mt-6 p-8"
         >
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-xl">
+              <h2 className="ds-title-4">
                 {isReviewer
                   ? "Pending Reviews"
                   : "Recent Communications"}
@@ -944,7 +1026,7 @@ export function Dashboard() {
               {!isReviewer &&
                 activeFilter !==
                   "all" && (
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="ds-body-xs mt-1">
                     Showing:{" "}
                     {getFilterLabel(
                       activeFilter,
@@ -964,16 +1046,21 @@ export function Dashboard() {
                       "all"
                     )
                   }
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs text-gray-600 hover:bg-gray-50"
+                  className="ds-button-md inline-flex items-center gap-1.5 rounded-[var(--ds-radius-sm)] border border-[var(--ds-border-subtle)] px-3 py-2 text-[var(--ds-text-secondary)] hover:bg-[var(--ds-surface-muted)]"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <DesignSystemIcon
+                    size="sm"
+                    tone="secondary"
+                  >
+                    <X />
+                  </DesignSystemIcon>
                   Clear filter
                 </button>
               )}
           </div>
 
           {loading && (
-            <div className="py-10 text-center text-sm text-gray-500">
+            <div className="ds-body-xs py-10 text-center">
               Loading communications...
             </div>
           )}
@@ -983,13 +1070,20 @@ export function Dashboard() {
             reviewQueue.length ===
               0 && (
               <div className="py-12 text-center">
-                <CheckCircle className="mx-auto mb-4 h-10 w-10 text-green-400" />
+                <div className="mx-auto mb-4 flex justify-center">
+                  <DesignSystemIcon
+                    size="lg"
+                    tone="success"
+                  >
+                    <CheckCircle />
+                  </DesignSystemIcon>
+                </div>
 
-                <h3 className="mb-2 text-gray-900">
+                <h3 className="ds-title-4 mb-2">
                   You're all caught up
                 </h3>
 
-                <p className="text-sm text-gray-500">
+                <p className="ds-body-xs">
                   No communications are waiting for your review.
                 </p>
               </div>
@@ -1012,10 +1106,10 @@ export function Dashboard() {
                           "/reviews"
                         )
                       }
-                      className="group flex w-full items-center gap-4 rounded-lg border border-transparent p-4 text-left hover:border-gray-200 hover:bg-gray-50"
+                      className="group flex w-full items-center gap-4 rounded-[var(--ds-radius-sm)] border border-transparent p-4 text-left hover:border-[var(--ds-border-subtle)] hover:bg-[var(--ds-surface-muted)]"
                     >
                       <div className="flex-1">
-                        <h3 className="mb-2">
+                        <h3 className="ds-body-sm mb-2 font-medium">
                           {item.communication
                             ?.title ||
                             "Untitled Communication"}
@@ -1054,7 +1148,12 @@ export function Dashboard() {
                         </div>
                       </div>
 
-                      <ArrowRight className="h-4 w-4 text-gray-400" />
+                      <DesignSystemIcon
+                        size="sm"
+                        tone="tertiary"
+                      >
+                        <ArrowRight />
+                      </DesignSystemIcon>
                     </button>
                   )
                 )}
@@ -1066,13 +1165,20 @@ export function Dashboard() {
             filteredCommunications.length ===
               0 && (
               <div className="py-12 text-center">
-                <FileText className="mx-auto mb-4 h-10 w-10 text-gray-300" />
+                <div className="mx-auto mb-4 flex justify-center">
+                  <DesignSystemIcon
+                    size="lg"
+                    tone="disabled"
+                  >
+                    <FileText />
+                  </DesignSystemIcon>
+                </div>
 
-                <h3 className="mb-2 text-gray-900">
+                <h3 className="ds-title-4 mb-2">
                   No communications found
                 </h3>
 
-                <p className="text-sm text-gray-500">
+                <p className="ds-body-xs">
                   Try another filter or create a new communication.
                 </p>
               </div>
@@ -1105,7 +1211,7 @@ export function Dashboard() {
                           key={
                             comm.id
                           }
-                          className="group relative flex items-center gap-4 rounded-lg border border-transparent p-4 hover:border-gray-200 hover:bg-gray-50"
+                          className="group relative flex items-center gap-4 rounded-[var(--ds-radius-sm)] border border-transparent p-4 hover:border-[var(--ds-border-subtle)] hover:bg-[var(--ds-surface-muted)]"
                         >
                           <button
                             type="button"
@@ -1117,7 +1223,7 @@ export function Dashboard() {
                             }
                             className="min-w-0 flex-1 text-left"
                           >
-                            <h3 className="mb-2">
+                            <h3 className="ds-body-sm mb-2 font-medium">
                               {comm.title}
                             </h3>
 
@@ -1177,7 +1283,7 @@ export function Dashboard() {
                                   comm
                                 )
                               }
-                              className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 hover:border-[#07877B] hover:text-[#07877B]"
+                              className="ds-button-md rounded-[var(--ds-radius-sm)] border border-[var(--ds-border-subtle)] px-3 py-2 text-[var(--ds-text-primary)] hover:border-[var(--ds-brand-primary)] hover:text-[var(--ds-brand-primary)]"
                             >
                               {
                                 actionLabel
@@ -1213,14 +1319,19 @@ export function Dashboard() {
                                       : comm.id
                                 )
                               }
-                              className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-200"
+                              className="flex h-9 w-9 items-center justify-center rounded-[var(--ds-radius-sm)] hover:bg-[var(--ds-surface-muted)]"
                             >
-                              <MoreVertical className="h-4 w-4" />
+                              <DesignSystemIcon
+                                size="sm"
+                                tone="secondary"
+                              >
+                                <MoreVertical />
+                              </DesignSystemIcon>
                             </button>
 
                             {menuOpenId ===
                               comm.id && (
-                              <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white p-1 shadow-lg">
+                              <DesignSystemCard className="absolute right-0 z-20 mt-2 w-44 overflow-hidden p-1">
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1254,7 +1365,7 @@ export function Dashboard() {
                                     Delete Draft
                                   </button>
                                 )}
-                              </div>
+                              </DesignSystemCard>
                             )}
                           </div>
                         </div>
@@ -1263,7 +1374,7 @@ export function Dashboard() {
                   )}
               </div>
             )}
-        </div>
+        </DesignSystemCard>
       </main>
 
       {deleteTarget && (
@@ -1325,31 +1436,36 @@ function DeleteDraftModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 px-4">
-      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl">
+      <DesignSystemCard className="w-full max-w-md p-6 shadow-[var(--ds-shadow-raised)]">
         <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-full bg-red-50">
-          <Trash2 className="h-5 w-5 text-red-600" />
+          <DesignSystemIcon
+            size="md"
+            tone="error"
+          >
+            <Trash2 />
+          </DesignSystemIcon>
         </div>
 
-        <h2 className="text-xl font-semibold text-gray-900">
+        <h2 className="ds-title-4">
           {final
             ? "Confirm permanent deletion"
             : "Delete this draft?"}
         </h2>
 
-        <p className="mt-3 text-sm leading-6 text-gray-600">
+        <p className="ds-body-sm mt-3">
           {final
             ? "This is the final confirmation. The draft and its unsent content will be permanently deleted. This action cannot be undone."
             : "Only drafts that have never entered the approval workflow can be deleted."}
         </p>
 
-        <div className="mt-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-          <p className="text-sm font-medium text-gray-900">
+        <div className="mt-4 rounded-[var(--ds-radius-md)] border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-muted)] px-4 py-3">
+          <p className="ds-body-sm font-medium">
             {
               communication.title
             }
           </p>
 
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="ds-body-xs mt-1">
             Draft · Last updated{" "}
             {formatDate(
               communication.updated_at
@@ -1364,18 +1480,18 @@ function DeleteDraftModal({
         )}
 
         <div className="mt-6 flex justify-end gap-3">
-          <button
-            type="button"
+          <DesignSystemButton
+            variant="secondary"
+            size="medium"
             onClick={
               onCancel
             }
             disabled={
               deleting
             }
-            className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
             Cancel
-          </button>
+          </DesignSystemButton>
 
           <button
             type="button"
@@ -1385,7 +1501,7 @@ function DeleteDraftModal({
             disabled={
               deleting
             }
-            className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            className="ds-button-md rounded-[var(--ds-radius-sm)] bg-red-600 px-4 py-2.5 font-medium text-white hover:bg-red-700 disabled:opacity-50"
           >
             {deleting
               ? "Deleting..."
@@ -1394,7 +1510,7 @@ function DeleteDraftModal({
                 : "Continue"}
           </button>
         </div>
-      </div>
+      </DesignSystemCard>
     </div>
   );
 }
