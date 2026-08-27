@@ -24,6 +24,12 @@ import {
 } from "../components/TopNavBar";
 
 import {
+  DesignSystemButton,
+  DesignSystemCard,
+  DesignSystemIcon,
+} from "../design-system";
+
+import {
   buildCommunicationMaster,
   CommunicationMaster,
 } from "../services/guidedCreation";
@@ -197,14 +203,14 @@ export function GuidedReady() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="ds-page">
         <TopNavBar />
 
         <main className="mx-auto flex min-h-[75vh] max-w-3xl items-center justify-center px-6">
           <div className="text-center">
-            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#07877B]" />
+            <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-[var(--ds-brand-primary)]" />
 
-            <p className="text-sm text-gray-500">
+            <p className="ds-body-sm">
               Preparing the Communication Master...
             </p>
           </div>
@@ -214,24 +220,32 @@ export function GuidedReady() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="ds-page">
       <TopNavBar />
 
       <main className="mx-auto max-w-4xl px-6 py-10 sm:py-14">
 
-        <button
-          type="button"
+        <DesignSystemButton
+          variant="tertiary"
+          size="medium"
           onClick={
             handleBack
           }
-          className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#07877B]"
+          leadingIcon={
+            <DesignSystemIcon
+              size="sm"
+              tone="action"
+            >
+              <ArrowLeft />
+            </DesignSystemIcon>
+          }
+          className="mb-6 px-0"
         >
-          <ArrowLeft className="h-4 w-4" />
           Back to Guided Brief
-        </button>
+        </DesignSystemButton>
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+          <div className="ds-alert ds-alert-error mb-6 text-sm">
             {error}
           </div>
         )}
@@ -239,19 +253,24 @@ export function GuidedReady() {
         {master ? (
           <>
             <div className="mb-8 text-center">
-              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-green-50">
-                <CheckCircle2 className="h-7 w-7 text-green-600" />
+              <div className="ds-icon-container ds-icon-container-success mx-auto mb-5 h-14 w-14 rounded-full">
+                <DesignSystemIcon
+                  size="lg"
+                  tone="success"
+                >
+                  <CheckCircle2 />
+                </DesignSystemIcon>
               </div>
 
-              <p className="text-sm font-medium text-[#07877B]">
+              <p className="ds-label-3 text-[var(--ds-text-brand)]">
                 Guided Creation
               </p>
 
-              <h1 className="mt-2 text-3xl text-gray-900">
+              <h1 className="ds-title-2 mt-2">
                 Communication Master is ready
               </h1>
 
-              <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-gray-600">
+              <p className="ds-body-sm mx-auto mt-4 max-w-2xl leading-7">
                 Your confirmed idea is now
                 ready to be adapted into the
                 selected communication
@@ -259,14 +278,14 @@ export function GuidedReady() {
               </p>
             </div>
 
-            <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+            <DesignSystemCard className="p-6 sm:p-8">
 
               <div className="mb-6">
-                <p className="text-xs font-medium uppercase tracking-wide text-[#07877B]">
+                <p className="ds-label-3 text-[var(--ds-text-brand)]">
                   Core idea
                 </p>
 
-                <p className="mt-2 text-lg leading-8 text-gray-900">
+                <p className="mt-2 text-lg font-medium leading-8 text-[var(--ds-text-primary)]">
                   {
                     master.coreIdea
                   }
@@ -311,8 +330,8 @@ export function GuidedReady() {
                 />
               </div>
 
-              <div className="mt-7 border-t border-gray-200 pt-6">
-                <p className="text-sm font-medium text-gray-900">
+              <div className="mt-7 border-t border-[var(--ds-border-subtle)] pt-6">
+                <p className="ds-body-sm font-medium">
                   Selected channels
                 </p>
 
@@ -332,16 +351,25 @@ export function GuidedReady() {
                 </div>
               </div>
 
-              <div className="mt-7 rounded-xl border border-[#bfe4df] bg-[#f3fbfa] px-5 py-4">
+              <DesignSystemCard
+                surface="accent"
+                className="mt-7 px-5 py-4"
+              >
                 <div className="flex items-start gap-3">
-                  <Sparkles className="mt-0.5 h-5 w-5 text-[#07877B]" />
+                  <DesignSystemIcon
+                    size="md"
+                    tone="action"
+                    className="mt-0.5"
+                  >
+                    <Sparkles />
+                  </DesignSystemIcon>
 
                   <div>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="ds-body-sm font-medium">
                       Same governed meaning. Different channel expression.
                     </p>
 
-                    <p className="mt-1 text-sm leading-6 text-gray-600">
+                    <p className="ds-body-xs mt-1 leading-6">
                       Each selected channel
                       will receive three
                       variants. Email can be
@@ -353,40 +381,44 @@ export function GuidedReady() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </DesignSystemCard>
 
-              <button
-                type="button"
+              <DesignSystemButton
+                variant="primary"
+                size="large"
+                fullWidth
                 onClick={() =>
                   void handleGenerateChannels()
                 }
                 disabled={
                   generating
                 }
-                className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-7 py-3.5 text-sm font-medium text-white shadow-sm hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-50"
+                loading={
+                  generating
+                }
+                loadingLabel="Generating channel options..."
+                trailingIcon={
+                  <DesignSystemIcon
+                    size="sm"
+                    tone="onDark"
+                  >
+                    <ArrowRight />
+                  </DesignSystemIcon>
+                }
+                className="mt-7"
               >
-                {generating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Generating channel options...
-                  </>
-                ) : (
-                  <>
-                    Generate Channel Options
-                    <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
-              </button>
+                Generate Channel Options
+              </DesignSystemButton>
 
               {generationMessage && (
-                <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm leading-6 text-green-700">
+                <div className="ds-alert ds-alert-success mt-5 text-sm leading-6">
                   {
                     generationMessage
                   }
                 </div>
               )}
 
-            </section>
+            </DesignSystemCard>
           </>
         ) : null}
 
@@ -407,15 +439,18 @@ function MasterItem({
     string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+    <DesignSystemCard
+      surface="muted"
+      className="p-4"
+    >
+      <p className="ds-label-3 text-[var(--ds-text-tertiary)]">
         {label}
       </p>
 
-      <p className="mt-2 text-sm leading-6 text-gray-700">
+      <p className="ds-body-sm mt-2">
         {value}
       </p>
-    </div>
+    </DesignSystemCard>
   );
 }
 
@@ -438,8 +473,14 @@ function ChannelPill({
         : FileText;
 
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-[#bfe4df] bg-[#f3fbfa] px-3 py-1.5 text-xs font-medium text-[#075f58]">
-      <Icon className="h-3.5 w-3.5" />
+    <span className="ds-chip ds-chip-selected">
+      <DesignSystemIcon
+        size="sm"
+        tone="action"
+      >
+        <Icon />
+      </DesignSystemIcon>
+
       {formatChannel(
         channel
       )}
