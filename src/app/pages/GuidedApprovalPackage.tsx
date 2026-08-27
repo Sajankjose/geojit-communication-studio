@@ -26,6 +26,12 @@ import {
 } from "../components/TopNavBar";
 
 import {
+  DesignSystemButton,
+  DesignSystemCard,
+  DesignSystemIcon,
+} from "../design-system";
+
+import {
   useAuth,
 } from "../auth/useAuth";
 
@@ -861,17 +867,17 @@ function ReviewerWorkspace({
           </p>
         </div>
 
-        <h1 className="text-3xl text-gray-900">
+        <h1 className="ds-title-2">
           Review communication
         </h1>
 
-        <p className="mt-2 text-sm leading-6 text-gray-600">
+        <p className="ds-body-sm mt-2">
           Review the selected channel output and record your decision without leaving this screen.
         </p>
       </div>
 
       {master && (
-        <div className="mb-5 grid gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-4">
+        <DesignSystemCard className="mb-5 grid gap-3 p-4 sm:grid-cols-4">
           <ReviewSummaryItem
             label="Core idea"
             value={
@@ -905,12 +911,12 @@ function ReviewerWorkspace({
               "—"
             }
           />
-        </div>
+        </DesignSystemCard>
       )}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
 
-        <section className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <DesignSystemCard className="min-w-0 overflow-hidden">
           <div className="border-b border-gray-200 px-4 pt-4">
             <div className="flex flex-wrap gap-2">
               {approvalPackage.selectedOutputs.map(
@@ -965,17 +971,17 @@ function ReviewerWorkspace({
               />
             </div>
           )}
-        </section>
+        </DesignSystemCard>
 
         <aside className="self-start xl:sticky xl:top-24">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+          <DesignSystemCard className="p-5">
 
             <div className="mb-5">
               <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
                 Decision
               </p>
 
-              <h2 className="mt-1 text-lg text-gray-900">
+              <h2 className="ds-title-4 mt-1">
                 {reviewerRole ===
                   "marketing_reviewer"
                   ? "Marketing Review"
@@ -1004,7 +1010,7 @@ function ReviewerWorkspace({
                   ? "Add a comment if needed..."
                   : "Add final review comments if needed..."
               }
-              className="mt-2 w-full resize-none rounded-xl border border-gray-300 px-3 py-3 text-sm leading-6 outline-none focus:border-[#07877B] focus:ring-2 focus:ring-[#07877B]/10"
+              className="ds-textarea mt-2"
             />
 
             <p className="mt-2 text-xs leading-5 text-gray-500">
@@ -1020,8 +1026,9 @@ function ReviewerWorkspace({
             )}
 
             <div className="mt-5 grid grid-cols-2 gap-2">
-              <button
-                type="button"
+              <DesignSystemButton
+                variant="secondary"
+                size="medium"
                 onClick={() =>
                   onDecision(
                     "changes_requested"
@@ -1031,14 +1038,22 @@ function ReviewerWorkspace({
                   reviewerSubmitting ||
                   !reviewerItem
                 }
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2.5 text-xs font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-40"
+                leadingIcon={
+                  <DesignSystemIcon
+                    size="sm"
+                    tone="warning"
+                  >
+                    <RotateCcw />
+                  </DesignSystemIcon>
+                }
+                className="w-full"
               >
-                <RotateCcw className="h-4 w-4" />
                 Request Changes
-              </button>
+              </DesignSystemButton>
 
-              <button
-                type="button"
+              <DesignSystemButton
+                variant="secondary"
+                size="medium"
                 onClick={() =>
                   onDecision(
                     "rejected"
@@ -1048,15 +1063,23 @@ function ReviewerWorkspace({
                   reviewerSubmitting ||
                   !reviewerItem
                 }
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
+                leadingIcon={
+                  <DesignSystemIcon
+                    size="sm"
+                    tone="error"
+                  >
+                    <XCircle />
+                  </DesignSystemIcon>
+                }
+                className="w-full"
               >
-                <XCircle className="h-4 w-4" />
                 Reject
-              </button>
+              </DesignSystemButton>
             </div>
 
-            <button
-              type="button"
+            <DesignSystemButton
+              variant="primary"
+              size="large"
               onClick={() =>
                 onDecision(
                   "approved"
@@ -1066,23 +1089,37 @@ function ReviewerWorkspace({
                 reviewerSubmitting ||
                 !reviewerItem
               }
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-[#06766a] disabled:opacity-40"
+              trailingIcon={
+                reviewerSubmitting
+                  ? null
+                  : reviewerRole ===
+                      "marketing_reviewer"
+                    ? (
+                      <DesignSystemIcon
+                        size="sm"
+                        tone="onDark"
+                      >
+                        <Send />
+                      </DesignSystemIcon>
+                    )
+                    : (
+                      <DesignSystemIcon
+                        size="sm"
+                        tone="onDark"
+                      >
+                        <CheckCircle2 />
+                      </DesignSystemIcon>
+                    )
+              }
+              className="mt-3 w-full"
             >
-              {reviewerSubmitting ? (
-                "Submitting..."
-              ) : reviewerRole ===
-                  "marketing_reviewer" ? (
-                <>
-                  Approve & Send to CorpCom
-                  <Send className="h-4 w-4" />
-                </>
-              ) : (
-                <>
-                  Final Approve
-                  <CheckCircle2 className="h-4 w-4" />
-                </>
-              )}
-            </button>
+              {reviewerSubmitting
+                ? "Submitting..."
+                : reviewerRole ===
+                    "marketing_reviewer"
+                  ? "Approve & Send to CorpCom"
+                  : "Final Approve"}
+            </DesignSystemButton>
 
             {!reviewerItem && (
               <p className="mt-3 text-xs leading-5 text-amber-700">
@@ -1090,7 +1127,7 @@ function ReviewerWorkspace({
               </p>
             )}
 
-          </div>
+          </DesignSystemCard>
         </aside>
 
       </div>
@@ -1121,11 +1158,11 @@ function ReviewSummaryItem({
           : ""
       }
     >
-      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+      <p className="ds-label-3">
         {label}
       </p>
 
-      <p className="mt-1 text-sm leading-6 text-gray-700">
+      <p className="ds-body-sm mt-1">
         {value}
       </p>
     </div>
