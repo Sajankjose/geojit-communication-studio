@@ -6,6 +6,9 @@ import {
   MessageCircle,
   ShieldCheck,
   Sparkles,
+  RotateCcw,
+  XCircle,
+  Send,
 } from "lucide-react";
 
 import {
@@ -42,6 +45,12 @@ import {
   getExistingPendingApproval,
   submitCommunicationForApproval,
 } from "../services/approvals";
+
+import {
+  getReviewerQueue,
+  submitReviewerDecision,
+  ReviewQueueItem,
+} from "../services/reviews";
 
 export function GuidedApprovalPackage() {
   const navigate =
@@ -135,6 +144,43 @@ export function GuidedApprovalPackage() {
   ] =
     useState(false);
 
+  const [
+    activeChannel,
+    setActiveChannel,
+  ] =
+    useState<
+      "email"
+      | "whatsapp"
+      | "leaflet"
+      | null
+    >(null);
+
+  const [
+    reviewerItem,
+    setReviewerItem,
+  ] =
+    useState<
+      ReviewQueueItem | null
+    >(null);
+
+  const [
+    reviewerComment,
+    setReviewerComment,
+  ] =
+    useState("");
+
+  const [
+    reviewerSubmitting,
+    setReviewerSubmitting,
+  ] =
+    useState(false);
+
+  const [
+    reviewerError,
+    setReviewerError,
+  ] =
+    useState("");
+
   useEffect(() => {
     if (
       authLoading
@@ -190,6 +236,40 @@ export function GuidedApprovalPackage() {
         setApprovalPackage(
           result
         );
+
+        const firstChannel =
+          result.selectedOutputs?.[0]
+            ?.channel || null;
+
+        setActiveChannel(
+          firstChannel
+        );
+
+        if (
+          isReviewerReadOnly &&
+          (
+            profile?.role ===
+              "marketing_reviewer" ||
+            profile?.role ===
+              "corpcom_reviewer"
+          )
+        ) {
+          const queue =
+            await getReviewerQueue(
+              profile.role
+            );
+
+          const matched =
+            queue.find(
+              (item) =>
+                item.communication_id ===
+                communicationId
+            ) || null;
+
+          setReviewerItem(
+            matched
+          );
+        }
       } catch (err) {
         console.error(
           isReadOnlyMode
@@ -217,6 +297,8 @@ export function GuidedApprovalPackage() {
     authLoading,
     communicationId,
     isReadOnlyMode,
+    isReviewerReadOnly,
+    profile?.role,
   ]);
 
   async function handleSubmitForMarketingReview() {
@@ -292,6 +374,91 @@ export function GuidedApprovalPackage() {
       );
     }
   }
+
+  async function handleReviewerDecision(
+    decision:
+      | "approved"
+      | "changes_requested"
+      | "rejected"
+  ) {
+    if (
+      !reviewerItem ||
+      !communicationId ||
+      reviewerSubmitting ||
+      (
+        profile?.role !==
+          "marketing_reviewer" &&
+        profile?.role !==
+          "corpcom_reviewer"
+      )
+    ) {
+      return;
+    }
+
+    const cleanComment =
+      reviewerComment.trim();
+
+    if (
+      (
+        decision ===
+          "changes_requested" ||
+        decision ===
+          "rejected"
+      ) &&
+      !cleanComment
+    ) {
+      setReviewerError(
+        "Please add a comment before requesting changes or rejecting."
+      );
+
+      return;
+    }
+
+    try {
+      setReviewerSubmitting(
+        true
+      );
+
+      setReviewerError(
+        ""
+      );
+
+      await submitReviewerDecision({
+        approvalActionId:
+          reviewerItem.approval_action_id,
+
+        communicationId,
+
+        decision,
+
+        comments:
+          cleanComment,
+
+        reviewerRole:
+          profile.role,
+      });
+
+      navigate(
+        "/reviews"
+      );
+    } catch (err) {
+      console.error(
+        "Unable to submit reviewer decision:",
+        err
+      );
+
+      setReviewerError(
+        err instanceof Error
+          ? err.message
+          : "Unable to submit the review decision."
+      );
+    } finally {
+      setReviewerSubmitting(
+        false
+      );
+    }
+  }
+
 
   function handleBack() {
     if (
@@ -382,215 +549,585 @@ export function GuidedApprovalPackage() {
 
         {approvalPackage && (
           <>
-            <div className="mb-8">
-              <div className="mb-3 flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-[#07877B]" />
+            {isReviewerReadOnly ? (
+              <ReviewerWorkspace
+                approvalPackage={
+                  approvalPackage
+                }
+                activeChannel={
+                  activeChannel
+                }
+                onChannelChange={
+                  setActiveChannel
+                }
+                reviewerRole={
+                  profile?.role ===
+                    "corpcom_reviewer"
+                    ? "corpcom_reviewer"
+                    : "marketing_reviewer"
+                }
+                reviewerItem={
+                  reviewerItem
+                }
+                reviewerComment={
+                  reviewerComment
+                }
+                onReviewerCommentChange={
+                  setReviewerComment
+                }
+                reviewerError={
+                  reviewerError
+                }
+                reviewerSubmitting={
+                  reviewerSubmitting
+                }
+                onDecision={
+                  handleReviewerDecision
+                }
+              />
+            ) : (
+              <>
+                <div className="mb-8">
+                  <div className="mb-3 flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-[#07877B]" />
 
-                <p className="text-sm font-medium text-[#07877B]">
-                  Approval Package
-                </p>
-              </div>
+                    <p className="text-sm font-medium text-[#07877B]">
+                      Approval Package
+                    </p>
+                  </div>
 
-              <h1 className="text-3xl text-gray-900">
-                {isReviewerReadOnly
-                  ? "Review communication package"
-                  : isCreatorReadOnly
-                    ? "Communication package"
-                    : "Ready for review"}
-              </h1>
+                  <h1 className="text-3xl text-gray-900">
+                    {isCreatorReadOnly
+                      ? "Communication package"
+                      : "Ready for review"}
+                  </h1>
 
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
-                {isReviewerReadOnly
-                  ? "Review the Creator's selected Email, WhatsApp and Leaflet outputs together. This page is read-only; return to the Review Queue to record your decision."
-                  : isCreatorReadOnly
-                    ? "These are the selected Email, WhatsApp and Leaflet outputs submitted through the approval workflow. This view is read-only."
-                    : "These are the versions you selected. They will move together as one communication package through the approval workflow."}
-              </p>
-            </div>
-
-            <div className="mb-6 rounded-xl border border-[#bfe4df] bg-[#f3fbfa] px-5 py-4">
-              <div className="flex items-start gap-3">
-                <Sparkles className="mt-0.5 h-5 w-5 text-[#07877B]" />
-
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    One idea, multiple approved outputs
-                  </p>
-
-                  <p className="mt-1 text-sm leading-6 text-gray-600">
-                    Marketing and CorpCom should review
-                    the selected outputs as one package,
-                    while each channel keeps its own
-                    format and expression.
+                  <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
+                    {isCreatorReadOnly
+                      ? "These are the selected Email, WhatsApp and Leaflet outputs submitted through the approval workflow. This view is read-only."
+                      : "These are the versions you selected. They will move together as one communication package through the approval workflow."}
                   </p>
                 </div>
-              </div>
-            </div>
 
-            <div className="space-y-5">
-              {approvalPackage.selectedOutputs.map(
-                (output) => (
-                  <section
-                    key={
-                      output.outputId
-                    }
-                    className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
-                  >
-                    <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e8f5f4]">
-                          <ChannelIcon
+                <div className="mb-6 rounded-xl border border-[#bfe4df] bg-[#f3fbfa] px-5 py-4">
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="mt-0.5 h-5 w-5 text-[#07877B]" />
+
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        One idea, multiple approved outputs
+                      </p>
+
+                      <p className="mt-1 text-sm leading-6 text-gray-600">
+                        Marketing and CorpCom should review the selected outputs as one package, while each channel keeps its own format and expression.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-5">
+                  {approvalPackage.selectedOutputs.map(
+                    (output) => (
+                      <section
+                        key={
+                          output.outputId
+                        }
+                        className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+                      >
+                        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e8f5f4]">
+                              <ChannelIcon
+                                channel={
+                                  output.channel
+                                }
+                              />
+                            </div>
+
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {
+                                  formatChannel(
+                                    output.channel
+                                  )
+                                }
+                              </p>
+
+                              <p className="mt-0.5 text-xs text-gray-500">
+                                Selected Variant{" "}
+                                {
+                                  output.variant
+                                }
+                              </p>
+                            </div>
+                          </div>
+
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Selected
+                          </span>
+                        </div>
+
+                        <div className="p-5">
+                          <CompactOutputPreview
                             channel={
                               output.channel
                             }
+                            content={
+                              output.content
+                            }
                           />
                         </div>
+                      </section>
+                    )
+                  )}
+                </div>
 
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {
-                              formatChannel(
-                                output.channel
-                              )
-                            }
-                          </p>
+                <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                  {isCreatorReadOnly ? (
+                    <>
+                      <p className="text-sm font-medium text-gray-900">
+                        Submitted communication
+                      </p>
 
-                          <p className="mt-0.5 text-xs text-gray-500">
-                            Selected Variant{" "}
-                            {
-                              output.variant
-                            }
-                          </p>
-                        </div>
-                      </div>
+                      <p className="mt-2 text-sm leading-6 text-gray-600">
+                        This is the frozen communication package that moved through the approval workflow. Viewing it will not modify the communication or its approval status.
+                      </p>
 
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Selected
-                      </span>
-                    </div>
-
-                    <div className="p-5">
-                      <CompactOutputPreview
-                        channel={
-                          output.channel
-                        }
-                        content={
-                          output.content
-                        }
-                      />
-                    </div>
-                  </section>
-                )
-              )}
-            </div>
-
-            <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              {isReviewerReadOnly ? (
-                <>
-                  <p className="text-sm font-medium text-gray-900">
-                    Reviewer mode
-                  </p>
-
-                  <p className="mt-2 text-sm leading-6 text-gray-600">
-                    This package is read-only. Return to the Review Queue to approve, request changes or reject the communication.
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        "/reviews"
-                      )
-                    }
-                    className="mt-5 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white hover:bg-[#06766a]"
-                  >
-                    Return to Review Queue
-                  </button>
-                </>
-              ) : isCreatorReadOnly ? (
-                <>
-                  <p className="text-sm font-medium text-gray-900">
-                    Submitted communication
-                  </p>
-
-                  <p className="mt-2 text-sm leading-6 text-gray-600">
-                    This is the frozen communication package that moved through the approval workflow. Viewing it will not modify the communication or its approval status.
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (
-                        communicationId
-                      ) {
-                        navigate(
-                          `/approval/status?communicationId=${encodeURIComponent(
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
                             communicationId
-                          )}`
-                        );
-                      } else {
-                        navigate("/");
-                      }
-                    }}
-                    className="mt-5 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:border-[#07877B] hover:text-[#07877B]"
-                  >
-                    Back to Approval Status
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-medium text-gray-900">
-                    Submit for approval
-                  </p>
+                          ) {
+                            navigate(
+                              `/approval/status?communicationId=${encodeURIComponent(
+                                communicationId
+                              )}`
+                            );
+                          } else {
+                            navigate("/");
+                          }
+                        }}
+                        className="mt-5 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:border-[#07877B] hover:text-[#07877B]"
+                      >
+                        Back to Approval Status
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium text-gray-900">
+                        Submit for approval
+                      </p>
 
-                  <p className="mt-2 text-sm leading-6 text-gray-600">
-                    Your selected channel outputs are saved as one governed package. Submit it to Marketing to begin the existing Marketing → CorpCom approval workflow.
-                  </p>
+                      <p className="mt-2 text-sm leading-6 text-gray-600">
+                        Your selected channel outputs are saved as one governed package. Submit it to Marketing to begin the existing Marketing → CorpCom approval workflow.
+                      </p>
 
-                  {submitError && (
-                    <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      {submitError}
-                    </div>
+                      {submitError && (
+                        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                          {submitError}
+                        </div>
+                      )}
+
+                      {alreadySubmitted && (
+                        <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                          This communication has already been submitted for review.
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={
+                          handleSubmitForMarketingReview
+                        }
+                        disabled={
+                          submitting ||
+                          alreadySubmitted ||
+                          profile?.role !== "creator"
+                        }
+                        className="mt-5 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {submitting
+                          ? "Submitting..."
+                          : alreadySubmitted
+                            ? "Submitted for Marketing Review"
+                            : "Submit for Marketing Review"}
+                      </button>
+
+                      {profile?.role === "admin" && (
+                        <p className="mt-3 text-xs leading-5 text-gray-500">
+                          Admin can inspect this package, but only the Creator can submit it for approval.
+                        </p>
+                      )}
+                    </>
                   )}
-
-                  {alreadySubmitted && (
-                    <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                      This communication has already been submitted for review.
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={
-                      handleSubmitForMarketingReview
-                    }
-                    disabled={
-                      submitting ||
-                      alreadySubmitted ||
-                      profile?.role !== "creator"
-                    }
-                    className="mt-5 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    {submitting
-                      ? "Submitting..."
-                      : alreadySubmitted
-                        ? "Submitted for Marketing Review"
-                        : "Submit for Marketing Review"}
-                  </button>
-
-                  {profile?.role === "admin" && (
-                    <p className="mt-3 text-xs leading-5 text-gray-500">
-                      Admin can inspect this package, but only the Creator can submit it for approval.
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </>
         )}
 
       </main>
+    </div>
+  );
+}
+
+
+function ReviewerWorkspace({
+  approvalPackage,
+  activeChannel,
+  onChannelChange,
+  reviewerRole,
+  reviewerItem,
+  reviewerComment,
+  onReviewerCommentChange,
+  reviewerError,
+  reviewerSubmitting,
+  onDecision,
+}: {
+  approvalPackage:
+    GuidedApprovalPackageData;
+
+  activeChannel:
+    "email"
+    | "whatsapp"
+    | "leaflet"
+    | null;
+
+  onChannelChange:
+    (
+      channel:
+        "email"
+        | "whatsapp"
+        | "leaflet"
+    ) => void;
+
+  reviewerRole:
+    "marketing_reviewer"
+    | "corpcom_reviewer";
+
+  reviewerItem:
+    ReviewQueueItem | null;
+
+  reviewerComment:
+    string;
+
+  onReviewerCommentChange:
+    (
+      value:
+        string
+    ) => void;
+
+  reviewerError:
+    string;
+
+  reviewerSubmitting:
+    boolean;
+
+  onDecision:
+    (
+      decision:
+        | "approved"
+        | "changes_requested"
+        | "rejected"
+    ) => void;
+}) {
+  const activeOutput =
+    approvalPackage.selectedOutputs.find(
+      (item) =>
+        item.channel ===
+        activeChannel
+    ) ||
+    approvalPackage.selectedOutputs[0];
+
+  const master =
+    reviewerItem
+      ?.communication
+      ?.input_data
+      ?.communicationMaster;
+
+  return (
+    <>
+      <div className="mb-6">
+        <div className="mb-2 flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-[#07877B]" />
+
+          <p className="text-sm font-medium text-[#07877B]">
+            {reviewerRole ===
+              "marketing_reviewer"
+              ? "Marketing Review"
+              : "CorpCom Review"}
+          </p>
+        </div>
+
+        <h1 className="text-3xl text-gray-900">
+          Review communication
+        </h1>
+
+        <p className="mt-2 text-sm leading-6 text-gray-600">
+          Review the selected channel output and record your decision without leaving this screen.
+        </p>
+      </div>
+
+      {master && (
+        <div className="mb-5 grid gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:grid-cols-4">
+          <ReviewSummaryItem
+            label="Core idea"
+            value={
+              master.coreIdea ||
+              "—"
+            }
+            wide
+          />
+
+          <ReviewSummaryItem
+            label="Audience"
+            value={
+              master.audience ||
+              "—"
+            }
+          />
+
+          <ReviewSummaryItem
+            label="Purpose"
+            value={
+              master.purpose ||
+              "—"
+            }
+          />
+
+          <ReviewSummaryItem
+            label="Personalisation"
+            value={
+              master.personalisation
+                ?.mode ||
+              "—"
+            }
+          />
+        </div>
+      )}
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+
+        <section className="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-200 px-4 pt-4">
+            <div className="flex flex-wrap gap-2">
+              {approvalPackage.selectedOutputs.map(
+                (output) => (
+                  <button
+                    key={
+                      output.outputId
+                    }
+                    type="button"
+                    onClick={() =>
+                      onChannelChange(
+                        output.channel
+                      )
+                    }
+                    className={`inline-flex items-center gap-2 rounded-t-lg border-b-2 px-4 py-3 text-sm font-medium transition ${
+                      activeOutput?.channel ===
+                        output.channel
+                        ? "border-[#07877B] bg-[#f7fbfa] text-[#06766a]"
+                        : "border-transparent text-gray-500 hover:text-gray-800"
+                    }`}
+                  >
+                    <ChannelIcon
+                      channel={
+                        output.channel
+                      }
+                    />
+
+                    {
+                      formatChannel(
+                        output.channel
+                      )
+                    }
+
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">
+                      {output.variant}
+                    </span>
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+
+          {activeOutput && (
+            <div className="max-h-[68vh] overflow-y-auto p-5">
+              <CompactOutputPreview
+                channel={
+                  activeOutput.channel
+                }
+                content={
+                  activeOutput.content
+                }
+              />
+            </div>
+          )}
+        </section>
+
+        <aside className="self-start xl:sticky xl:top-24">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+
+            <div className="mb-5">
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                Decision
+              </p>
+
+              <h2 className="mt-1 text-lg text-gray-900">
+                {reviewerRole ===
+                  "marketing_reviewer"
+                  ? "Marketing Review"
+                  : "Final CorpCom Review"}
+              </h2>
+            </div>
+
+            <label className="text-sm font-medium text-gray-800">
+              Reviewer comment
+            </label>
+
+            <textarea
+              value={
+                reviewerComment
+              }
+              onChange={
+                (event) =>
+                  onReviewerCommentChange(
+                    event.target.value
+                  )
+              }
+              rows={5}
+              placeholder={
+                reviewerRole ===
+                  "marketing_reviewer"
+                  ? "Add a comment if needed..."
+                  : "Add final review comments if needed..."
+              }
+              className="mt-2 w-full resize-none rounded-xl border border-gray-300 px-3 py-3 text-sm leading-6 outline-none focus:border-[#07877B] focus:ring-2 focus:ring-[#07877B]/10"
+            />
+
+            <p className="mt-2 text-xs leading-5 text-gray-500">
+              A comment is required when requesting changes or rejecting.
+            </p>
+
+            {reviewerError && (
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
+                {
+                  reviewerError
+                }
+              </div>
+            )}
+
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  onDecision(
+                    "changes_requested"
+                  )
+                }
+                disabled={
+                  reviewerSubmitting ||
+                  !reviewerItem
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-3 py-2.5 text-xs font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-40"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Request Changes
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  onDecision(
+                    "rejected"
+                  )
+                }
+                disabled={
+                  reviewerSubmitting ||
+                  !reviewerItem
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
+              >
+                <XCircle className="h-4 w-4" />
+                Reject
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                onDecision(
+                  "approved"
+                )
+              }
+              disabled={
+                reviewerSubmitting ||
+                !reviewerItem
+              }
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-[#06766a] disabled:opacity-40"
+            >
+              {reviewerSubmitting ? (
+                "Submitting..."
+              ) : reviewerRole ===
+                  "marketing_reviewer" ? (
+                <>
+                  Approve & Send to CorpCom
+                  <Send className="h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  Final Approve
+                  <CheckCircle2 className="h-4 w-4" />
+                </>
+              )}
+            </button>
+
+            {!reviewerItem && (
+              <p className="mt-3 text-xs leading-5 text-amber-700">
+                No pending review action was found for this communication. Return to the Review Queue and reopen it.
+              </p>
+            )}
+
+          </div>
+        </aside>
+
+      </div>
+    </>
+  );
+}
+
+
+function ReviewSummaryItem({
+  label,
+  value,
+  wide = false,
+}: {
+  label:
+    string;
+
+  value:
+    string;
+
+  wide?:
+    boolean;
+}) {
+  return (
+    <div
+      className={
+        wide
+          ? "sm:col-span-4"
+          : ""
+      }
+    >
+      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+        {label}
+      </p>
+
+      <p className="mt-1 text-sm leading-6 text-gray-700">
+        {value}
+      </p>
     </div>
   );
 }
