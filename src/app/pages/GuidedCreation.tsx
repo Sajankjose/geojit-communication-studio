@@ -920,7 +920,7 @@ export function GuidedCreation() {
         )}
 
       </main>
-    </DesignSystemCard>
+    </div>
   );
 }
 
@@ -947,7 +947,7 @@ function UnderstandingItem({
       <p className="ds-body-sm mt-2">
         {value}
       </p>
-    </div>
+    </DesignSystemCard>
   );
 }
 
