@@ -5,25 +5,50 @@ import type {
 
 export type DesignSystemCardSurface =
   | "default"
-  | "muted";
+  | "muted"
+  | "interactive"
+  | "selected"
+  | "accent";
 
 export interface DesignSystemCardProps
   extends HTMLAttributes<HTMLDivElement> {
-  surface?:
-    DesignSystemCardSurface;
+  /**
+   * Visual treatment of the card.
+   *
+   * default
+   * Standard content container.
+   *
+   * muted
+   * Low-emphasis supporting content.
+   *
+   * interactive
+   * Clickable/selectable card with hover feedback.
+   *
+   * selected
+   * Active or currently selected card.
+   *
+   * accent
+   * Brand-emphasised supporting section.
+   */
+  surface?: DesignSystemCardSurface;
 
-  children:
-    ReactNode;
+  children: ReactNode;
 }
 
 /**
- * Generic application card wrapper.
+ * Shared application card primitive.
  *
- * IMPORTANT:
- * Elevation is deliberately not exposed yet.
- * Figma confirms Shadow 1 and Shadow 2 exist, but their exact
- * effect values must be read from the relevant Figma node before
- * they are encoded in production.
+ * Visual decisions are controlled by the design-system
+ * stylesheet rather than individual feature screens.
+ *
+ * Pages should prefer:
+ *
+ * <DesignSystemCard surface="default" />
+ * <DesignSystemCard surface="interactive" />
+ * <DesignSystemCard surface="selected" />
+ *
+ * instead of manually defining borders, backgrounds,
+ * shadows and radii.
  */
 export function DesignSystemCard({
   surface = "default",
@@ -31,15 +56,23 @@ export function DesignSystemCard({
   children,
   ...props
 }: DesignSystemCardProps) {
-  const surfaceClass =
-    surface ===
-      "muted"
-      ? "ds-card-muted"
-      : "ds-card";
+  const surfaceClass: Record<
+    DesignSystemCardSurface,
+    string
+  > = {
+    default: "ds-card",
+    muted: "ds-card-muted",
+    interactive:
+      "ds-card-interactive",
+    selected:
+      "ds-card-selected",
+    accent:
+      "ds-card-accent",
+  };
 
   return (
     <div
-      className={`${surfaceClass} ${className}`}
+      className={`${surfaceClass[surface]} ${className}`.trim()}
       {...props}
     >
       {children}
