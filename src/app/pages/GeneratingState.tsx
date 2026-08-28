@@ -1,24 +1,44 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import {
   useNavigate,
   useSearchParams,
 } from "react-router";
+
 import {
   AlertCircle,
+  ArrowLeft,
   Check,
+  Clock3,
   Loader2,
   RefreshCw,
+  Sparkles,
 } from "lucide-react";
 
-import { TopNavBar } from "../components/TopNavBar";
-import { CommunicationStateBar } from "../components/CommunicationStateBar";
-import { ProgressStepper } from "../components/ProgressStepper";
+import {
+  TopNavBar,
+} from "../components/TopNavBar";
+
+import {
+  CommunicationStateBar,
+} from "../components/CommunicationStateBar";
+
+import {
+  ProgressStepper,
+} from "../components/ProgressStepper";
 
 import {
   getCommunicationById,
 } from "../services/communications";
 
-import { supabase } from "../../lib/supabase";
+import {
+  supabase,
+} from "../../lib/supabase";
+
 
 type Category =
   | "research"
@@ -35,17 +55,43 @@ type GenerationStatus =
   | "completed"
   | "failed";
 
+type ProgressStepState =
+  | "complete"
+  | "active"
+  | "pending";
+
 interface AiRunStatus {
-  id: string;
-  status: string;
-  error_message: string | null;
-  created_at: string;
+  id:
+    string;
+
+  status:
+    string;
+
+  error_message:
+    string | null;
+
+  created_at:
+    string;
 }
 
-const POLL_INTERVAL_MS = 2000;
+interface GenerationProgressStep {
+  label:
+    string;
+
+  helper:
+    string;
+
+  state:
+    ProgressStepState;
+}
+
+const POLL_INTERVAL_MS =
+  2000;
+
 
 export function GeneratingState() {
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
   const [searchParams] =
     useSearchParams();
@@ -56,11 +102,17 @@ export function GeneratingState() {
     );
 
   const category =
-    (searchParams.get(
-      "category"
-    ) || "research") as Category;
+    (
+      searchParams.get(
+        "category"
+      ) ||
+      "research"
+    ) as Category;
 
-  const [title, setTitle] =
+  const [
+    title,
+    setTitle,
+  ] =
     useState(
       "New Communication"
     );
@@ -73,56 +125,83 @@ export function GeneratingState() {
       "checking"
     );
 
-  const [error, setError] =
+  const [
+    error,
+    setError,
+  ] =
     useState("");
 
-  const [startedAt] =
-    useState(() => Date.now());
-
-  const [elapsedSeconds, setElapsedSeconds] =
-    useState(0);
-
-  /**
-   * Keep a simple elapsed-time indicator.
-   * This does not drive completion.
-   * Supabase status is the source of truth.
-   */
-  useEffect(() => {
-    const timer = window.setInterval(
-      () => {
-        setElapsedSeconds(
-          Math.floor(
-            (Date.now() -
-              startedAt) /
-              1000
-          )
-        );
-      },
-      1000
+  const [
+    startedAt,
+  ] =
+    useState(
+      () =>
+        Date.now()
     );
 
-    return () =>
+  const [
+    elapsedSeconds,
+    setElapsedSeconds,
+  ] =
+    useState(
+      0
+    );
+
+
+  /**
+   * Elapsed time is only a UX indicator.
+   * It does not determine completion.
+   */
+  useEffect(() => {
+    const timer =
+      window.setInterval(
+        () => {
+          setElapsedSeconds(
+            Math.floor(
+              (
+                Date.now() -
+                startedAt
+              ) /
+                1000
+            )
+          );
+        },
+        1000
+      );
+
+    return () => {
       window.clearInterval(
         timer
       );
-  }, [startedAt]);
+    };
+  }, [
+    startedAt,
+  ]);
+
 
   /**
-   * Poll the real communication record
-   * and latest AI run from Supabase.
+   * Poll the real communication record and
+   * most recent AI run from Supabase.
+   *
+   * Supabase remains the source of truth.
    */
   useEffect(() => {
-    if (!communicationId) {
+    if (
+      !communicationId
+    ) {
       setError(
         "Communication ID is missing."
       );
+
       setGenerationStatus(
         "failed"
       );
+
       return;
     }
 
-    let cancelled = false;
+    let cancelled =
+      false;
 
     async function checkGeneration() {
       try {
@@ -131,18 +210,20 @@ export function GeneratingState() {
             communicationId!
           );
 
-        if (cancelled) {
+        if (
+          cancelled
+        ) {
           return;
         }
 
         setTitle(
           communication.title ||
-            "New Communication"
+          "New Communication"
         );
 
         /**
-         * Background worker has completed
-         * and saved the variants.
+         * The background worker has completed
+         * and the generated variants are saved.
          */
         if (
           communication.status ===
@@ -159,7 +240,8 @@ export function GeneratingState() {
               category
             )}`,
             {
-              replace: true,
+              replace:
+                true,
             }
           );
 
@@ -168,54 +250,73 @@ export function GeneratingState() {
 
         /**
          * Read the most recent AI run.
-         * RLS keeps this scoped to the
+         * RLS keeps the query scoped to the
          * authenticated user's communication.
          */
         const {
-          data: aiRuns,
-          error: aiRunError,
-        } = await supabase
-          .from("ai_runs")
-          .select(
-            "id,status,error_message,created_at"
-          )
-          .eq(
-            "communication_id",
-            communicationId!
-          )
-          .order(
-            "created_at",
-            {
-              ascending: false,
-            }
-          )
-          .limit(1);
+          data:
+            aiRuns,
+          error:
+            aiRunError,
+        } =
+          await supabase
+            .from(
+              "ai_runs"
+            )
+            .select(
+              "id,status,error_message,created_at"
+            )
+            .eq(
+              "communication_id",
+              communicationId!
+            )
+            .order(
+              "created_at",
+              {
+                ascending:
+                  false,
+              }
+            )
+            .limit(
+              1
+            );
 
-        if (aiRunError) {
+        if (
+          aiRunError
+        ) {
           throw new Error(
             aiRunError.message
           );
         }
 
-        if (cancelled) {
+        if (
+          cancelled
+        ) {
           return;
         }
 
         const latestRun =
-          (aiRuns?.[0] ||
-            null) as
+          (
+            aiRuns?.[
+              0
+            ] ||
+            null
+          ) as
             | AiRunStatus
             | null;
 
         /**
-         * The starter returns before the
-         * background worker creates ai_runs,
-         * so a short no-row period is normal.
+         * The starter can return before the
+         * background worker creates ai_runs.
+         * A short no-row period is therefore normal.
          */
-        if (!latestRun) {
+        if (
+          !latestRun
+        ) {
           setGenerationStatus(
             "queued"
           );
+
           return;
         }
 
@@ -229,7 +330,7 @@ export function GeneratingState() {
 
           setError(
             latestRun.error_message ||
-              "AI generation failed. Please try again."
+            "AI generation failed. Please try again."
           );
 
           return;
@@ -251,10 +352,9 @@ export function GeneratingState() {
         }
 
         /**
-         * ai_runs may finish just before
-         * communications.status is updated.
-         * Keep polling briefly rather than
-         * navigating early.
+         * ai_runs may complete slightly before
+         * communications.status becomes variants_ready.
+         * Keep polling rather than navigating early.
          */
         if (
           latestRun.status ===
@@ -264,8 +364,12 @@ export function GeneratingState() {
             "completed"
           );
         }
-      } catch (err) {
-        if (cancelled) {
+      } catch (
+        err
+      ) {
+        if (
+          cancelled
+        ) {
           return;
         }
 
@@ -286,16 +390,19 @@ export function GeneratingState() {
       }
     }
 
-    checkGeneration();
+    void checkGeneration();
 
     const poller =
       window.setInterval(
-        checkGeneration,
+        () => {
+          void checkGeneration();
+        },
         POLL_INTERVAL_MS
       );
 
     return () => {
-      cancelled = true;
+      cancelled =
+        true;
 
       window.clearInterval(
         poller
@@ -306,6 +413,7 @@ export function GeneratingState() {
     category,
     navigate,
   ]);
+
 
   const progressSteps =
     useMemo(
@@ -320,9 +428,15 @@ export function GeneratingState() {
       ]
     );
 
+
   function handleRetry() {
-    if (!communicationId) {
-      navigate("/");
+    if (
+      !communicationId
+    ) {
+      navigate(
+        "/"
+      );
+
       return;
     }
 
@@ -335,433 +449,704 @@ export function GeneratingState() {
     );
   }
 
+
   function handleDashboard() {
-    navigate("/");
+    navigate(
+      "/"
+    );
   }
+
 
   return (
     <div className="min-h-screen bg-background">
       <TopNavBar />
 
       <CommunicationStateBar
-        title={title}
-        category={category}
+        title={
+          title
+        }
+        category={
+          category
+        }
         status="generating"
-        currentStep={3}
-        totalSteps={5}
+        currentStep={
+          3
+        }
+        totalSteps={
+          5
+        }
       />
 
       <ProgressStepper
-        currentStep={3}
+        currentStep={
+          3
+        }
       />
 
-      <main className="flex min-h-[calc(100vh-16rem)] items-center justify-center px-6 py-10">
-        <div className="w-full max-w-2xl">
-
-          {generationStatus !==
-          "failed" ? (
-            <GeneratingView
-              status={
-                generationStatus
-              }
-              elapsedSeconds={
-                elapsedSeconds
-              }
-              steps={
-                progressSteps
-              }
-            />
-          ) : (
-            <FailureView
-              error={error}
-              onRetry={
-                handleRetry
-              }
-              onDashboard={
-                handleDashboard
-              }
-            />
-          )}
-
-        </div>
+      <main className="mx-auto max-w-5xl px-6 py-10 sm:py-12">
+        {generationStatus !==
+        "failed" ? (
+          <GeneratingView
+            status={
+              generationStatus
+            }
+            elapsedSeconds={
+              elapsedSeconds
+            }
+            steps={
+              progressSteps
+            }
+            category={
+              category
+            }
+          />
+        ) : (
+          <FailureView
+            error={
+              error
+            }
+            onRetry={
+              handleRetry
+            }
+            onDashboard={
+              handleDashboard
+            }
+          />
+        )}
       </main>
     </div>
   );
 }
 
+
 function GeneratingView({
   status,
   elapsedSeconds,
   steps,
+  category,
 }: {
-  status: GenerationStatus;
-  elapsedSeconds: number;
-  steps: Array<{
-    label: string;
-    state:
-      | "complete"
-      | "active"
-      | "pending";
-  }>;
+  status:
+    GenerationStatus;
+
+  elapsedSeconds:
+    number;
+
+  steps:
+    GenerationProgressStep[];
+
+  category:
+    Category;
 }) {
+  const completedCount =
+    steps.filter(
+      (step) =>
+        step.state ===
+        "complete"
+    ).length;
+
+  const activeStep =
+    steps.find(
+      (step) =>
+        step.state ===
+        "active"
+    );
+
   return (
-    <div className="text-center">
-
-      <div className="mb-8 flex justify-center">
-        <div className="relative">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#07877B] shadow-sm">
-            <Loader2 className="h-10 w-10 animate-spin text-white" />
-          </div>
-
-          <div className="absolute inset-0 animate-ping rounded-full bg-[#07877B] opacity-15" />
+    <div className="mx-auto max-w-3xl">
+      <header className="mb-8 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f5f4]">
+          <Sparkles className="h-5 w-5 text-[#07877B]" />
         </div>
-      </div>
 
-      <h1 className="mb-3 text-3xl text-gray-900">
-        Creating your email options
-      </h1>
+        <p className="mt-5 text-sm font-medium text-[#07877B]">
+          Expert Creation
+        </p>
 
-      <p className="mx-auto mb-8 max-w-xl text-lg text-gray-600">
-        The Geojit AI engine is
-        processing your source
-        information, applying the
-        relevant communication rules,
-        and preparing structured email
-        variants.
-      </p>
+        <h1 className="mt-2 text-3xl text-gray-900">
+          Creating your communication options
+        </h1>
 
-      <div className="mb-8 rounded-xl border border-[#bfe4df] bg-[#f3fbfa] px-5 py-4 text-left">
-        <div className="flex items-start gap-3">
-          <Loader2 className="mt-0.5 h-5 w-5 animate-spin text-[#07877B]" />
+        <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-gray-600">
+          Communication Studio is applying the relevant rules to your
+          verified source information and preparing{" "}
+          {category ===
+          "regulatory"
+            ? "two"
+            : "three"}{" "}
+          structured options for you to compare.
+        </p>
+      </header>
 
-          <div>
-            <p className="text-sm font-medium text-gray-900">
-              {getStatusTitle(
-                status
+
+      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+        <div className="border-b border-gray-200 px-6 py-5 sm:px-7">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.14em] text-gray-400">
+                Current status
+              </p>
+
+              <p className="mt-2 text-lg font-medium text-gray-900">
+                {getStatusTitle(
+                  status
+                )}
+              </p>
+
+              {activeStep && (
+                <p className="mt-1 text-sm text-gray-500">
+                  {
+                    activeStep.helper
+                  }
+                </p>
               )}
-            </p>
+            </div>
 
-            <p className="mt-1 text-sm text-gray-600">
-              You can stay on this
-              screen while generation
-              completes. The next step
-              will open automatically.
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e8f5f4]">
+                <Loader2 className="h-4 w-4 animate-spin text-[#07877B]" />
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  {completedCount} of{" "}
+                  {steps.length} stages complete
+                </p>
+
+                <p className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  {formatElapsedTime(
+                    elapsedSeconds
+                  )}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="space-y-3 text-left">
-        {steps.map(
-          (step) => (
-            <RealProgressStep
-              key={step.label}
-              label={step.label}
-              state={step.state}
-            />
-          )
-        )}
-      </div>
 
-      <p className="mt-8 text-sm text-muted-foreground">
-        Elapsed time:{" "}
-        {elapsedSeconds}s
+        <div className="px-6 py-6 sm:px-7">
+          <div className="space-y-0">
+            {steps.map(
+              (
+                step,
+                index
+              ) => (
+                <ProgressRow
+                  key={
+                    step.label
+                  }
+                  step={
+                    step
+                  }
+                  isLast={
+                    index ===
+                    steps.length -
+                      1
+                  }
+                />
+              )
+            )}
+          </div>
+        </div>
+
+
+        <div className="border-t border-gray-200 bg-[#f7fcfb] px-6 py-5 sm:px-7">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#e2f3f0]">
+              <Loader2 className="h-4 w-4 animate-spin text-[#07877B]" />
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                No action needed
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-gray-600">
+                This screen checks the real generation status automatically.
+                Once the options are safely saved, the comparison screen will
+                open on its own.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <p className="mt-5 text-center text-xs leading-5 text-gray-500">
+        Generation time can vary with the amount and complexity of the source information.
       </p>
-
-      <p className="mt-2 text-xs text-gray-500">
-        Generation may take around a
-        minute depending on the
-        communication complexity.
-      </p>
-
     </div>
   );
 }
+
+
+function ProgressRow({
+  step,
+  isLast,
+}: {
+  step:
+    GenerationProgressStep;
+
+  isLast:
+    boolean;
+}) {
+  const complete =
+    step.state ===
+    "complete";
+
+  const active =
+    step.state ===
+    "active";
+
+  return (
+    <div className="grid grid-cols-[28px_minmax(0,1fr)] gap-4">
+      <div className="flex flex-col items-center">
+        <div
+          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
+            complete
+              ? "border-[#07877B] bg-[#07877B]"
+              : active
+                ? "border-[#07877B] bg-white"
+                : "border-gray-300 bg-white"
+          }`}
+        >
+          {complete ? (
+            <Check className="h-3.5 w-3.5 text-white" />
+          ) : active ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#07877B]" />
+          ) : (
+            <span className="h-1.5 w-1.5 rounded-full bg-gray-300" />
+          )}
+        </div>
+
+        {!isLast && (
+          <div
+            className={`min-h-[54px] w-px ${
+              complete
+                ? "bg-[#bfe4df]"
+                : "bg-gray-200"
+            }`}
+          />
+        )}
+      </div>
+
+      <div className="pb-6">
+        <p
+          className={`text-sm font-medium ${
+            complete
+              ? "text-gray-800"
+              : active
+                ? "text-[#075f58]"
+                : "text-gray-500"
+          }`}
+        >
+          {
+            step.label
+          }
+        </p>
+
+        <p className="mt-1 text-xs leading-5 text-gray-500">
+          {
+            step.helper
+          }
+        </p>
+      </div>
+    </div>
+  );
+}
+
 
 function FailureView({
   error,
   onRetry,
   onDashboard,
 }: {
-  error: string;
-  onRetry: () => void;
-  onDashboard: () => void;
+  error:
+    string;
+
+  onRetry:
+    () => void;
+
+  onDashboard:
+    () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
+    <div className="mx-auto max-w-2xl">
+      <section className="overflow-hidden rounded-2xl border border-red-200 bg-white">
+        <div className="bg-red-50 px-6 py-7 text-center sm:px-8">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white">
+            <AlertCircle className="h-6 w-6 text-red-600" />
+          </div>
 
-      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
-        <AlertCircle className="h-7 w-7 text-red-600" />
-      </div>
+          <h1 className="mt-4 text-2xl text-gray-900">
+            We couldn't complete the generation
+          </h1>
 
-      <h1 className="mb-3 text-2xl text-gray-900">
-        We couldn't complete the generation
-      </h1>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-gray-600">
+            The communication options were not completed successfully.
+            Your source information is still available, so you can return
+            to the input screen and try again.
+          </p>
+        </div>
 
-      <p className="mx-auto max-w-lg text-sm leading-6 text-gray-600">
-        {error ||
-          "The AI generation did not complete successfully."}
-      </p>
+        <div className="px-6 py-6 sm:px-8">
+          <div className="rounded-xl border border-red-100 bg-red-50/50 px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-[0.14em] text-red-500">
+              Generation error
+            </p>
 
-      <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+            <p className="mt-2 text-sm leading-6 text-red-700">
+              {error ||
+                "The AI generation did not complete successfully."}
+            </p>
+          </div>
 
-        <button
-          type="button"
-          onClick={onRetry}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-6 py-3 text-white transition-colors hover:bg-[#06766a]"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Return to Input
-        </button>
+          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              onClick={
+                onDashboard
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Dashboard
+            </button>
 
-        <button
-          type="button"
-          onClick={onDashboard}
-          className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-gray-700 transition-colors hover:bg-gray-50"
-        >
-          Go to Dashboard
-        </button>
-
-      </div>
-
+            <button
+              type="button"
+              onClick={
+                onRetry
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#06766a]"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Return to Input
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
 
-function RealProgressStep({
-  label,
-  state,
-}: {
-  label: string;
-  state:
-    | "complete"
-    | "active"
-    | "pending";
-}) {
-  return (
-    <div
-      className={`flex items-center gap-4 rounded-xl border p-4 transition-all ${
-        state === "complete"
-          ? "border-green-200 bg-green-50/50"
-          : state === "active"
-            ? "border-[#07877B] bg-[#e8f5f4]/30"
-            : "border-gray-200 bg-white"
-      }`}
-    >
-      <div
-        className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full ${
-          state === "complete"
-            ? "bg-green-500"
-            : state === "active"
-              ? "bg-[#07877B]"
-              : "bg-gray-200"
-        }`}
-      >
-        {state ===
-        "complete" ? (
-          <Check className="h-4 w-4 text-white" />
-        ) : state ===
-          "active" ? (
-          <Loader2 className="h-4 w-4 animate-spin text-white" />
-        ) : (
-          <span className="h-2 w-2 rounded-full bg-white" />
-        )}
-      </div>
-
-      <span
-        className={`text-sm ${
-          state === "complete"
-            ? "text-green-700"
-            : state === "active"
-              ? "font-medium text-[#07877B]"
-              : "text-gray-500"
-        }`}
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
 
 function buildProgressSteps(
-  status: GenerationStatus,
-  elapsedSeconds: number
-) {
+  status:
+    GenerationStatus,
+  elapsedSeconds:
+    number
+):
+  GenerationProgressStep[] {
   /**
    * These stages provide UX feedback only.
-   * Completion/navigation is controlled
+   * Completion and navigation remain controlled
    * exclusively by the real Supabase state.
    */
+
   if (
-    status === "completed"
+    status ===
+    "completed"
   ) {
     return [
       {
         label:
           "Source information received",
+
+        helper:
+          "The verified source information is ready for generation.",
+
         state:
-          "complete" as const,
+          "complete",
       },
+
       {
         label:
           "Communication rules applied",
+
+        helper:
+          "Brand, category and governance rules have been applied.",
+
         state:
-          "complete" as const,
+          "complete",
       },
+
       {
         label:
-          "Email variants generated",
+          "Communication options generated",
+
+        helper:
+          "The structured variants have been created.",
+
         state:
-          "complete" as const,
+          "complete",
       },
+
       {
         label:
-          "Saving structured options",
+          "Options saved and validated",
+
+        helper:
+          "The generated options are safely stored and ready to compare.",
+
         state:
-          "complete" as const,
+          "complete",
       },
     ];
   }
 
+
   if (
-    status === "checking" ||
-    status === "queued"
+    status ===
+      "checking" ||
+    status ===
+      "queued"
   ) {
     return [
       {
         label:
           "Source information received",
+
+        helper:
+          "Your saved source information is available to the generation process.",
+
         state:
-          "complete" as const,
+          "complete",
       },
+
       {
         label:
           "Preparing AI generation",
+
+        helper:
+          "The generation job is being prepared and queued.",
+
         state:
-          "active" as const,
+          "active",
       },
+
       {
         label:
-          "Creating email variants",
+          "Creating communication options",
+
+        helper:
+          "Multiple structured variants will be generated for comparison.",
+
         state:
-          "pending" as const,
+          "pending",
       },
+
       {
         label:
-          "Saving structured options",
+          "Saving and validating options",
+
+        helper:
+          "The final variants will be checked and stored before you continue.",
+
         state:
-          "pending" as const,
+          "pending",
       },
     ];
   }
 
+
   if (
-    elapsedSeconds < 15
+    elapsedSeconds <
+    15
   ) {
     return [
       {
         label:
           "Source information received",
+
+        helper:
+          "Your saved source information is available to the generation process.",
+
         state:
-          "complete" as const,
+          "complete",
       },
+
       {
         label:
-          "Applying Geojit and category rules",
+          "Applying communication rules",
+
+        helper:
+          "Brand, category and governance rules are being applied.",
+
         state:
-          "active" as const,
+          "active",
       },
+
       {
         label:
-          "Creating email variants",
+          "Creating communication options",
+
+        helper:
+          "Multiple structured variants will be generated for comparison.",
+
         state:
-          "pending" as const,
+          "pending",
       },
+
       {
         label:
-          "Saving structured options",
+          "Saving and validating options",
+
+        helper:
+          "The final variants will be checked and stored before you continue.",
+
         state:
-          "pending" as const,
+          "pending",
       },
     ];
   }
 
+
   if (
-    elapsedSeconds < 35
+    elapsedSeconds <
+    35
   ) {
     return [
       {
         label:
           "Source information received",
+
+        helper:
+          "Your saved source information is available to the generation process.",
+
         state:
-          "complete" as const,
+          "complete",
       },
+
       {
         label:
-          "Geojit and category rules applied",
+          "Communication rules applied",
+
+        helper:
+          "Brand, category and governance rules have been applied.",
+
         state:
-          "complete" as const,
+          "complete",
       },
+
       {
         label:
-          "Creating email variants",
+          "Creating communication options",
+
+        helper:
+          "The structured variants are now being prepared.",
+
         state:
-          "active" as const,
+          "active",
       },
+
       {
         label:
-          "Saving structured options",
+          "Saving and validating options",
+
+        helper:
+          "The final variants will be checked and stored before you continue.",
+
         state:
-          "pending" as const,
+          "pending",
       },
     ];
   }
+
 
   return [
     {
       label:
         "Source information received",
+
+      helper:
+        "Your saved source information is available to the generation process.",
+
       state:
-        "complete" as const,
+        "complete",
     },
+
     {
       label:
-        "Geojit and category rules applied",
+        "Communication rules applied",
+
+      helper:
+        "Brand, category and governance rules have been applied.",
+
       state:
-        "complete" as const,
+        "complete",
     },
+
     {
       label:
-        "Email variants generated",
+        "Communication options generated",
+
+      helper:
+        "The structured variants have been created.",
+
       state:
-        "complete" as const,
+        "complete",
     },
+
     {
       label:
-        "Saving and validating structured options",
+        "Saving and validating options",
+
+      helper:
+        "The generated variants are being checked and safely stored.",
+
       state:
-        "active" as const,
+        "active",
     },
   ];
 }
 
+
 function getStatusTitle(
-  status: GenerationStatus
+  status:
+    GenerationStatus
 ) {
-  switch (status) {
+  switch (
+    status
+  ) {
     case "checking":
-      return "Checking generation status...";
+      return "Checking generation status";
 
     case "queued":
-      return "AI generation queued";
+      return "Preparing generation";
 
     case "running":
-      return "AI generation in progress";
+      return "Generating communication options";
 
     case "completed":
-      return "Generation completed";
+      return "Finalising your options";
 
     default:
       return "Generating communication";
   }
+}
+
+
+function formatElapsedTime(
+  elapsedSeconds:
+    number
+) {
+  if (
+    elapsedSeconds <
+    60
+  ) {
+    return `${elapsedSeconds}s elapsed`;
+  }
+
+  const minutes =
+    Math.floor(
+      elapsedSeconds /
+      60
+    );
+
+  const seconds =
+    elapsedSeconds %
+    60;
+
+  return `${minutes}m ${seconds}s elapsed`;
 }
