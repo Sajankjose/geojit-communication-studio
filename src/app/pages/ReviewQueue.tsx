@@ -10,12 +10,15 @@ import {
 
 import {
   CheckCircle2,
+  ClipboardCheck,
   Clock3,
   FileText,
   History,
+  Layers3,
   MessageSquareText,
   RefreshCw,
   RotateCcw,
+  ShieldCheck,
   Sparkles,
   UserRound,
   XCircle,
@@ -42,13 +45,16 @@ import {
   submitReviewerDecision,
 } from "../services/reviews";
 
+
 type ReviewerRole =
   | "marketing_reviewer"
   | "corpcom_reviewer";
 
+
 type QueueTab =
   | "pending"
   | "activity";
+
 
 export function ReviewQueue() {
   const navigate =
@@ -56,8 +62,7 @@ export function ReviewQueue() {
 
   const {
     profile,
-  } =
-    useAuth();
+  } = useAuth();
 
   const reviewerRole =
     profile?.role as
@@ -67,74 +72,55 @@ export function ReviewQueue() {
   const [
     activeTab,
     setActiveTab,
-  ] =
-    useState<QueueTab>(
-      "pending"
-    );
+  ] = useState<QueueTab>(
+    "pending"
+  );
 
   const [
     items,
     setItems,
-  ] =
-    useState<
-      ReviewQueueItem[]
-    >([]);
+  ] = useState<
+    ReviewQueueItem[]
+  >([]);
 
   const [
     activity,
     setActivity,
-  ] =
-    useState<
-      ReviewerActivityItem[]
-    >([]);
+  ] = useState<
+    ReviewerActivityItem[]
+  >([]);
 
   const [
     loading,
     setLoading,
-  ] =
-    useState(
-      true
-    );
+  ] = useState(true);
 
   const [
     error,
     setError,
-  ] =
-    useState(
-      ""
-    );
+  ] = useState("");
 
   const [
     selected,
     setSelected,
-  ] =
-    useState<
-      ReviewQueueItem | null
-    >(null);
+  ] = useState<
+    ReviewQueueItem | null
+  >(null);
 
   const [
     comments,
     setComments,
-  ] =
-    useState(
-      ""
-    );
+  ] = useState("");
 
   const [
     decisionError,
     setDecisionError,
-  ] =
-    useState(
-      ""
-    );
+  ] = useState("");
 
   const [
     submitting,
     setSubmitting,
-  ] =
-    useState(
-      false
-    );
+  ] = useState(false);
 
   const canReview =
     reviewerRole ===
@@ -142,51 +128,37 @@ export function ReviewQueue() {
     reviewerRole ===
       "corpcom_reviewer";
 
-  useEffect(() => {
-    if (
-      !canReview
-    ) {
-      setLoading(
-        false
-      );
 
+  useEffect(() => {
+    if (!canReview) {
+      setLoading(false);
       return;
     }
 
-    loadAll();
-  }, [
-    reviewerRole,
-  ]);
+    void loadAll();
+  }, [reviewerRole]);
+
 
   async function loadAll() {
-    if (
-      !reviewerRole
-    ) {
+    if (!reviewerRole) {
       return;
     }
 
     try {
-      setLoading(
-        true
-      );
-
-      setError(
-        ""
-      );
+      setLoading(true);
+      setError("");
 
       const [
         queueData,
         activityData,
-      ] =
-        await Promise.all([
-          getReviewerQueue(
-            reviewerRole
-          ),
-
-          getReviewerActivity(
-            50
-          ),
-        ]);
+      ] = await Promise.all([
+        getReviewerQueue(
+          reviewerRole
+        ),
+        getReviewerActivity(
+          50
+        ),
+      ]);
 
       setItems(
         queueData
@@ -197,25 +169,23 @@ export function ReviewQueue() {
       );
 
       /**
-       * Keep selected item valid after refresh.
+       * Keep the selected row valid after refresh.
        */
-      if (
-        selected
-      ) {
-        const refreshed =
-          queueData.find(
-            (
-              item
-            ) =>
-              item.approval_action_id ===
-              selected.approval_action_id
-          );
+      setSelected(
+        (current) => {
+          if (!current) {
+            return null;
+          }
 
-        setSelected(
-          refreshed ||
-            null
-        );
-      }
+          return (
+            queueData.find(
+              (item) =>
+                item.approval_action_id ===
+                current.approval_action_id
+            ) || null
+          );
+        }
+      );
     } catch (err) {
       setError(
         err instanceof Error
@@ -223,11 +193,10 @@ export function ReviewQueue() {
           : "Unable to load reviewer dashboard."
       );
     } finally {
-      setLoading(
-        false
-      );
+      setLoading(false);
     }
   }
+
 
   async function handleDecision(
     decision:
@@ -263,17 +232,9 @@ export function ReviewQueue() {
     }
 
     try {
-      setSubmitting(
-        true
-      );
-
-      setError(
-        ""
-      );
-
-      setDecisionError(
-        ""
-      );
+      setSubmitting(true);
+      setError("");
+      setDecisionError("");
 
       await submitReviewerDecision({
         approvalActionId:
@@ -289,19 +250,13 @@ export function ReviewQueue() {
         reviewerRole,
       });
 
-      setSelected(
-        null
-      );
-
-      setComments(
-        ""
-      );
+      setSelected(null);
+      setComments("");
 
       await loadAll();
 
       /**
-       * After a decision, show My Activity so the reviewer
-       * immediately sees that their action was recorded.
+       * Show the audit result immediately after a decision.
        */
       setActiveTab(
         "activity"
@@ -313,11 +268,10 @@ export function ReviewQueue() {
           : "Unable to save review decision."
       );
     } finally {
-      setSubmitting(
-        false
-      );
+      setSubmitting(false);
     }
   }
+
 
   const heading =
     useMemo(
@@ -326,58 +280,164 @@ export function ReviewQueue() {
         "corpcom_reviewer"
           ? "CorpCom Review"
           : "Marketing Review",
-      [
-        reviewerRole,
-      ]
+      [reviewerRole]
     );
 
-  if (
-    !canReview
+  const stageLabel =
+    reviewerRole ===
+      "corpcom_reviewer"
+      ? "Final governance review"
+      : "First governance review";
+
+  const revisedCount =
+    useMemo(
+      () =>
+        items.filter(
+          (item) =>
+            Boolean(
+              item.is_resubmission
+            )
+        ).length,
+      [items]
+    );
+
+
+  function selectItem(
+    item: ReviewQueueItem
   ) {
+    setSelected(item);
+    setComments(
+      item.comments ||
+        ""
+    );
+    setDecisionError("");
+  }
+
+
+  function openSelectedCommunication() {
+    if (
+      !selected?.communication
+    ) {
+      return;
+    }
+
+    const comm =
+      selected.communication as any;
+
+    const communicationId =
+      encodeURIComponent(
+        comm.id ||
+          selected.communication_id
+      );
+
+    /**
+     * GUIDED CREATION
+     *
+     * Guided communications are reviewed as one governed,
+     * multi-channel package. They do not depend on the
+     * Expert flow's selected_variant_id.
+     */
+    if (
+      isGuidedCommunication(
+        comm
+      )
+    ) {
+      navigate(
+        `/create/guided/approval-package?communicationId=${communicationId}&mode=review`
+      );
+
+      return;
+    }
+
+    /**
+     * EXPERT CREATION
+     *
+     * Preserve the existing single selected-variant preview.
+     */
+    if (
+      comm.selected_variant_id
+    ) {
+      const category =
+        comm.category
+          ? mapDatabaseCategory(
+              comm.category
+            )
+          : "research";
+
+      navigate(
+        `/create/preview?communicationId=${communicationId}&variantId=${encodeURIComponent(
+          comm.selected_variant_id
+        )}&category=${encodeURIComponent(
+          category
+        )}&mode=review`
+      );
+
+      return;
+    }
+
+    /**
+     * Defensive fallback for legacy/incomplete rows.
+     */
+    navigate(
+      `/approval/status?communicationId=${communicationId}`
+    );
+  }
+
+
+  if (!canReview) {
     return (
       <div className="min-h-screen bg-background">
         <TopNavBar />
 
-        <main className="mx-auto max-w-5xl px-8 py-16 text-center">
-          <h1 className="mb-3 text-2xl text-gray-900">
+        <main className="mx-auto max-w-5xl px-6 py-16 text-center sm:px-8">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+            <ShieldCheck className="h-6 w-6 text-gray-500" />
+          </div>
+
+          <h1 className="mt-5 text-2xl text-gray-900">
             Review access required
           </h1>
 
-          <p className="text-gray-600">
-            This page is available to Marketing and CorpCom reviewers.
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-gray-600">
+            This workspace is available only to Marketing and CorpCom reviewers.
           </p>
         </main>
       </div>
     );
   }
 
+
   return (
     <div className="min-h-screen bg-background">
       <TopNavBar />
 
-      <main className="mx-auto max-w-6xl px-8 py-12">
-        <div className="mb-7 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h1 className="mb-2 text-3xl text-gray-900">
-              {
-                heading
-              }
+      <main className="mx-auto max-w-7xl px-6 py-10 sm:px-8 sm:py-12">
+        <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="mb-3 flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5 text-[#07877B]" />
+
+              <p className="text-sm font-medium text-[#07877B]">
+                Review Workspace
+              </p>
+            </div>
+
+            <h1 className="text-3xl text-gray-900">
+              {heading}
             </h1>
 
-            <p className="text-gray-600">
-              Review pending communications and keep track of your completed decisions.
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-600">
+              Review communications waiting for your decision, open the submitted communication in context, and keep a clear audit trail of completed actions.
             </p>
           </div>
 
           <button
             type="button"
-            onClick={
-              loadAll
+            onClick={() =>
+              void loadAll()
             }
-            disabled={
-              loading
-            }
-            className="inline-flex w-fit items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            disabled={loading}
+            className="inline-flex w-fit items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <RefreshCw
               className={`h-4 w-4 ${
@@ -390,7 +450,37 @@ export function ReviewQueue() {
           </button>
         </div>
 
-        <div className="mb-7 flex w-fit rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+
+        <section className="mb-7 grid gap-3 sm:grid-cols-3">
+          <SummaryCard
+            icon={Clock3}
+            label="Pending"
+            value={items.length}
+            helper="Awaiting your decision"
+          />
+
+          <SummaryCard
+            icon={RotateCcw}
+            label="Revised"
+            value={revisedCount}
+            helper="Resubmitted after feedback"
+          />
+
+          <SummaryCard
+            icon={ShieldCheck}
+            label="Review stage"
+            value={
+              reviewerRole ===
+                "corpcom_reviewer"
+                ? "CorpCom"
+                : "Marketing"
+            }
+            helper={stageLabel}
+          />
+        </section>
+
+
+        <div className="mb-7 flex flex-wrap gap-2 border-b border-gray-200">
           <button
             type="button"
             onClick={() =>
@@ -398,25 +488,24 @@ export function ReviewQueue() {
                 "pending"
               )
             }
-            className={`rounded-lg px-5 py-2.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center gap-2 border-b-2 px-1 pb-3 text-sm font-medium transition-colors ${
               activeTab ===
               "pending"
-                ? "bg-[#07877B] text-white"
-                : "text-gray-600 hover:bg-gray-50"
+                ? "border-[#07877B] text-[#07877B]"
+                : "border-transparent text-gray-500 hover:text-gray-800"
             }`}
           >
             Pending Reviews
+
             <span
-              className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
+              className={`rounded-full px-2 py-0.5 text-xs ${
                 activeTab ===
                 "pending"
-                  ? "bg-white/20 text-white"
+                  ? "bg-[#e8f5f4] text-[#075f58]"
                   : "bg-gray-100 text-gray-600"
               }`}
             >
-              {
-                items.length
-              }
+              {items.length}
             </span>
           </button>
 
@@ -427,50 +516,43 @@ export function ReviewQueue() {
                 "activity"
               )
             }
-            className={`rounded-lg px-5 py-2.5 text-sm font-medium transition-colors ${
+            className={`inline-flex items-center gap-2 border-b-2 px-1 pb-3 text-sm font-medium transition-colors ${
               activeTab ===
               "activity"
-                ? "bg-[#07877B] text-white"
-                : "text-gray-600 hover:bg-gray-50"
+                ? "border-[#07877B] text-[#07877B]"
+                : "border-transparent text-gray-500 hover:text-gray-800"
             }`}
           >
             My Activity
+
             <span
-              className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
+              className={`rounded-full px-2 py-0.5 text-xs ${
                 activeTab ===
                 "activity"
-                  ? "bg-white/20 text-white"
+                  ? "bg-[#e8f5f4] text-[#075f58]"
                   : "bg-gray-100 text-gray-600"
               }`}
             >
-              {
-                activity.length
-              }
+              {activity.length}
             </span>
           </button>
         </div>
 
+
         {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {
-              error
-            }
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
           </div>
         )}
 
+
         {loading ? (
-          <div className="rounded-xl border border-gray-200 bg-white py-16 text-center text-sm text-gray-500 shadow-sm">
-            Loading reviewer dashboard...
-          </div>
+          <LoadingState />
         ) : activeTab ===
           "activity" ? (
           <ActivityView
-            items={
-              activity
-            }
-            onOpen={(
-              item
-            ) =>
+            items={activity}
+            onOpen={(item) =>
               navigate(
                 `/approval/status?communicationId=${encodeURIComponent(
                   item.communication_id
@@ -480,389 +562,180 @@ export function ReviewQueue() {
           />
         ) : items.length ===
           0 ? (
-          <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
-            <CheckCircle2 className="mx-auto mb-4 h-10 w-10 text-green-500" />
-
-            <h2 className="mb-2 text-xl text-gray-900">
-              You're all caught up
-            </h2>
-
-            <p className="text-sm text-gray-500">
-              There are no communications waiting for your review.
-            </p>
-
-            {activity.length >
-              0 && (
-              <button
-                type="button"
-                onClick={() =>
-                  setActiveTab(
-                    "activity"
-                  )
-                }
-                className="mt-5 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                <History className="h-4 w-4" />
-                View My Activity
-              </button>
-            )}
-          </div>
+          <EmptyQueue
+            hasActivity={
+              activity.length >
+              0
+            }
+            onViewActivity={() =>
+              setActiveTab(
+                "activity"
+              )
+            }
+          />
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[1fr,420px]">
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr),430px]">
             <div className="space-y-3">
               {items.map(
-                (
-                  item
-                ) => (
-                  <button
-                    key={
-                      item.approval_action_id
-                    }
-                    type="button"
-                    onClick={() => {
-                      setSelected(
-                        item
-                      );
+                (item) => {
+                  const comm =
+                    item.communication as any;
 
-                      setComments(
-                        item.comments ||
-                          ""
-                      );
+                  const guided =
+                    isGuidedCommunication(
+                      comm
+                    );
 
-                      setDecisionError(
-                        ""
-                      );
-                    }}
-                    className={`w-full rounded-xl border bg-white p-5 text-left shadow-sm transition-all ${
-                      selected?.approval_action_id ===
-                      item.approval_action_id
-                        ? "border-[#07877B] ring-2 ring-[#07877B]/10"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="mb-3 flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="text-base font-medium text-gray-900">
-                          {item.communication
-                            ?.title ||
-                            "Untitled Communication"}
-                        </h3>
+                  const active =
+                    selected?.approval_action_id ===
+                    item.approval_action_id;
 
-                        <div className="mt-1 flex flex-wrap items-center gap-2">
-                          <p className="text-xs text-gray-500">
-                            Submitted{" "}
-                            {formatDate(
+                  return (
+                    <button
+                      key={
+                        item.approval_action_id
+                      }
+                      type="button"
+                      onClick={() =>
+                        selectItem(
+                          item
+                        )
+                      }
+                      className={`group w-full rounded-2xl border bg-white p-5 text-left transition-all ${
+                        active
+                          ? "border-[#8bc9c2] shadow-sm ring-2 ring-[#07877B]/8"
+                          : "border-gray-200 hover:border-[#b9d8d4] hover:shadow-sm"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#f3fbfa] px-2.5 py-1 text-[11px] font-medium text-[#075f58]">
+                              {guided ? (
+                                <Layers3 className="h-3.5 w-3.5" />
+                              ) : (
+                                <FileText className="h-3.5 w-3.5" />
+                              )}
+
+                              {guided
+                                ? "Guided package"
+                                : "Expert communication"}
+                            </span>
+
+                            {item.is_resubmission && (
+                              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+                                Revised &amp; resubmitted
+                              </span>
+                            )}
+                          </div>
+
+                          <h2 className="mt-3 truncate text-base font-medium text-gray-900">
+                            {comm?.title ||
+                              "Untitled Communication"}
+                          </h2>
+
+                          <p className="mt-1 text-xs text-gray-500">
+                            Submitted {formatDate(
                               item.created_at
                             )}
                           </p>
 
-                          {item.is_resubmission && (
-                            <span className="rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700">
-                              Revised &amp; resubmitted
-                            </span>
-                          )}
+                          <SubmitterInline
+                            item={item}
+                            reviewerRole={
+                              reviewerRole!
+                            }
+                          />
                         </div>
 
-                        <SubmitterInline
-                          item={
-                            item
-                          }
-                          reviewerRole={
-                            reviewerRole!
-                          }
-                        />
+                        <div className="flex shrink-0 items-center gap-2 sm:flex-col sm:items-end">
+                          {comm?.category && (
+                            <CategoryTag
+                              category={mapDatabaseCategory(
+                                comm.category
+                              )}
+                              size="sm"
+                            />
+                          )}
+
+                          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+                            Action required
+                          </span>
+                        </div>
                       </div>
 
-                      {item.communication
-                        ?.category && (
-                        <CategoryTag
-                          category={mapDatabaseCategory(
-                            item.communication
-                              .category
-                          )}
-                          size="sm"
-                        />
-                      )}
-                    </div>
+                      <div className="mt-4 grid gap-2 border-t border-gray-100 pt-4 text-xs text-gray-500 sm:grid-cols-2">
+                        <p>
+                          <span className="text-gray-400">
+                            Audience
+                          </span>
+                          <span className="ml-2 font-medium text-gray-700">
+                            {comm?.audience ||
+                              "—"}
+                          </span>
+                        </p>
 
-                    <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-600">
-                      <span>
-                        Audience:{" "}
-                        {item.communication
-                          ?.audience ||
-                          "—"}
-                      </span>
-
-                      <span>
-                        Stage:{" "}
-                        {formatStage(
-                          item.stage
-                        )}
-                      </span>
-                    </div>
-                  </button>
-                )
+                        <p>
+                          <span className="text-gray-400">
+                            Stage
+                          </span>
+                          <span className="ml-2 font-medium text-gray-700">
+                            {formatStage(
+                              item.stage
+                            )}
+                          </span>
+                        </p>
+                      </div>
+                    </button>
+                  );
+                }
               )}
             </div>
 
-            <aside className="h-fit rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              {!selected ? (
-                <div className="py-10 text-center">
-                  <FileText className="mx-auto mb-3 h-9 w-9 text-gray-300" />
 
-                  <p className="text-sm text-gray-500">
-                    Select a communication to review.
+            <aside className="h-fit xl:sticky xl:top-6">
+              {!selected ? (
+                <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center">
+                  <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-gray-100">
+                    <FileText className="h-5 w-5 text-gray-400" />
+                  </div>
+
+                  <p className="mt-4 text-sm font-medium text-gray-800">
+                    Select a communication
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                    The review details and decision controls will appear here.
                   </p>
                 </div>
               ) : (
-                <>
-                  <div className="mb-5 border-b border-gray-100 pb-5">
-                    <div className="mb-2 flex items-start justify-between gap-3">
-                      <div>
-                        <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[#07877B]">
-                          {formatStage(
-                            selected.stage
-                          )}
-                        </p>
-
-                        <h2 className="text-xl leading-7 text-gray-900">
-                          {selected.communication
-                            ?.title ||
-                            "Communication"}
-                        </h2>
-                      </div>
-
-                      <span className="flex-shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
-                        Action required
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-gray-500">
-                      Submitted{" "}
-                      {formatDate(
-                        selected.created_at
-                      )}
-                    </p>
-                  </div>
-
-                  <SubmissionIdentity
-                    item={
-                      selected
-                    }
-                    reviewerRole={
-                      reviewerRole!
-                    }
-                  />
-
-                  {isGuidedCommunication(
-                    selected
-                  ) ? (
-                    <div className="mb-6 rounded-xl border border-[#b3d9d5] bg-[#f7fbfa] p-4">
-                      <div className="mb-3 flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-[#07877B]" />
-
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            Guided communication package
-                          </p>
-
-                          <p className="mt-0.5 text-xs leading-5 text-gray-500">
-                            Review all selected channel outputs together before making a decision.
-                          </p>
-                        </div>
-                      </div>
-
-                      <GuidedChannelSummary
-                        item={
-                          selected
-                        }
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigate(
-                            `/create/guided/approval-package?communicationId=${encodeURIComponent(
-                              selected.communication_id
-                            )}&mode=review`
-                          );
-                        }}
-                        className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:border-[#07877B] hover:text-[#07877B]"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Open Approval Package
-                      </button>
-                    </div>
-                  ) : selected.communication
-                      ?.selected_variant_id ? (
-                    <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                      <div className="mb-3 flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-[#07877B]" />
-
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            Copy submitted for approval
-                          </p>
-
-                          <p className="mt-0.5 text-xs text-gray-500">
-                            Review the final selected variant before making a decision.
-                          </p>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const comm =
-                            selected.communication!;
-
-                          const category =
-                            comm.category
-                              ? mapDatabaseCategory(
-                                  comm.category
-                                )
-                              : "research";
-
-                          navigate(
-                            `/create/preview?communicationId=${encodeURIComponent(
-                              comm.id
-                            )}&variantId=${encodeURIComponent(
-                              comm.selected_variant_id!
-                            )}&category=${encodeURIComponent(
-                              category
-                            )}&mode=review`
-                          );
-                        }}
-                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:border-[#07877B] hover:text-[#07877B]"
-                      >
-                        <FileText className="h-4 w-4" />
-                        Open Full Preview
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                      <p className="text-sm font-medium text-amber-800">
-                        Preview unavailable
-                      </p>
-
-                      <p className="mt-1 text-xs leading-5 text-amber-700">
-                        No submitted communication output could be identified for this review.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="mb-4 border-t border-gray-100 pt-5">
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                      Review decision
-                    </p>
-                  </div>
-
-                  <div className="mb-6">
-                    <label className="mb-2 flex items-center gap-2 text-sm text-gray-700">
-                      <MessageSquareText className="h-4 w-4" />
-                      Reviewer Comment
-                    </label>
-
-                    <textarea
-                      rows={
-                        5
-                      }
-                      value={
-                        comments
-                      }
-                      onChange={(
-                        event
-                      ) => {
-                        setComments(
-                          event.target
-                            .value
-                        );
-
-                        if (
-                          decisionError
-                        ) {
-                          setDecisionError(
-                            ""
-                          );
-                        }
-                      }}
-                      placeholder="Add review comments..."
-                      className={`w-full rounded-lg border px-3 py-3 text-sm focus:outline-none focus:ring-2 ${
-                        decisionError
-                          ? "border-red-300 focus:border-red-400 focus:ring-red-100"
-                          : "border-gray-300 focus:border-[#07877B] focus:ring-[#07877B]/20"
-                      }`}
-                    />
-
-                    <p className="mt-2 text-xs text-gray-500">
-                      A comment is required when requesting changes or rejecting a communication.
-                    </p>
-
-                    {decisionError && (
-                      <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
-                        {
-                          decisionError
-                        }
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDecision(
-                          "approved"
-                        )
-                      }
-                      disabled={
-                        submitting
-                      }
-                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-3 text-white hover:bg-[#06766a] disabled:opacity-50"
-                    >
-                      <CheckCircle2 className="h-4 w-4" />
-
-                      {submitting
-                        ? "Saving decision..."
-                        : reviewerRole ===
-                            "corpcom_reviewer"
-                          ? "Final Approve"
-                          : "Approve & Send to CorpCom"}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDecision(
-                          "changes_requested"
-                        )
-                      }
-                      disabled={
-                        submitting
-                      }
-                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800 hover:bg-amber-100 disabled:opacity-50"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      Request Changes
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleDecision(
-                          "rejected"
-                        )
-                      }
-                      disabled={
-                        submitting
-                      }
-                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700 hover:bg-red-100 disabled:opacity-50"
-                    >
-                      <XCircle className="h-4 w-4" />
-                      Reject
-                    </button>
-                  </div>
-                </>
+                <ReviewPanel
+                  item={selected}
+                  reviewerRole={
+                    reviewerRole!
+                  }
+                  comments={comments}
+                  setComments={
+                    setComments
+                  }
+                  decisionError={
+                    decisionError
+                  }
+                  clearDecisionError={() =>
+                    setDecisionError(
+                      ""
+                    )
+                  }
+                  submitting={
+                    submitting
+                  }
+                  onOpen={
+                    openSelectedCommunication
+                  }
+                  onDecision={
+                    handleDecision
+                  }
+                />
               )}
             </aside>
           </div>
@@ -872,128 +745,311 @@ export function ReviewQueue() {
   );
 }
 
-function getGuidedApprovalPackage(
-  item:
-    ReviewQueueItem | null
-): Record<string, any> | null {
-  const inputData =
-    item?.communication
-      ?.input_data;
 
-  if (
-    !inputData ||
-    typeof inputData !==
-      "object" ||
-    Array.isArray(
-      inputData
-    )
-  ) {
-    return null;
-  }
+function SummaryCard({
+  icon: Icon,
+  label,
+  value,
+  helper,
+}: {
+  icon: typeof Clock3;
+  label: string;
+  value: string | number;
+  helper: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white px-4 py-4">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#f3fbfa]">
+          <Icon className="h-4 w-4 text-[#07877B]" />
+        </div>
 
-  const guided =
-    (
-      inputData as
-        Record<string, any>
-    ).guided;
+        <div className="min-w-0">
+          <p className="text-xs text-gray-500">
+            {label}
+          </p>
 
-  if (
-    !guided ||
-    typeof guided !==
-      "object" ||
-    Array.isArray(
-      guided
-    )
-  ) {
-    return null;
-  }
+          <p className="mt-0.5 text-lg font-medium text-gray-900">
+            {value}
+          </p>
 
-  const approvalPackage =
-    guided.approvalPackage;
-
-  if (
-    !approvalPackage ||
-    typeof approvalPackage !==
-      "object" ||
-    Array.isArray(
-      approvalPackage
-    )
-  ) {
-    return null;
-  }
-
-  if (
-    approvalPackage.sourceMode !==
-      "guided"
-  ) {
-    return null;
-  }
-
-  return approvalPackage as
-    Record<string, any>;
-}
-
-
-function isGuidedCommunication(
-  item:
-    ReviewQueueItem | null
-) {
-  return Boolean(
-    getGuidedApprovalPackage(
-      item
-    )
+          <p className="mt-0.5 text-[11px] leading-4 text-gray-400">
+            {helper}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
 
 
-function GuidedChannelSummary({
-  item,
+function LoadingState() {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white py-16 text-center">
+      <RefreshCw className="mx-auto h-5 w-5 animate-spin text-[#07877B]" />
+
+      <p className="mt-3 text-sm text-gray-500">
+        Loading reviewer workspace...
+      </p>
+    </div>
+  );
+}
+
+
+function EmptyQueue({
+  hasActivity,
+  onViewActivity,
 }: {
-  item:
-    ReviewQueueItem;
+  hasActivity: boolean;
+  onViewActivity: () => void;
 }) {
-  const approvalPackage =
-    getGuidedApprovalPackage(
-      item
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-50">
+        <CheckCircle2 className="h-6 w-6 text-green-600" />
+      </div>
+
+      <h2 className="mt-5 text-xl text-gray-900">
+        You're all caught up
+      </h2>
+
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
+        There are no communications waiting for your review right now.
+      </p>
+
+      {hasActivity && (
+        <button
+          type="button"
+          onClick={onViewActivity}
+          className="mt-5 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          <History className="h-4 w-4" />
+          View My Activity
+        </button>
+      )}
+    </div>
+  );
+}
+
+
+function ReviewPanel({
+  item,
+  reviewerRole,
+  comments,
+  setComments,
+  decisionError,
+  clearDecisionError,
+  submitting,
+  onOpen,
+  onDecision,
+}: {
+  item: ReviewQueueItem;
+  reviewerRole: ReviewerRole;
+  comments: string;
+  setComments: (
+    value: string
+  ) => void;
+  decisionError: string;
+  clearDecisionError: () => void;
+  submitting: boolean;
+  onOpen: () => void;
+  onDecision: (
+    decision:
+      | "approved"
+      | "changes_requested"
+      | "rejected"
+  ) => Promise<void>;
+}) {
+  const comm =
+    item.communication as any;
+
+  const guided =
+    isGuidedCommunication(
+      comm
     );
 
-  const channels =
-    Array.isArray(
-      approvalPackage?.channels
-    )
-      ? approvalPackage
-          ?.channels
-      : [];
-
-  if (
-    !channels ||
-    channels.length ===
-      0
-  ) {
-    return null;
-  }
-
   return (
-    <div className="flex flex-wrap gap-2">
-      {channels.map(
-        (
-          channel:
-            string
-        ) => (
-          <span
-            key={
-              channel
-            }
-            className="rounded-full border border-[#b3d9d5] bg-white px-2.5 py-1 text-xs font-medium text-[#06766a]"
-          >
-            {
-              humanize(
-                channel
-              )
-            }
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div className="border-b border-gray-100 px-6 py-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-wide text-[#07877B]">
+              {formatStage(
+                item.stage
+              )}
+            </p>
+
+            <h2 className="mt-1 text-xl leading-7 text-gray-900">
+              {comm?.title ||
+                "Communication"}
+            </h2>
+
+            <p className="mt-2 text-xs text-gray-500">
+              Submitted {formatDate(
+                item.created_at
+              )}
+            </p>
+          </div>
+
+          <span className="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+            Action required
           </span>
-        )
-      )}
+        </div>
+      </div>
+
+
+      <div className="p-6">
+        <SubmissionIdentity
+          item={item}
+          reviewerRole={
+            reviewerRole
+          }
+        />
+
+
+        <section className="mb-6 rounded-xl border border-[#d8ebe8] bg-[#f8fcfb] p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white">
+              {guided ? (
+                <Layers3 className="h-4 w-4 text-[#07877B]" />
+              ) : (
+                <Sparkles className="h-4 w-4 text-[#07877B]" />
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-gray-900">
+                {guided
+                  ? "Governed approval package"
+                  : "Submitted communication"}
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-gray-500">
+                {guided
+                  ? "Review the Creator's selected channel outputs together before recording your decision."
+                  : "Open the final selected variant and review it before recording your decision."}
+              </p>
+
+              <button
+                type="button"
+                onClick={onOpen}
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#b8d8d4] bg-white px-4 py-2.5 text-sm font-medium text-[#075f58] transition hover:border-[#07877B] hover:bg-[#f3fbfa]"
+              >
+                {guided ? (
+                  <Layers3 className="h-4 w-4" />
+                ) : (
+                  <FileText className="h-4 w-4" />
+                )}
+
+                {guided
+                  ? "Open Approval Package"
+                  : "Open Full Preview"}
+              </button>
+            </div>
+          </div>
+        </section>
+
+
+        <section className="border-t border-gray-100 pt-5">
+          <div className="mb-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              Review decision
+            </p>
+
+            <p className="mt-1 text-sm text-gray-600">
+              Record the outcome for this review stage.
+            </p>
+          </div>
+
+          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+            <MessageSquareText className="h-4 w-4 text-gray-400" />
+            Reviewer comment
+          </label>
+
+          <textarea
+            rows={5}
+            value={comments}
+            onChange={(event) => {
+              setComments(
+                event.target.value
+              );
+
+              if (
+                decisionError
+              ) {
+                clearDecisionError();
+              }
+            }}
+            placeholder="Add review comments..."
+            className={`w-full rounded-xl border bg-white px-3 py-3 text-sm outline-none transition focus:ring-4 ${
+              decisionError
+                ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+                : "border-gray-300 focus:border-[#07877B] focus:ring-[#07877B]/10"
+            }`}
+          />
+
+          <p className="mt-2 text-xs leading-5 text-gray-500">
+            A comment is required when requesting changes or rejecting a communication.
+          </p>
+
+          {decisionError && (
+            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
+              {decisionError}
+            </div>
+          )}
+
+
+          <div className="mt-5 space-y-2.5">
+            <button
+              type="button"
+              onClick={() =>
+                void onDecision(
+                  "approved"
+                )
+              }
+              disabled={submitting}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-3 text-sm font-medium text-white transition hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+
+              {submitting
+                ? "Saving decision..."
+                : reviewerRole ===
+                    "corpcom_reviewer"
+                  ? "Final Approve"
+                  : "Approve & Send to CorpCom"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                void onDecision(
+                  "changes_requested"
+                )
+              }
+              disabled={submitting}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-200 bg-white px-4 py-3 text-sm font-medium text-amber-700 transition hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Request Changes
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                void onDecision(
+                  "rejected"
+                )
+              }
+              disabled={submitting}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-3 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <XCircle className="h-4 w-4" />
+              Reject
+            </button>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
@@ -1003,28 +1059,26 @@ function ActivityView({
   items,
   onOpen,
 }: {
-  items:
-    ReviewerActivityItem[];
-
-  onOpen:
-    (
-      item:
-        ReviewerActivityItem
-    ) => void;
+  items: ReviewerActivityItem[];
+  onOpen: (
+    item: ReviewerActivityItem
+  ) => void;
 }) {
   if (
     items.length ===
     0
   ) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-12 text-center shadow-sm">
-        <History className="mx-auto mb-4 h-10 w-10 text-gray-300" />
+      <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center">
+        <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-gray-100">
+          <History className="h-5 w-5 text-gray-400" />
+        </div>
 
-        <h2 className="mb-2 text-xl text-gray-900">
+        <h2 className="mt-4 text-xl text-gray-900">
           No activity yet
         </h2>
 
-        <p className="text-sm text-gray-500">
+        <p className="mt-2 text-sm text-gray-500">
           Your completed review actions will appear here.
         </p>
       </div>
@@ -1032,22 +1086,28 @@ function ActivityView({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="border-b border-gray-200 px-6 py-5">
-        <h2 className="text-lg font-medium text-gray-900">
-          My Activity
-        </h2>
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="border-b border-gray-100 px-6 py-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#f3fbfa]">
+            <History className="h-4 w-4 text-[#07877B]" />
+          </div>
 
-        <p className="mt-1 text-sm text-gray-500">
-          Your review actions captured in the central activity audit trail.
-        </p>
+          <div>
+            <h2 className="text-base font-medium text-gray-900">
+              My Activity
+            </h2>
+
+            <p className="mt-0.5 text-xs text-gray-500">
+              Your decisions captured in the central review audit trail.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="divide-y divide-gray-100">
         {items.map(
-          (
-            item
-          ) => {
+          (item) => {
             const config =
               activityConfig(
                 item.action
@@ -1058,22 +1118,20 @@ function ActivityView({
 
             return (
               <div
-                key={
-                  item.activity_id
-                }
-                className="grid gap-4 px-6 py-5 md:grid-cols-[44px,1fr,180px]"
+                key={item.activity_id}
+                className="grid gap-4 px-6 py-5 md:grid-cols-[40px,minmax(0,1fr),160px]"
               >
                 <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-full ${config.bg}`}
+                  className={`flex h-9 w-9 items-center justify-center rounded-full ${config.bg}`}
                 >
                   <Icon
                     className={`h-4 w-4 ${config.iconClass}`}
                   />
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-medium text-gray-900">
+                    <h3 className="truncate text-sm font-medium text-gray-900">
                       {item.communication_title ||
                         "Communication"}
                     </h3>
@@ -1088,34 +1146,24 @@ function ActivityView({
                     )}
                   </div>
 
-                  <p className="mt-1 text-sm text-gray-700">
-                    <span
-                      className={
-                        config.textClass
-                      }
-                    >
-                      {
-                        config.label
-                      }
+                  <p className="mt-1 text-sm text-gray-600">
+                    <span className={config.textClass}>
+                      {config.label}
                     </span>
-
                     {" · "}
-
                     {formatActivityStage(
                       item.user_role
                     )}
                   </p>
 
                   <p className="mt-1 text-xs text-gray-500">
-                    Performed by:{" "}
-                    {item.user_name ||
+                    Performed by {item.user_name ||
                       "Current user"}
 
                     {item.communication_status && (
                       <>
                         {" · "}
-                        Current status:{" "}
-                        {humanize(
+                        Status {humanize(
                           item.communication_status
                         )}
                       </>
@@ -1124,21 +1172,16 @@ function ActivityView({
 
                   {item.description && (
                     <div className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-sm leading-6 text-gray-700">
-                      {
-                        item.description
-                      }
+                      {item.description}
                     </div>
                   )}
 
                   {typeof item.metadata?.comment ===
                     "string" &&
                     item.metadata.comment && (
-                      <div className="mt-2 text-xs text-gray-500">
-                        Comment:{" "}
-                        {
-                          item.metadata.comment
-                        }
-                      </div>
+                      <p className="mt-2 text-xs leading-5 text-gray-500">
+                        Comment: {item.metadata.comment}
+                      </p>
                     )}
                 </div>
 
@@ -1153,9 +1196,7 @@ function ActivityView({
                     <button
                       type="button"
                       onClick={() =>
-                        onOpen(
-                          item
-                        )
+                        onOpen(item)
                       }
                       className="text-sm font-medium text-[#07877B] hover:text-[#06766a]"
                     >
@@ -1172,15 +1213,13 @@ function ActivityView({
   );
 }
 
+
 function SubmitterInline({
   item,
   reviewerRole,
 }: {
-  item:
-    ReviewQueueItem;
-
-  reviewerRole:
-    ReviewerRole;
+  item: ReviewQueueItem;
+  reviewerRole: ReviewerRole;
 }) {
   const original =
     item.original_submitter;
@@ -1261,15 +1300,13 @@ function SubmitterInline({
   );
 }
 
+
 function SubmissionIdentity({
   item,
   reviewerRole,
 }: {
-  item:
-    ReviewQueueItem;
-
-  reviewerRole:
-    ReviewerRole;
+  item: ReviewQueueItem;
+  reviewerRole: ReviewerRole;
 }) {
   const original =
     item.original_submitter;
@@ -1291,9 +1328,9 @@ function SubmissionIdentity({
       stage.id;
 
   return (
-    <section className="mb-6 rounded-xl border border-[#b3d9d5] bg-[#f7fbfa] p-4">
+    <section className="mb-5 rounded-xl bg-gray-50 p-4">
       <div className="mb-3 flex items-center gap-2">
-        <UserRound className="h-4 w-4 text-[#07877B]" />
+        <UserRound className="h-4 w-4 text-gray-400" />
 
         <h3 className="text-sm font-medium text-gray-900">
           Submission details
@@ -1313,23 +1350,19 @@ function SubmissionIdentity({
       ) : (
         <div className="space-y-3">
           <PersonRow
-            label="Originally submitted by"
-            person={
-              original
-            }
+            label="Original creator"
+            person={original}
           />
 
           <PersonRow
             label="Sent to CorpCom by"
-            person={
-              stage
-            }
+            person={stage}
           />
         </div>
       )}
 
       {item.is_resubmission && (
-        <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
+        <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
           Revised and resubmitted after reviewer feedback
         </div>
       )}
@@ -1337,25 +1370,21 @@ function SubmissionIdentity({
   );
 }
 
+
 function PersonRow({
   label,
   person,
 }: {
-  label:
-    string;
-
-  person:
-    ReviewPerson | null;
+  label: string;
+  person: ReviewPerson | null;
 }) {
   return (
-    <div className="grid grid-cols-[125px,1fr] gap-3 text-xs">
+    <div className="grid grid-cols-[110px,1fr] gap-3 text-xs">
       <span className="text-gray-500">
-        {
-          label
-        }
+        {label}
       </span>
 
-      <div>
+      <div className="min-w-0">
         <p className="font-medium text-gray-900">
           {personName(
             person
@@ -1363,17 +1392,13 @@ function PersonRow({
         </p>
 
         {person && (
-          <p className="mt-0.5 text-gray-500">
+          <p className="mt-0.5 truncate text-gray-500">
             {[
               person.designation,
               person.department,
             ]
-              .filter(
-                Boolean
-              )
-              .join(
-                " · "
-              )}
+              .filter(Boolean)
+              .join(" · ")}
           </p>
         )}
       </div>
@@ -1381,39 +1406,40 @@ function PersonRow({
   );
 }
 
+
 function activityConfig(
-  action:
-    string
+  action: string
 ) {
   if (
-    action === "marketing_approved" ||
-    action === "corpcom_approved"
+    action ===
+      "marketing_approved" ||
+    action ===
+      "corpcom_approved"
   ) {
     return {
-      icon:
-        CheckCircle2,
-      bg:
-        "bg-green-50",
+      icon: CheckCircle2,
+      bg: "bg-green-50",
       iconClass:
         "text-green-600",
       textClass:
         "font-medium text-green-700",
       label:
-        action === "corpcom_approved"
+        action ===
+          "corpcom_approved"
           ? "Final approved"
           : "Approved & sent to CorpCom",
     };
   }
 
   if (
-    action === "marketing_changes_requested" ||
-    action === "corpcom_changes_requested"
+    action ===
+      "marketing_changes_requested" ||
+    action ===
+      "corpcom_changes_requested"
   ) {
     return {
-      icon:
-        RotateCcw,
-      bg:
-        "bg-amber-50",
+      icon: RotateCcw,
+      bg: "bg-amber-50",
       iconClass:
         "text-amber-600",
       textClass:
@@ -1424,42 +1450,38 @@ function activityConfig(
   }
 
   if (
-    action === "marketing_rejected" ||
-    action === "corpcom_rejected"
+    action ===
+      "marketing_rejected" ||
+    action ===
+      "corpcom_rejected"
   ) {
     return {
-      icon:
-        XCircle,
-      bg:
-        "bg-red-50",
+      icon: XCircle,
+      bg: "bg-red-50",
       iconClass:
         "text-red-600",
       textClass:
         "font-medium text-red-700",
-      label:
-        "Rejected",
+      label: "Rejected",
     };
   }
 
   return {
-    icon:
-      Clock3,
-    bg:
-      "bg-blue-50",
+    icon: Clock3,
+    bg: "bg-blue-50",
     iconClass:
       "text-blue-600",
     textClass:
       "font-medium text-blue-700",
-    label:
-      humanize(
-        action
-      ),
+    label: humanize(
+      action
+    ),
   };
 }
 
+
 function formatActivityStage(
-  role:
-    string
+  role: string
 ) {
   if (
     role ===
@@ -1480,9 +1502,9 @@ function formatActivityStage(
   );
 }
 
+
 function personName(
-  person:
-    ReviewPerson | null
+  person: ReviewPerson | null
 ) {
   return (
     person?.full_name ||
@@ -1490,9 +1512,54 @@ function personName(
   );
 }
 
+
+function isGuidedCommunication(
+  communication: any
+) {
+  if (!communication) {
+    return false;
+  }
+
+  const inputData =
+    communication.input_data;
+
+  if (
+    inputData &&
+    typeof inputData ===
+      "object" &&
+    !Array.isArray(
+      inputData
+    ) &&
+    inputData.guided &&
+    typeof inputData.guided ===
+      "object" &&
+    !Array.isArray(
+      inputData.guided
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    communication.creation_mode ===
+      "guided" ||
+    communication.creationMode ===
+      "guided"
+  ) {
+    return true;
+  }
+
+  /**
+   * Compatibility fallback:
+   * Expert submissions are expected to carry a selected
+   * variant. Guided packages are multi-channel and do not.
+   */
+  return !communication.selected_variant_id;
+}
+
+
 function mapDatabaseCategory(
-  category:
-    string
+  category: string
 ):
   | "research"
   | "education"
@@ -1500,9 +1567,7 @@ function mapDatabaseCategory(
   | "service"
   | "regulatory"
   | "onboarding" {
-  switch (
-    category
-  ) {
+  switch (category) {
     case "Research & Advisory":
       return "research";
 
@@ -1526,13 +1591,11 @@ function mapDatabaseCategory(
   }
 }
 
+
 function formatStage(
-  stage:
-    string
+  stage: string
 ) {
-  switch (
-    stage
-  ) {
+  switch (stage) {
     case "marketing_review":
       return "Marketing Review";
 
@@ -1546,53 +1609,44 @@ function formatStage(
   }
 }
 
+
 function formatDate(
-  value:
-    string
+  value: string
 ) {
   return new Date(
     value
   ).toLocaleString(
     "en-IN",
     {
-      day:
-        "numeric",
-      month:
-        "short",
-      hour:
-        "numeric",
-      minute:
-        "2-digit",
+      day: "numeric",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
     }
   );
 }
+
 
 function formatFullDate(
-  value:
-    string
+  value: string
 ) {
   return new Date(
     value
   ).toLocaleString(
     "en-IN",
     {
-      day:
-        "numeric",
-      month:
-        "short",
-      year:
-        "numeric",
-      hour:
-        "numeric",
-      minute:
-        "2-digit",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
     }
   );
 }
 
+
 function humanize(
-  value:
-    string
+  value: string
 ) {
   return value
     .replace(
@@ -1601,9 +1655,7 @@ function humanize(
     )
     .replace(
       /\b\w/g,
-      (
-        c
-      ) =>
-        c.toUpperCase()
+      (character) =>
+        character.toUpperCase()
     );
 }
