@@ -1,13 +1,14 @@
 import {
   ArrowLeft,
   ArrowRight,
+  Building2,
   Check,
+  FileText,
+  Loader2,
   Mail,
   MessageCircle,
-  FileText,
   Sparkles,
   UserRound,
-  Building2,
   UsersRound,
 } from "lucide-react";
 
@@ -15,6 +16,10 @@ import {
   useEffect,
   useMemo,
   useState,
+} from "react";
+
+import type {
+  ReactNode,
 } from "react";
 
 import {
@@ -25,13 +30,6 @@ import {
 import {
   TopNavBar,
 } from "../components/TopNavBar";
-
-import {
-  DesignSystemButton,
-  DesignSystemCard,
-  DesignSystemIcon,
-  DesignSystemInput,
-} from "../design-system";
 
 import {
   getCommunicationById,
@@ -67,27 +65,32 @@ const PURPOSE_OPTIONS: Array<{
   {
     value: "awareness",
     label: "Create awareness",
-    helper: "Help customers become aware of an idea, option or opportunity.",
+    helper:
+      "Help customers become aware of an idea, option or opportunity.",
   },
   {
     value: "education",
     label: "Educate",
-    helper: "Explain something in a simple and useful way.",
+    helper:
+      "Explain something in a simple and useful way.",
   },
   {
     value: "action",
     label: "Encourage an action",
-    helper: "Help customers understand the next step they can take.",
+    helper:
+      "Help customers understand the next step they can take.",
   },
   {
     value: "update",
     label: "Share an update",
-    helper: "Inform customers about something new or changed.",
+    helper:
+      "Inform customers about something new or changed.",
   },
   {
     value: "explanation",
     label: "Explain something",
-    helper: "Make a product, feature or concept easier to understand.",
+    helper:
+      "Make a product, feature or concept easier to understand.",
   },
 ];
 
@@ -100,19 +103,22 @@ const PERSONALISATION_OPTIONS: Array<{
   {
     value: "brand",
     label: "From Geojit",
-    helper: "Standard communication in Geojit's approved brand voice.",
+    helper:
+      "Standard communication in Geojit's approved brand voice.",
     icon: Building2,
   },
   {
     value: "branch",
     label: "From me / my branch",
-    helper: "More human and conversational, while staying within Geojit governance.",
+    helper:
+      "More human and conversational, while staying within Geojit governance.",
     icon: UserRound,
   },
   {
     value: "customer",
     label: "Personalised for each customer",
-    helper: "Prepare the communication for customer-level personalisation later.",
+    helper:
+      "Prepare the communication for customer-level personalisation later.",
     icon: UsersRound,
   },
 ];
@@ -126,19 +132,22 @@ const CHANNEL_OPTIONS: Array<{
   {
     value: "email",
     label: "Email",
-    helper: "Structured communication with subject, body and CTA.",
+    helper:
+      "Structured communication with subject, body and CTA.",
     icon: Mail,
   },
   {
     value: "whatsapp",
     label: "WhatsApp",
-    helper: "Short, mobile-first and conversational.",
+    helper:
+      "Short, mobile-first and conversational.",
     icon: MessageCircle,
   },
   {
     value: "leaflet",
     label: "Leaflet",
-    helper: "Compact visual communication for print or sharing.",
+    helper:
+      "Compact visual communication for print or sharing.",
     icon: FileText,
   },
 ];
@@ -448,14 +457,6 @@ export function GuidedBrief() {
         brief,
       });
 
-      /**
-       * Next checkpoint:
-       * Channel-aware generation.
-       *
-       * For now we stop here after safely saving the
-       * Guided Brief rather than touching the existing
-       * Expert generation engine.
-       */
       navigate(
         `/create/guided/ready?communicationId=${encodeURIComponent(
           communicationId
@@ -479,113 +480,91 @@ export function GuidedBrief() {
 
   if (loading) {
     return (
-      <div className="ds-page">
+      <div className="min-h-screen bg-background">
         <TopNavBar />
 
-        <div className="flex min-h-[70vh] items-center justify-center">
-          <p className="ds-body-sm">
+        <main className="mx-auto flex min-h-[72vh] max-w-3xl items-center justify-center px-6">
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            <Loader2 className="h-4 w-4 animate-spin text-[#07877B]" />
             Preparing your guided brief...
-          </p>
-        </div>
+          </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="ds-page">
+    <div className="min-h-screen bg-background">
       <TopNavBar />
 
-      <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
-
-        <DesignSystemButton
-          variant="tertiary"
-          size="medium"
+      <main className="mx-auto max-w-5xl px-6 py-10 sm:py-12">
+        <button
+          type="button"
           onClick={
             handleBack
           }
-          leadingIcon={
-            <DesignSystemIcon
-              size="sm"
-              tone="action"
-            >
-              <ArrowLeft />
-            </DesignSystemIcon>
-          }
-          className="mb-6 px-0"
+          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B]"
         >
+          <ArrowLeft className="h-4 w-4" />
           Back
-        </DesignSystemButton>
+        </button>
 
-        <div className="mb-9 max-w-3xl">
+        <header className="mb-8 max-w-3xl">
           <div className="mb-3 flex items-center gap-2">
-            <DesignSystemIcon
-              size="md"
-              tone="action"
-            >
-              <Sparkles />
-            </DesignSystemIcon>
+            <Sparkles className="h-5 w-5 text-[#07877B]" />
 
-            <p className="ds-label-3 text-[var(--ds-text-brand)]">
+            <p className="text-sm font-medium text-[#07877B]">
               Guided Brief
             </p>
           </div>
 
-          <h1 className="ds-title-2">
+          <h1 className="text-3xl text-gray-900">
             Let's shape the communication
           </h1>
 
-          <p className="ds-body-sm mt-3 max-w-2xl">
-            We already understand your idea.
-            Confirm a few simple choices so
-            Communication Studio can adapt it
-            for the right people and channels.
+          <p className="mt-3 text-sm leading-7 text-gray-600">
+            We already understand the core idea.
+            Confirm who it is for, what it should achieve,
+            how personal it should feel, and where you want to use it.
           </p>
-        </div>
+        </header>
 
         {understandingSummary && (
-          <DesignSystemCard
-            surface="accent"
-            className="mb-8 px-5 py-4"
-          >
-            <p className="ds-label-3 text-[var(--ds-text-brand)]">
-              Your idea
-            </p>
+          <section className="mb-7 rounded-2xl border border-[#bfe4df] bg-[#f7fcfb] px-6 py-5">
+            <div className="flex items-start gap-4">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e2f3f0] text-[#07877B]">
+                <Sparkles className="h-4 w-4" />
+              </div>
 
-            <p className="ds-body-sm mt-2">
-              {
-                understandingSummary
-              }
-            </p>
-          </DesignSystemCard>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#07877B]">
+                  Your idea
+                </p>
+
+                <p className="mt-2 text-sm leading-6 text-gray-700">
+                  {
+                    understandingSummary
+                  }
+                </p>
+              </div>
+            </div>
+          </section>
         )}
 
         {error && (
-          <div className="ds-alert ds-alert-error mb-6 text-sm">
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        <div className="space-y-8">
-
-          <DesignSystemCard className="p-6 sm:p-8">
-            <div className="mb-5">
-              <p className="ds-label-3 text-[var(--ds-text-brand)]">
-                1. Audience
-              </p>
-
-              <h2 className="ds-title-4 mt-1">
-                Who should receive this?
-              </h2>
-
-              <p className="ds-body-xs mt-2">
-                We've pre-filled this from
-                what we understood. Change it
-                only if needed.
-              </p>
-            </div>
-
-            <DesignSystemInput
-              label="Audience"
+        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          <BriefSection
+            number="01"
+            title="Audience"
+            question="Who should receive this?"
+            helper="We've pre-filled this from what we understood. Change it only if needed."
+          >
+            <input
               value={
                 audience
               }
@@ -596,23 +575,17 @@ export function GuidedBrief() {
                 setError("");
               }}
               placeholder="e.g., Customers considering starting an SIP"
-              helperText="Describe the main group this communication is intended for."
-              requiredLabel
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10"
             />
-          </DesignSystemCard>
+          </BriefSection>
 
-
-          <DesignSystemCard className="p-6 sm:p-8">
-            <div className="mb-5">
-              <p className="ds-label-3 text-[var(--ds-text-brand)]">
-                2. Purpose
-              </p>
-
-              <h2 className="ds-title-4 mt-1">
-                What should this communication achieve?
-              </h2>
-            </div>
-
+          <BriefSection
+            number="02"
+            title="Purpose"
+            question="What should this communication achieve?"
+            helper="Choose the primary outcome. Communication Studio will shape the content around it."
+            bordered
+          >
             <div className="grid gap-3 sm:grid-cols-2">
               {PURPOSE_OPTIONS.map(
                 (option) => {
@@ -626,74 +599,51 @@ export function GuidedBrief() {
                         option.value
                       }
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
                         setPurpose(
                           option.value
-                        )
-                      }
-                      className="group text-left"
+                        );
+                        setError("");
+                      }}
+                      className={`flex min-h-[92px] items-start justify-between gap-4 rounded-xl border p-4 text-left transition-all ${
+                        selected
+                          ? "border-[#07877B] bg-[#f3fbfa]"
+                          : "border-gray-200 bg-white hover:border-[#9bcfc9] hover:bg-gray-50/50"
+                      }`}
                     >
-                      <DesignSystemCard
-                        surface={
-                          selected
-                            ? "selected"
-                            : "interactive"
-                        }
-                        className="h-full p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="ds-body-sm font-medium">
-                            {
-                              option.label
-                            }
-                          </p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {
+                            option.label
+                          }
+                        </p>
 
-                          <p className="ds-body-xs mt-1">
-                            {
-                              option.helper
-                            }
-                          </p>
-                        </div>
-
-                        {selected && (
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--ds-brand-primary)]">
-                            <DesignSystemIcon
-                              size="sm"
-                              tone="onDark"
-                            >
-                              <Check />
-                            </DesignSystemIcon>
-                          </div>
-                        )}
+                        <p className="mt-1 text-xs leading-5 text-gray-500">
+                          {
+                            option.helper
+                          }
+                        </p>
                       </div>
-                      </DesignSystemCard>
+
+                      <SelectionIndicator
+                        selected={
+                          selected
+                        }
+                      />
                     </button>
                   );
                 }
               )}
             </div>
-          </DesignSystemCard>
+          </BriefSection>
 
-
-          <DesignSystemCard className="p-6 sm:p-8">
-            <div className="mb-5">
-              <p className="ds-label-3 text-[var(--ds-text-brand)]">
-                3. Personalisation
-              </p>
-
-              <h2 className="ds-title-4 mt-1">
-                How personal should it feel?
-              </h2>
-
-              <p className="ds-body-xs mt-2">
-                You don't need to choose a
-                writing tone. Communication
-                Studio will apply the right
-                Geojit tone automatically.
-              </p>
-            </div>
-
+          <BriefSection
+            number="03"
+            title="Personalisation"
+            question="How personal should it feel?"
+            helper="You don't need to choose a writing tone. Communication Studio will apply the appropriate Geojit tone automatically."
+            bordered
+          >
             <div className="grid gap-3 md:grid-cols-3">
               {PERSONALISATION_OPTIONS.map(
                 (option) => {
@@ -710,91 +660,67 @@ export function GuidedBrief() {
                         option.value
                       }
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
                         setPersonalisationMode(
                           option.value
-                        )
-                      }
-                      className="group text-left"
-                    >
-                      <DesignSystemCard
-                        surface={
-                          selected
-                            ? "selected"
-                            : "interactive"
-                        }
-                        className="h-full p-5"
+                        );
+                        setError("");
+                      }}
+                      className={`min-h-[168px] rounded-xl border p-5 text-left transition-all ${
+                        selected
+                          ? "border-[#07877B] bg-[#f3fbfa]"
+                          : "border-gray-200 bg-white hover:border-[#9bcfc9] hover:bg-gray-50/50"
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div
-                          className={`mb-4 flex h-10 w-10 items-center justify-center ds-icon-container ${
+                          className={`flex h-10 w-10 items-center justify-center rounded-lg ${
                             selected
-                              ? "ds-icon-container-brand"
-                              : ""
+                              ? "bg-[#dff2ef]"
+                              : "bg-gray-100"
                           }`}
                         >
-                          <DesignSystemIcon
-                            size="md"
-                            tone={
+                          <Icon
+                            className={`h-5 w-5 ${
                               selected
-                                ? "action"
-                                : "secondary"
-                            }
-                          >
-                            <Icon />
-                          </DesignSystemIcon>
+                                ? "text-[#07877B]"
+                                : "text-gray-600"
+                            }`}
+                          />
                         </div>
 
-                        {selected && (
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--ds-brand-primary)]">
-                            <DesignSystemIcon
-                              size="sm"
-                              tone="onDark"
-                            >
-                              <Check />
-                            </DesignSystemIcon>
-                          </div>
-                        )}
+                        <SelectionIndicator
+                          selected={
+                            selected
+                          }
+                        />
                       </div>
 
-                      <p className="ds-body-sm font-medium">
+                      <p className="mt-4 text-sm font-medium text-gray-900">
                         {
                           option.label
                         }
                       </p>
 
-                      <p className="ds-body-xs mt-2">
+                      <p className="mt-2 text-xs leading-5 text-gray-500">
                         {
                           option.helper
                         }
                       </p>
-                      </DesignSystemCard>
                     </button>
                   );
                 }
               )}
             </div>
-          </DesignSystemCard>
+          </BriefSection>
 
-
-          <DesignSystemCard className="p-6 sm:p-8">
-            <div className="mb-5">
-              <p className="ds-label-3 text-[var(--ds-text-brand)]">
-                4. Channels
-              </p>
-
-              <h2 className="ds-title-4 mt-1">
-                Where would you like to use it?
-              </h2>
-
-              <p className="ds-body-xs mt-2">
-                You can choose more than one.
-                Each output will be adapted to
-                the channel rather than simply
-                copied or resized.
-              </p>
-            </div>
-
+          <BriefSection
+            number="04"
+            title="Channels"
+            question="Where would you like to use it?"
+            helper="Choose one or more. Each output will be adapted to the channel rather than simply copied or resized."
+            bordered
+          >
             <div className="grid gap-3 md:grid-cols-3">
               {CHANNEL_OPTIONS.map(
                 (option) => {
@@ -817,137 +743,214 @@ export function GuidedBrief() {
                           option.value
                         )
                       }
-                      className="group text-left"
-                    >
-                      <DesignSystemCard
-                        surface={
-                          selected
-                            ? "selected"
-                            : "interactive"
-                        }
-                        className="h-full p-5"
+                      className={`min-h-[158px] rounded-xl border p-5 text-left transition-all ${
+                        selected
+                          ? "border-[#07877B] bg-[#f3fbfa]"
+                          : "border-gray-200 bg-white hover:border-[#9bcfc9] hover:bg-gray-50/50"
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div
-                          className={`flex h-10 w-10 items-center justify-center ds-icon-container ${
+                          className={`flex h-10 w-10 items-center justify-center rounded-lg ${
                             selected
-                              ? "ds-icon-container-brand"
-                              : ""
+                              ? "bg-[#dff2ef]"
+                              : "bg-gray-100"
                           }`}
                         >
-                          <DesignSystemIcon
-                            size="md"
-                            tone={
+                          <Icon
+                            className={`h-5 w-5 ${
                               selected
-                                ? "action"
-                                : "secondary"
-                            }
-                          >
-                            <Icon />
-                          </DesignSystemIcon>
+                                ? "text-[#07877B]"
+                                : "text-gray-600"
+                            }`}
+                          />
                         </div>
 
-                        <div
-                          className={`flex h-6 w-6 items-center justify-center rounded-full border ${
+                        <SelectionIndicator
+                          selected={
                             selected
-                              ? "border-[var(--ds-brand-primary)] bg-[var(--ds-brand-primary)]"
-                              : "border-[var(--ds-border-default)] bg-[var(--ds-white)]"
-                          }`}
-                        >
-                          {selected && (
-                            <DesignSystemIcon
-                              size="sm"
-                              tone="onDark"
-                            >
-                              <Check />
-                            </DesignSystemIcon>
-                          )}
-                        </div>
+                          }
+                        />
                       </div>
 
-                      <p className="ds-body-sm mt-4 font-medium">
+                      <p className="mt-4 text-sm font-medium text-gray-900">
                         {
                           option.label
                         }
                       </p>
 
-                      <p className="ds-body-xs mt-2">
+                      <p className="mt-2 text-xs leading-5 text-gray-500">
                         {
                           option.helper
                         }
                       </p>
-                      </DesignSystemCard>
                     </button>
                   );
                 }
               )}
             </div>
 
-            {channels.length >
-              0 && (
-              <p className="ds-body-xs mt-4">
-                Selected:{" "}
-                {
-                  selectedChannelLabels.join(
-                    ", "
+            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-gray-500">
+                Selected:
+              </span>
+
+              {selectedChannelLabels.length >
+                0 ? (
+                selectedChannelLabels.map(
+                  (label) => (
+                    <span
+                      key={
+                        label
+                      }
+                      className="rounded-full bg-[#e8f5f4] px-3 py-1 font-medium text-[#075f58]"
+                    >
+                      {label}
+                    </span>
                   )
-                }
+                )
+              ) : (
+                <span className="text-red-600">
+                  Choose at least one channel
+                </span>
+              )}
+            </div>
+          </BriefSection>
+        </section>
+
+        <div className="mt-8 border-t border-gray-200 pt-6">
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              onClick={
+                handleBack
+              }
+              disabled={
+                saving
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <p className="text-xs text-gray-500 sm:text-right">
+                Next: review the Communication Master
               </p>
-            )}
-          </DesignSystemCard>
 
-        </div>
-
-
-        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-[var(--ds-border-subtle)] pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <DesignSystemButton
-            variant="secondary"
-            size="medium"
-            onClick={
-              handleBack
-            }
-            disabled={
-              saving
-            }
-            leadingIcon={
-              <DesignSystemIcon
-                size="sm"
-                tone="secondary"
+              <button
+                type="button"
+                onClick={() =>
+                  void handleContinue()
+                }
+                disabled={
+                  !canContinue
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-7 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
               >
-                <ArrowLeft />
-              </DesignSystemIcon>
-            }
-          >
-            Back
-          </DesignSystemButton>
-
-          <DesignSystemButton
-            variant="primary"
-            size="large"
-            onClick={() =>
-              void handleContinue()
-            }
-            disabled={
-              !canContinue
-            }
-            loading={
-              saving
-            }
-            loadingLabel="Saving..."
-            trailingIcon={
-              <DesignSystemIcon
-                size="sm"
-                tone="onDark"
-              >
-                <ArrowRight />
-              </DesignSystemIcon>
-            }
-          >
-            Confirm Guided Brief
-          </DesignSystemButton>
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    Confirm Guided Brief
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-
       </main>
+    </div>
+  );
+}
+
+
+function BriefSection({
+  number,
+  title,
+  question,
+  helper,
+  bordered = false,
+  children,
+}: {
+  number:
+    string;
+
+  title:
+    string;
+
+  question:
+    string;
+
+  helper:
+    string;
+
+  bordered?:
+    boolean;
+
+  children:
+    ReactNode;
+}) {
+  return (
+    <section
+      className={`px-6 py-6 sm:px-7 sm:py-7 ${
+        bordered
+          ? "border-t border-gray-200"
+          : ""
+      }`}
+    >
+      <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-8">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold tracking-[0.14em] text-[#07877B]">
+              {number}
+            </span>
+
+            <p className="text-sm font-medium text-gray-900">
+              {title}
+            </p>
+          </div>
+
+          <h2 className="mt-3 text-lg leading-7 text-gray-900">
+            {question}
+          </h2>
+
+          <p className="mt-2 text-xs leading-5 text-gray-500">
+            {helper}
+          </p>
+        </div>
+
+        <div>
+          {children}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+function SelectionIndicator({
+  selected,
+}: {
+  selected:
+    boolean;
+}) {
+  return (
+    <div
+      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
+        selected
+          ? "border-[#07877B] bg-[#07877B]"
+          : "border-gray-300 bg-white"
+      }`}
+    >
+      {selected && (
+        <Check className="h-3.5 w-3.5 text-white" />
+      )}
     </div>
   );
 }
@@ -982,6 +985,7 @@ function inferPurpose(
   return "awareness";
 }
 
+
 function isPurpose(
   value: unknown
 ): value is Purpose {
@@ -996,6 +1000,7 @@ function isPurpose(
   );
 }
 
+
 function isPersonalisationMode(
   value: unknown
 ): value is PersonalisationMode {
@@ -1007,6 +1012,7 @@ function isPersonalisationMode(
     String(value)
   );
 }
+
 
 function isChannel(
   value: unknown
