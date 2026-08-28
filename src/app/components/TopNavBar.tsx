@@ -27,11 +27,6 @@ import {
 } from "../auth/useAuth";
 
 import {
-  DesignSystemCard,
-  DesignSystemIcon,
-} from "../design-system";
-
-import {
   AppNotification,
   formatNotificationTime,
   getNotificationCentreItems,
@@ -39,6 +34,7 @@ import {
   markNotificationRead,
   subscribeToMyNotifications,
 } from "../services/notifications";
+
 
 export function TopNavBar() {
   const navigate =
@@ -83,19 +79,34 @@ export function TopNavBar() {
   } =
     useAuth();
 
+
   const employeeName =
-    profile?.full_name ||
+    profile?.full_name?.trim() ||
     user?.email ||
     "Employee";
 
+  const employeeRole =
+    profile?.role
+      ? formatRole(
+          profile.role
+        )
+      : "User";
+
   const employeeInfo =
-    profile?.designation ||
-    profile?.department ||
-    user?.email ||
-    "";
+    profile?.designation?.trim() ||
+    employeeRole;
+
+  const initials =
+    getInitials(
+      profile?.full_name ||
+      user?.email ||
+      "User"
+    );
 
   const isAdmin =
-    profile?.role === "admin";
+    profile?.role ===
+    "admin";
+
 
   const unreadCount =
     useMemo(
@@ -104,16 +115,22 @@ export function TopNavBar() {
           (item) =>
             !item.is_read
         ).length,
-      [notifications]
+      [
+        notifications,
+      ]
     );
+
 
   const loadNotifications =
     useCallback(
       async () => {
-        if (!user?.id) {
+        if (
+          !user?.id
+        ) {
           setNotifications(
             []
           );
+
           return;
         }
 
@@ -128,14 +145,19 @@ export function TopNavBar() {
 
           const items =
             await getNotificationCentreItems({
-              liveLimit: 20,
-              historyLimit: 50,
+              liveLimit:
+                20,
+
+              historyLimit:
+                50,
             });
 
           setNotifications(
             items
           );
-        } catch (error) {
+        } catch (
+          error
+        ) {
           console.error(
             "Unable to load notifications:",
             error
@@ -150,11 +172,16 @@ export function TopNavBar() {
           );
         }
       },
-      [user?.id]
+      [
+        user?.id,
+      ]
     );
 
+
   useEffect(() => {
-    if (!user?.id) {
+    if (
+      !user?.id
+    ) {
       return;
     }
 
@@ -176,18 +203,62 @@ export function TopNavBar() {
     loadNotifications,
   ]);
 
+
+  /**
+   * Close floating menus with Escape.
+   */
+  useEffect(() => {
+    function handleKeyDown(
+      event:
+        KeyboardEvent
+    ) {
+      if (
+        event.key ===
+        "Escape"
+      ) {
+        setIsUserMenuOpen(
+          false
+        );
+
+        setIsNotificationOpen(
+          false
+        );
+      }
+    }
+
+    window.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+    };
+  }, []);
+
+
   const handleLogout =
     async () => {
       try {
+        setIsUserMenuOpen(
+          false
+        );
+
         await signOut();
 
         navigate(
           "/login",
           {
-            replace: true,
+            replace:
+              true,
           }
         );
-      } catch (error) {
+      } catch (
+        error
+      ) {
         console.error(
           "Logout error:",
           error
@@ -195,12 +266,37 @@ export function TopNavBar() {
       }
     };
 
+
   const handleSettings =
     () => {
+      setIsUserMenuOpen(
+        false
+      );
+
+      setIsNotificationOpen(
+        false
+      );
+
       navigate(
         "/settings/rules"
       );
     };
+
+
+  function handleHome() {
+    setIsUserMenuOpen(
+      false
+    );
+
+    setIsNotificationOpen(
+      false
+    );
+
+    navigate(
+      "/"
+    );
+  }
+
 
   async function handleNotificationClick(
     notification:
@@ -215,13 +311,18 @@ export function TopNavBar() {
         );
 
         setNotifications(
-          (current) =>
+          (
+            current
+          ) =>
             current.map(
-              (item) =>
+              (
+                item
+              ) =>
                 item.id ===
                 notification.id
                   ? {
                       ...item,
+
                       is_read:
                         true,
                     }
@@ -229,7 +330,9 @@ export function TopNavBar() {
             )
         );
       }
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "Unable to mark notification as read:",
         error
@@ -244,25 +347,36 @@ export function TopNavBar() {
       notification.communication_id
     ) {
       navigate(
-        `/approval/status?communicationId=${notification.communication_id}`
+        `/approval/status?communicationId=${encodeURIComponent(
+          notification.communication_id
+        )}`
       );
     }
   }
+
 
   async function handleMarkAllRead() {
     try {
       await markAllNotificationsRead();
 
       setNotifications(
-        (current) =>
+        (
+          current
+        ) =>
           current.map(
-            (item) => ({
+            (
+              item
+            ) => ({
               ...item,
-              is_read: true,
+
+              is_read:
+                true,
             })
           )
       );
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "Unable to mark all notifications read:",
         error
@@ -270,36 +384,51 @@ export function TopNavBar() {
     }
   }
 
-  return (
-    <header className="border-b border-[var(--ds-border-subtle)] bg-[var(--ds-white)]">
-      <div className="mx-auto flex h-16 max-w-[1600px] items-center px-6">
 
+  return (
+    <header className="relative z-50 border-b border-gray-200 bg-white">
+      <div className="mx-auto flex min-h-[68px] max-w-[1600px] items-center justify-between gap-5 px-5 sm:px-6 lg:px-8">
+
+        {/* Brand */}
         <button
-          onClick={() =>
-            navigate("/")
+          type="button"
+          onClick={
+            handleHome
           }
-          className="flex items-center gap-4 text-left"
+          className="group flex min-w-0 items-center gap-3 text-left"
         >
-          <div>
-            <p className="ds-title-4 text-[var(--ds-brand-primary)]">
-              Geojit Communication Engine
+          <div className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e8f5f4] text-sm font-semibold text-[#07877B] sm:flex">
+            CS
+          </div>
+
+          <div className="min-w-0">
+            <p className="truncate text-[15px] font-semibold leading-5 text-gray-900 transition-colors group-hover:text-[#07877B] sm:text-base">
+              Geojit Communication Studio
             </p>
 
-            <p className="ds-body-xs">
-              AI-powered email creation
+            <p className="mt-0.5 hidden text-xs leading-4 text-gray-500 sm:block">
+              AI-enabled communication creation
             </p>
           </div>
         </button>
 
-        <div className="ml-auto flex items-center gap-4">
 
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+
+          {/* Notifications */}
           <div className="relative">
             <button
               type="button"
               aria-label="Notifications"
+              aria-haspopup="dialog"
+              aria-expanded={
+                isNotificationOpen
+              }
               onClick={() => {
                 setIsNotificationOpen(
-                  (current) =>
+                  (
+                    current
+                  ) =>
                     !current
                 );
 
@@ -309,18 +438,17 @@ export function TopNavBar() {
 
                 void loadNotifications();
               }}
-              className="relative flex h-9 w-9 items-center justify-center rounded-[var(--ds-radius-sm)] transition-colors hover:bg-[var(--ds-surface-muted)]"
+              className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                isNotificationOpen
+                  ? "bg-[#e8f5f4] text-[#075f58]"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              }`}
             >
-              <DesignSystemIcon
-                size="md"
-                tone="secondary"
-              >
-                <Bell />
-              </DesignSystemIcon>
+              <Bell className="h-[19px] w-[19px]" />
 
               {unreadCount >
                 0 && (
-                <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white">
+                <span className="absolute right-0 top-0 flex min-h-[18px] min-w-[18px] translate-x-1/4 -translate-y-1/4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-none text-white ring-2 ring-white">
                   {unreadCount >
                   99
                     ? "99+"
@@ -329,29 +457,35 @@ export function TopNavBar() {
               )}
             </button>
 
+
             {isNotificationOpen && (
               <>
                 <div
-                  className="fixed inset-0 z-30"
+                  className="fixed inset-0 z-40"
                   onClick={() =>
                     setIsNotificationOpen(
                       false
                     )
                   }
+                  aria-hidden="true"
                 />
 
-                <DesignSystemCard className="absolute right-0 z-40 mt-2 w-[380px] max-w-[calc(100vw-24px)] overflow-hidden">
-
-                  <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+                <div
+                  role="dialog"
+                  aria-label="Notifications"
+                  className="absolute right-0 top-[calc(100%+10px)] z-[70] w-[380px] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.16)]"
+                >
+                  <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-5 py-4">
                     <div>
-                      <p className="ds-title-4">
+                      <p className="text-sm font-semibold text-gray-900">
                         Notifications
                       </p>
 
-                      <p className="ds-body-xs mt-0.5">
-                        {unreadCount}
-                        {" "}
-                        unread
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        {unreadCount >
+                        0
+                          ? `${unreadCount} unread`
+                          : "You're up to date"}
                       </p>
                     </div>
 
@@ -362,20 +496,16 @@ export function TopNavBar() {
                         onClick={() =>
                           void handleMarkAllRead()
                         }
-                        className="ds-button-md flex items-center gap-1.5 rounded-[var(--ds-radius-sm)] px-2 py-1.5 text-[var(--ds-brand-primary)] hover:bg-[var(--ds-surface-subtle)]"
+                        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-[#07877B] transition-colors hover:bg-[#f3fbfa]"
                       >
-                        <DesignSystemIcon
-                          size="sm"
-                          tone="action"
-                        >
-                          <CheckCheck />
-                        </DesignSystemIcon>
+                        <CheckCheck className="h-4 w-4" />
                         Mark all read
                       </button>
                     )}
                   </div>
 
-                  <div className="max-h-[430px] overflow-y-auto">
+
+                  <div className="max-h-[430px] overflow-y-auto overscroll-contain">
                     {notificationLoading &&
                     notifications.length ===
                       0 ? (
@@ -389,21 +519,16 @@ export function TopNavBar() {
                     ) : notifications.length ===
                       0 ? (
                       <div className="px-5 py-10 text-center">
-                        <div className="mx-auto mb-3 flex justify-center">
-                          <DesignSystemIcon
-                            size="lg"
-                            tone="disabled"
-                          >
-                            <Bell />
-                          </DesignSystemIcon>
+                        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-gray-100">
+                          <Bell className="h-5 w-5 text-gray-400" />
                         </div>
 
-                        <p className="ds-title-4">
+                        <p className="mt-3 text-sm font-medium text-gray-800">
                           You're all caught up
                         </p>
 
-                        <p className="ds-body-xs mt-1">
-                          Workflow updates and your recent activity will appear here.
+                        <p className="mx-auto mt-1 max-w-[260px] text-xs leading-5 text-gray-500">
+                          Workflow updates and recent approval activity will appear here.
                         </p>
                       </div>
                     ) : (
@@ -421,9 +546,9 @@ export function TopNavBar() {
                                 notification
                               )
                             }
-                            className={`flex w-full gap-3 border-b border-gray-100 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-gray-50 ${
+                            className={`flex w-full gap-3 border-b border-gray-100 px-4 py-3.5 text-left transition-colors last:border-b-0 hover:bg-gray-50 ${
                               !notification.is_read
-                                ? "bg-[#F4FBFA]"
+                                ? "bg-[#f6fbfa]"
                                 : "bg-white"
                             }`}
                           >
@@ -435,24 +560,24 @@ export function TopNavBar() {
 
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start gap-2">
-                                <p className="ds-body-sm flex-1 font-medium">
+                                <p className="flex-1 text-sm font-medium leading-5 text-gray-900">
                                   {
                                     notification.title
                                   }
                                 </p>
 
                                 {!notification.is_read && (
-                                  <span className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-[#07877B]" />
+                                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-[#07877B]" />
                                 )}
                               </div>
 
-                              <p className="ds-body-xs mt-1 line-clamp-2">
+                              <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-600">
                                 {
                                   notification.message
                                 }
                               </p>
 
-                              <div className="mt-1.5 flex items-center gap-2 text-[11px] text-gray-400">
+                              <div className="mt-2 flex items-center gap-2 text-[11px] text-gray-400">
                                 <span>
                                   {formatNotificationTime(
                                     notification.created_at
@@ -471,11 +596,13 @@ export function TopNavBar() {
                       )
                     )}
                   </div>
-                </DesignSystemCard>
+                </div>
               </>
             )}
           </div>
 
+
+          {/* Admin settings */}
           {isAdmin && (
             <button
               type="button"
@@ -483,23 +610,29 @@ export function TopNavBar() {
               onClick={
                 handleSettings
               }
-              className="flex h-9 w-9 items-center justify-center rounded-[var(--ds-radius-sm)] transition-colors hover:bg-[var(--ds-surface-muted)]"
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
             >
-              <DesignSystemIcon
-                size="md"
-                tone="secondary"
-              >
-                <Settings />
-              </DesignSystemIcon>
+              <Settings className="h-[19px] w-[19px]" />
             </button>
           )}
 
+
+          <div className="mx-1 hidden h-7 w-px bg-gray-200 sm:block" />
+
+
+          {/* User profile */}
           <div className="relative">
             <button
               type="button"
+              aria-haspopup="menu"
+              aria-expanded={
+                isUserMenuOpen
+              }
               onClick={() => {
                 setIsUserMenuOpen(
-                  (current) =>
+                  (
+                    current
+                  ) =>
                     !current
                 );
 
@@ -507,112 +640,138 @@ export function TopNavBar() {
                   false
                 );
               }}
-              className="flex items-center gap-2 rounded-[var(--ds-radius-sm)] px-3 py-2 text-[var(--ds-text-primary)] transition-colors hover:bg-[var(--ds-surface-muted)]"
+              className={`flex max-w-[290px] items-center gap-2.5 rounded-xl py-1.5 pl-1.5 pr-2 transition-colors sm:gap-3 sm:pr-3 ${
+                isUserMenuOpen
+                  ? "bg-[#f3fbfa]"
+                  : "hover:bg-gray-100"
+              }`}
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--ds-brand-primary)]">
-                <DesignSystemIcon
-                  size="sm"
-                  tone="onDark"
-                >
-                  <User />
-                </DesignSystemIcon>
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#e8f5f4] text-xs font-semibold uppercase tracking-wide text-[#075f58] ring-1 ring-[#d6eeeb]">
+                {initials}
               </div>
 
-              <div className="hidden text-left sm:block">
-                <p className="ds-body-sm font-medium">
+              <div className="hidden min-w-0 text-left md:block">
+                <p className="max-w-[180px] truncate text-sm font-medium leading-5 text-gray-900">
                   {
                     employeeName
                   }
                 </p>
 
-                <p className="ds-body-xs">
+                <p className="max-w-[180px] truncate text-xs leading-4 text-gray-500">
                   {
                     employeeInfo
                   }
                 </p>
               </div>
 
-              <DesignSystemIcon
-                size="sm"
-                tone="secondary"
-              >
-                <ChevronDown />
-              </DesignSystemIcon>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 text-gray-500 transition-transform ${
+                  isUserMenuOpen
+                    ? "rotate-180"
+                    : ""
+                }`}
+              />
             </button>
+
 
             {isUserMenuOpen && (
               <>
                 <div
-                  className="fixed inset-0 z-10"
+                  className="fixed inset-0 z-40"
                   onClick={() =>
                     setIsUserMenuOpen(
                       false
                     )
                   }
+                  aria-hidden="true"
                 />
 
-                <DesignSystemCard className="absolute right-0 z-20 mt-2 w-64 overflow-hidden">
+                <div
+                  role="menu"
+                  className="absolute right-0 top-[calc(100%+10px)] z-[70] w-[320px] max-w-[calc(100vw-24px)] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_18px_48px_rgba(15,23,42,0.16)]"
+                >
+                  {/* Identity */}
+                  <div className="border-b border-gray-100 px-5 py-5">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#e8f5f4] text-sm font-semibold uppercase tracking-wide text-[#075f58] ring-1 ring-[#d6eeeb]">
+                        {initials}
+                      </div>
 
-                  <div className="border-b border-gray-100 p-4">
-                    <p className="text-sm font-medium text-gray-900">
-                      {
-                        employeeName
-                      }
-                    </p>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-gray-900">
+                          {
+                            employeeName
+                          }
+                        </p>
 
-                    <p className="mt-1 text-xs text-gray-500">
-                      {
-                        user?.email
-                      }
-                    </p>
+                        <p className="mt-1 truncate text-xs text-gray-500">
+                          {
+                            user?.email ||
+                            "No email available"
+                          }
+                        </p>
 
+                        {profile?.role && (
+                          <span className="mt-2.5 inline-flex rounded-full bg-[#e8f5f4] px-2.5 py-1 text-[11px] font-medium text-[#075f58]">
+                            {
+                              employeeRole
+                            }
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+
+                  {/* Profile details */}
+                  <div className="space-y-3 px-5 py-4">
                     {profile?.designation && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        {
+                      <ProfileDetail
+                        label="Designation"
+                        value={
                           profile.designation
                         }
-                      </p>
+                      />
                     )}
 
                     {profile?.department && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        {
+                      <ProfileDetail
+                        label="Department"
+                        value={
                           profile.department
                         }
-                      </p>
+                      />
                     )}
 
-                    {profile?.role && (
-                      <div className="mt-3">
-                        <span className="ds-chip ds-chip-sm">
-                          {formatRole(
-                            profile.role
-                          )}
-                        </span>
-                      </div>
+                    {!profile?.designation &&
+                      !profile?.department && (
+                      <p className="text-xs leading-5 text-gray-500">
+                        Your role and account information are shown above.
+                      </p>
                     )}
                   </div>
 
-                  <div className="p-2">
+
+                  {/* Sign out */}
+                  <div className="border-t border-gray-100 p-2.5">
                     <button
                       type="button"
-                      onClick={
-                        handleLogout
+                      role="menuitem"
+                      onClick={() =>
+                        void handleLogout()
                       }
-                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
                     >
-                      <DesignSystemIcon
-                        size="sm"
-                        tone="error"
-                      >
-                        <LogOut />
-                      </DesignSystemIcon>
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50">
+                        <LogOut className="h-4 w-4" />
+                      </div>
+
                       <span>
                         Sign Out
                       </span>
                     </button>
                   </div>
-                </DesignSystemCard>
+                </div>
               </>
             )}
           </div>
@@ -622,83 +781,145 @@ export function TopNavBar() {
   );
 }
 
+
+function ProfileDetail({
+  label,
+  value,
+}: {
+  label:
+    string;
+
+  value:
+    string;
+}) {
+  return (
+    <div className="grid grid-cols-[92px_minmax(0,1fr)] gap-3">
+      <p className="text-[11px] font-medium uppercase tracking-[0.1em] text-gray-400">
+        {label}
+      </p>
+
+      <p className="min-w-0 break-words text-sm leading-5 text-gray-700">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+
 function NotificationIcon({
   type,
 }: {
-  type: string;
+  type:
+    string;
 }) {
   const base =
-    "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full";
+    "flex h-9 w-9 shrink-0 items-center justify-center rounded-full";
 
-  switch (type) {
+  switch (
+    type
+  ) {
     case "approved":
     case "final_approved":
       return (
-        <div className={`${base} bg-green-50`}>
-          <DesignSystemIcon
-            size="sm"
-            tone="success"
-          >
-            <CircleCheck />
-          </DesignSystemIcon>
+        <div
+          className={`${base} bg-green-50 text-green-700`}
+        >
+          <CircleCheck className="h-4 w-4" />
         </div>
       );
 
     case "rejected":
       return (
-        <div className={`${base} bg-red-50`}>
-          <DesignSystemIcon
-            size="sm"
-            tone="error"
-          >
-            <CircleX />
-          </DesignSystemIcon>
+        <div
+          className={`${base} bg-red-50 text-red-600`}
+        >
+          <CircleX className="h-4 w-4" />
         </div>
       );
 
     case "changes_requested":
       return (
-        <div className={`${base} bg-amber-50`}>
-          <DesignSystemIcon
-            size="sm"
-            tone="warning"
-          >
-            <MessageSquareWarning />
-          </DesignSystemIcon>
+        <div
+          className={`${base} bg-amber-50 text-amber-700`}
+        >
+          <MessageSquareWarning className="h-4 w-4" />
         </div>
       );
 
     case "review_required":
       return (
-        <div className={`${base} bg-blue-50`}>
-          <DesignSystemIcon
-            size="sm"
-            tone="info"
-          >
-            <Clock3 />
-          </DesignSystemIcon>
+        <div
+          className={`${base} bg-blue-50 text-blue-700`}
+        >
+          <Clock3 className="h-4 w-4" />
         </div>
       );
 
     default:
       return (
-        <div className={`${base} bg-[var(--ds-surface-muted)]`}>
-          <DesignSystemIcon
-            size="sm"
-            tone="secondary"
-          >
-            <Bell />
-          </DesignSystemIcon>
+        <div
+          className={`${base} bg-gray-100 text-gray-600`}
+        >
+          <Bell className="h-4 w-4" />
         </div>
       );
   }
 }
 
 
-function formatRole(
-  role: string
+function getInitials(
+  value:
+    string
 ) {
-  switch (role) {
+  const cleaned =
+    value
+      .trim()
+      .replace(
+        /@.*$/,
+        ""
+      );
+
+  const parts =
+    cleaned
+      .split(
+        /[\s._-]+/
+      )
+      .filter(
+        Boolean
+      );
+
+  if (
+    parts.length ===
+    0
+  ) {
+    return "U";
+  }
+
+  if (
+    parts.length ===
+    1
+  ) {
+    return parts[
+      0
+    ]
+      .slice(
+        0,
+        2
+      )
+      .toUpperCase();
+  }
+
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
+
+function formatRole(
+  role:
+    string
+) {
+  switch (
+    role
+  ) {
     case "creator":
       return "Creator";
 
