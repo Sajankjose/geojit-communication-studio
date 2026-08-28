@@ -1,5 +1,6 @@
 import {
   ArrowLeft,
+  ArrowRight,
   Check,
   FileText,
   Mail,
@@ -22,12 +23,6 @@ import {
 import {
   TopNavBar,
 } from "../components/TopNavBar";
-
-import {
-  DesignSystemButton,
-  DesignSystemCard,
-  DesignSystemIcon,
-} from "../design-system";
 
 import {
   getGuidedChannelOutputs,
@@ -62,30 +57,24 @@ const VARIANT_HELPERS:
   Record<
     CommunicationVariant,
     {
-      title:
-        string;
-
-      helper:
-        string;
+      title: string;
+      helper: string;
     }
   > = {
     A: {
-      title:
-        "Balanced",
+      title: "Balanced",
       helper:
         "Clear and well-rounded.",
     },
 
     B: {
-      title:
-        "Concise",
+      title: "Concise",
       helper:
         "Shorter and more direct.",
     },
 
     C: {
-      title:
-        "Explanatory",
+      title: "Explanatory",
       helper:
         "Adds more context and reassurance.",
     },
@@ -258,17 +247,21 @@ export function GuidedChannelPreview() {
       ]
     );
 
-  const allSelected =
-    availableChannels.length >
-      0 &&
-    availableChannels.every(
+  const selectedCount =
+    availableChannels.filter(
       (channel) =>
         Boolean(
           selections[
             channel
           ]
         )
-    );
+    ).length;
+
+  const allSelected =
+    availableChannels.length >
+      0 &&
+    selectedCount ===
+      availableChannels.length;
 
   function handleBack() {
     if (!communicationId) {
@@ -377,307 +370,406 @@ export function GuidedChannelPreview() {
 
   if (loading) {
     return (
-      <div className="ds-page">
+      <div className="min-h-screen bg-background">
         <TopNavBar />
 
         <main className="mx-auto flex min-h-[70vh] max-w-4xl items-center justify-center px-6">
-          <p className="ds-body-sm">
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            <RefreshCw className="h-4 w-4 animate-spin text-[#07877B]" />
             Loading channel options...
-          </p>
+          </div>
         </main>
       </div>
     );
   }
 
   return (
-    <div className="ds-page">
+    <div className="min-h-screen bg-background">
       <TopNavBar />
 
-      <main className="mx-auto max-w-7xl px-6 py-10">
-
-        <DesignSystemButton
-          variant="tertiary"
-          size="medium"
+      <main className="mx-auto max-w-7xl px-6 py-10 sm:py-12">
+        <button
+          type="button"
           onClick={
             handleBack
           }
-          leadingIcon={
-            <DesignSystemIcon
-              size="sm"
-              tone="action"
-            >
-              <ArrowLeft />
-            </DesignSystemIcon>
-          }
-          className="mb-6 px-0"
+          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B]"
         >
+          <ArrowLeft className="h-4 w-4" />
           Back
-        </DesignSystemButton>
+        </button>
 
-        <div className="mb-8">
-          <div className="mb-2 flex items-center gap-2">
-            <DesignSystemIcon
-              size="md"
-              tone="action"
-            >
-              <Sparkles />
-            </DesignSystemIcon>
+        <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="mb-3 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#07877B]" />
 
-            <p className="ds-label-3 text-[var(--ds-text-brand)]">
-              Channel Preview
+              <p className="text-sm font-medium text-[#07877B]">
+                Channel Preview
+              </p>
+            </div>
+
+            <h1 className="text-3xl text-gray-900">
+              Choose the best version for each channel
+            </h1>
+
+            <p className="mt-3 text-sm leading-7 text-gray-600">
+              The core message stays consistent.
+              Compare the channel-specific options
+              and choose one version for each channel
+              before preparing the approval package.
             </p>
           </div>
 
-          <h1 className="ds-title-2">
-            Choose the best version for each channel
-          </h1>
+          {outputs.length > 0 && (
+            <div className="flex items-center gap-3 lg:pb-1">
+              <div
+                className={`flex h-9 w-9 items-center justify-center rounded-full ${
+                  allSelected
+                    ? "bg-[#07877B] text-white"
+                    : "bg-[#e8f5f4] text-[#07877B]"
+                }`}
+              >
+                {allSelected ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <span className="text-sm font-semibold">
+                    {selectedCount}
+                  </span>
+                )}
+              </div>
 
-          <p className="ds-body-sm mt-3 max-w-3xl leading-7">
-            The core meaning stays the same.
-            Compare the channel-specific
-            variants and choose the version
-            that communicates it best.
-          </p>
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  {selectedCount} of{" "}
+                  {availableChannels.length} selected
+                </p>
+
+                <p className="mt-0.5 text-xs text-gray-500">
+                  {allSelected
+                    ? "Ready to continue"
+                    : "One selection is required per channel"}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (
-          <div className="ds-alert ds-alert-error mb-6 text-sm">
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             {error}
           </div>
         )}
 
         {outputs.length ===
           0 ? (
-          <DesignSystemCard className="p-10 text-center">
-            <div className="ds-icon-container mx-auto mb-4 h-12 w-12">
-              <DesignSystemIcon
-                size="lg"
-                tone="secondary"
-              >
-                <RefreshCw />
-              </DesignSystemIcon>
+          <div className="rounded-2xl border border-gray-200 bg-white px-6 py-14 text-center">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-gray-100">
+              <RefreshCw className="h-5 w-5 text-gray-500" />
             </div>
 
-            <h2 className="ds-title-4">
+            <h2 className="mt-4 text-lg font-medium text-gray-900">
               No channel outputs found
             </h2>
 
-            <p className="ds-body-sm mt-2">
-              Return to Communication Master
-              and generate the channel options
-              first.
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
+              Return to Communication Master and
+              generate the channel options first.
             </p>
-          </DesignSystemCard>
+          </div>
         ) : (
           <>
-            <div className="mb-6 flex flex-wrap gap-2">
-              {availableChannels.map(
-                (channel) => {
-                  const active =
-                    channel ===
-                    activeChannel;
+            <section className="mb-7 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+              <div className="border-b border-gray-200 px-5 py-4 sm:px-6">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-gray-400">
+                  Channels
+                </p>
+              </div>
 
-                  const selected =
-                    selections[
-                      channel
-                    ];
-
-                  return (
-                    <button
-                      key={
-                        channel
-                      }
-                      type="button"
-                      onClick={() =>
-                        setActiveChannel(
-                          channel
-                        )
-                      }
-                      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all ${
-                        active
-                          ? "border-[var(--ds-brand-primary)] bg-[var(--ds-brand-primary)] text-[var(--ds-text-inverse)]"
-                          : "border-[var(--ds-border-subtle)] bg-[var(--ds-surface-card)] text-[var(--ds-text-primary)] hover:border-[var(--ds-border-interactive)] hover:bg-[var(--ds-surface-interactive-hover)]"
-                      }`}
-                    >
-                      <ChannelIcon
-                        channel={
-                          channel
-                        }
-                      />
-
-                      {formatChannel(
-                        channel
-                      )}
-
-                      {selected && (
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs ${
-                            active
-                              ? "bg-white/20 text-white"
-                              : "bg-[var(--ds-success-soft)] text-[var(--ds-success)]"
-                          }`}
-                        >
-                          {selected} selected
-                        </span>
-                      )}
-                    </button>
-                  );
-                }
-              )}
-            </div>
-
-            {activeChannel && (
-              <div className="grid gap-5 lg:grid-cols-3">
-                {activeOutputs.map(
-                  (output) => {
-                    const variantInfo =
-                      VARIANT_HELPERS[
-                        output.variant
-                      ];
+              <div className="grid sm:grid-cols-3">
+                {availableChannels.map(
+                  (channel, index) => {
+                    const active =
+                      channel ===
+                      activeChannel;
 
                     const selected =
                       selections[
-                        output.channel
-                      ] ===
-                      output.variant;
+                        channel
+                      ];
 
                     return (
-                      <DesignSystemCard
+                      <button
                         key={
-                          output.id
+                          channel
                         }
-                        surface={
-                          selected
-                            ? "selected"
-                            : "default"
+                        type="button"
+                        onClick={() =>
+                          setActiveChannel(
+                            channel
+                          )
                         }
-                        className="flex min-h-[560px] flex-col overflow-hidden"
+                        className={`flex items-center justify-between gap-4 px-5 py-4 text-left transition-colors sm:px-6 ${
+                          index > 0
+                            ? "border-t border-gray-200 sm:border-l sm:border-t-0"
+                            : ""
+                        } ${
+                          active
+                            ? "bg-[#f3fbfa]"
+                            : "bg-white hover:bg-gray-50"
+                        }`}
                       >
-                        <div className="border-b border-[var(--ds-border-subtle)] px-5 py-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="ds-label-3 text-[var(--ds-text-brand)]">
-                                Variant {output.variant}
-                              </p>
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                              active
+                                ? "bg-[#dff2ef] text-[#07877B]"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            <ChannelIcon
+                              channel={
+                                channel
+                              }
+                            />
+                          </div>
 
-                              <h2 className="ds-title-4 mt-1">
-                                {
-                                  variantInfo.title
-                                }
-                              </h2>
+                          <div className="min-w-0">
+                            <p
+                              className={`text-sm font-medium ${
+                                active
+                                  ? "text-[#075f58]"
+                                  : "text-gray-900"
+                              }`}
+                            >
+                              {formatChannel(
+                                channel
+                              )}
+                            </p>
 
-                              <p className="ds-body-xs mt-1">
-                                {
-                                  variantInfo.helper
-                                }
-                              </p>
-                            </div>
-
-                            {selected && (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--ds-brand-primary)]">
-                                <DesignSystemIcon
-                                  size="sm"
-                                  tone="onDark"
-                                >
-                                  <Check />
-                                </DesignSystemIcon>
-                              </div>
-                            )}
+                            <p className="mt-0.5 text-xs text-gray-500">
+                              {selected
+                                ? `Variant ${selected} selected`
+                                : "Select a variant"}
+                            </p>
                           </div>
                         </div>
 
-                        <div className="flex-1 overflow-auto bg-[var(--ds-surface-muted)] p-4">
-                          <div className="mx-auto max-w-xl rounded-xl border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-card)] p-5">
+                        <div
+                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
+                            selected
+                              ? "border-[#07877B] bg-[#07877B]"
+                              : active
+                                ? "border-[#9bcfc9] bg-white"
+                                : "border-gray-300 bg-white"
+                          }`}
+                        >
+                          {selected && (
+                            <Check className="h-3.5 w-3.5 text-white" />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+            </section>
+
+            {activeChannel && (
+              <section>
+                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#07877B]">
+                      {formatChannel(
+                        activeChannel
+                      )}
+                    </p>
+
+                    <h2 className="mt-1 text-xl text-gray-900">
+                      Compare variants
+                    </h2>
+                  </div>
+
+                  <p className="text-sm text-gray-500">
+                    Choose the version that works best for this channel.
+                  </p>
+                </div>
+
+                <div className="grid gap-5 lg:grid-cols-3">
+                  {activeOutputs.map(
+                    (output) => {
+                      const variantInfo =
+                        VARIANT_HELPERS[
+                          output.variant
+                        ];
+
+                      const selected =
+                        selections[
+                          output.channel
+                        ] ===
+                        output.variant;
+
+                      return (
+                        <article
+                          key={
+                            output.id
+                          }
+                          className={`flex min-h-[520px] flex-col overflow-hidden rounded-2xl border bg-white transition-all ${
+                            selected
+                              ? "border-[#07877B] shadow-[0_0_0_3px_rgba(7,135,123,0.08)]"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <div className="px-5 pb-4 pt-5 sm:px-6">
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-medium uppercase tracking-[0.14em] text-[#07877B]">
+                                    Variant {output.variant}
+                                  </span>
+
+                                  {selected && (
+                                    <span className="rounded-full bg-[#e8f5f4] px-2 py-0.5 text-[11px] font-medium text-[#075f58]">
+                                      Selected
+                                    </span>
+                                  )}
+                                </div>
+
+                                <h3 className="mt-2 text-lg font-medium text-gray-900">
+                                  {
+                                    variantInfo.title
+                                  }
+                                </h3>
+
+                                <p className="mt-1 text-xs leading-5 text-gray-500">
+                                  {
+                                    variantInfo.helper
+                                  }
+                                </p>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  selectVariant(
+                                    output.channel,
+                                    output.variant
+                                  )
+                                }
+                                aria-label={`Select Variant ${output.variant}`}
+                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                                  selected
+                                    ? "border-[#07877B] bg-[#07877B]"
+                                    : "border-gray-300 bg-white hover:border-[#07877B]"
+                                }`}
+                              >
+                                {selected && (
+                                  <Check className="h-4 w-4 text-white" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="mx-5 border-t border-gray-100 sm:mx-6" />
+
+                          <div className="flex-1 px-5 py-5 sm:px-6">
                             <ChannelContentPreview
                               output={
                                 output
                               }
                             />
                           </div>
-                        </div>
 
-                        <div className="border-t border-[var(--ds-border-subtle)] bg-[var(--ds-surface-card)] p-4">
-                          <DesignSystemButton
-                            variant={
-                              selected
-                                ? "secondary"
-                                : "primary"
-                            }
-                            size="medium"
-                            fullWidth
-                            onClick={() =>
-                              selectVariant(
-                                output.channel,
-                                output.variant
-                              )
-                            }
-                            leadingIcon={
-                              selected ? (
-                                <DesignSystemIcon
-                                  size="sm"
-                                  tone="action"
-                                >
-                                  <Check />
-                                </DesignSystemIcon>
-                              ) : undefined
-                            }
-                          >
-                            {selected
-                              ? "Selected"
-                              : `Choose Variant ${output.variant}`}
-                          </DesignSystemButton>
-                        </div>
-                      </DesignSystemCard>
-                    );
-                  }
-                )}
-              </div>
+                          <div className="border-t border-gray-100 px-5 py-4 sm:px-6">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                selectVariant(
+                                  output.channel,
+                                  output.variant
+                                )
+                              }
+                              className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+                                selected
+                                  ? "bg-[#07877B] text-white"
+                                  : "border border-[#9bcfc9] bg-white text-[#075f58] hover:bg-[#f3fbfa]"
+                              }`}
+                            >
+                              {selected
+                                ? "Selected"
+                                : `Choose Variant ${output.variant}`}
+                            </button>
+                          </div>
+                        </article>
+                      );
+                    }
+                  )}
+                </div>
+              </section>
             )}
 
-            <DesignSystemCard className="mt-8 p-6">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-9 border-t border-gray-200 pt-6">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <p className="ds-body-sm font-medium">
-                    Channel selection
+                  <p className="text-sm font-medium text-gray-900">
+                    Your channel selections
                   </p>
 
-                  <p className="ds-body-sm mt-1">
-                    Choose one variant for
-                    every selected channel
-                    before continuing.
-                  </p>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
                     {availableChannels.map(
-                      (channel) => (
-                        <span
-                          key={
+                      (channel) => {
+                        const selection =
+                          selections[
                             channel
-                          }
-                          className={`rounded-full px-3 py-1 text-xs font-medium ${
-                            selections[
+                          ];
+
+                        return (
+                          <div
+                            key={
                               channel
-                            ]
-                              ? "bg-[var(--ds-success-soft)] text-[var(--ds-success)]"
-                              : "bg-[var(--ds-surface-muted)] text-[var(--ds-text-tertiary)]"
-                          }`}
-                        >
-                          {formatChannel(
-                            channel
-                          )}:{" "}
-                          {selections[
-                            channel
-                          ] ||
-                            "Not selected"}
-                        </span>
-                      )
+                            }
+                            className="flex items-center gap-2 text-sm"
+                          >
+                            <div
+                              className={`flex h-5 w-5 items-center justify-center rounded-full ${
+                                selection
+                                  ? "bg-[#e8f5f4] text-[#07877B]"
+                                  : "bg-gray-100 text-gray-400"
+                              }`}
+                            >
+                              {selection ? (
+                                <Check className="h-3 w-3" />
+                              ) : (
+                                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                              )}
+                            </div>
+
+                            <span className="text-gray-600">
+                              {formatChannel(
+                                channel
+                              )}
+                            </span>
+
+                            <span
+                              className={`font-medium ${
+                                selection
+                                  ? "text-gray-900"
+                                  : "text-gray-400"
+                              }`}
+                            >
+                              {selection
+                                ? `Variant ${selection}`
+                                : "Not selected"}
+                            </span>
+                          </div>
+                        );
+                      }
                     )}
                   </div>
                 </div>
 
-                <DesignSystemButton
-                  variant="primary"
-                  size="large"
+                <button
+                  type="button"
                   onClick={() =>
                     void handleSaveSelections()
                   }
@@ -685,26 +777,32 @@ export function GuidedChannelPreview() {
                     !allSelected ||
                     saving
                   }
-                  loading={
-                    saving
-                  }
-                  loadingLabel="Saving..."
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-7 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  Save Channel Selections
-                </DesignSystemButton>
+                  {saving ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      Continue to Approval Package
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
               </div>
 
               {savedMessage && (
-                <div className="ds-alert ds-alert-success mt-5 text-sm">
+                <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
                   {
                     savedMessage
                   }
                 </div>
               )}
-            </DesignSystemCard>
+            </div>
           </>
         )}
-
       </main>
     </div>
   );
@@ -727,27 +825,29 @@ function ChannelContentPreview({
 
     return (
       <div>
-        <PreviewMeta
-          label="Subject"
-          value={
-            content.subject
-          }
-        />
+        <div className="space-y-3 rounded-xl bg-gray-50 px-4 py-3">
+          <PreviewMeta
+            label="Subject"
+            value={
+              content.subject
+            }
+          />
 
-        <PreviewMeta
-          label="Preheader"
-          value={
-            content.preheader
-          }
-        />
+          <PreviewMeta
+            label="Preheader"
+            value={
+              content.preheader
+            }
+          />
+        </div>
 
-        <h3 className="mt-6 text-xl font-semibold leading-7 text-[var(--ds-text-primary)]">
+        <h4 className="mt-5 text-xl font-semibold leading-7 text-gray-900">
           {
             content.headline
           }
-        </h3>
+        </h4>
 
-        <p className="mt-4 text-sm leading-7 text-[var(--ds-text-secondary)]">
+        <p className="mt-4 text-sm leading-7 text-gray-700">
           {
             content.opening
           }
@@ -765,14 +865,14 @@ function ChannelContentPreview({
               className="mt-5"
             >
               {section.heading && (
-                <h4 className="text-sm font-semibold text-[var(--ds-text-primary)]">
+                <h5 className="text-sm font-semibold text-gray-900">
                   {
                     section.heading
                   }
-                </h4>
+                </h5>
               )}
 
-              <p className="mt-1 text-sm leading-7 text-[var(--ds-text-secondary)]">
+              <p className="mt-1 text-sm leading-7 text-gray-700">
                 {
                   section.content
                 }
@@ -789,7 +889,7 @@ function ChannelContentPreview({
 
         {content.cta && (
           <div className="mt-5">
-            <span className="inline-flex rounded-lg bg-[var(--ds-brand-primary)] px-4 py-2 text-sm font-medium text-[var(--ds-text-inverse)]">
+            <span className="inline-flex rounded-lg bg-[#07877B] px-4 py-2 text-sm font-medium text-white">
               {
                 content.cta.label
               }
@@ -816,34 +916,38 @@ function ChannelContentPreview({
 
     return (
       <div>
-        <div className="mx-auto max-w-sm rounded-2xl bg-[#eaf7e8] p-4">
-          {content.headline && (
-            <h3 className="text-sm font-semibold text-[var(--ds-text-primary)]">
+        <div className="rounded-2xl bg-[#f3f4f6] p-3">
+          <div className="ml-auto max-w-[92%] rounded-2xl rounded-tr-md bg-[#e7f6e4] px-4 py-3 shadow-sm">
+            {content.headline && (
+              <h4 className="text-sm font-semibold text-gray-900">
+                {
+                  content.headline
+                }
+              </h4>
+            )}
+
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-800">
               {
-                content.headline
-              }
-            </h3>
-          )}
-
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--ds-text-primary)]">
-            {
-              content.message
-            }
-          </p>
-
-          <SimplePoints
-            points={
-              content.keyPoints
-            }
-          />
-
-          {content.cta && (
-            <p className="mt-4 text-sm font-medium text-[var(--ds-text-brand)]">
-              {
-                content.cta.label
+                content.message
               }
             </p>
-          )}
+
+            <SimplePoints
+              points={
+                content.keyPoints
+              }
+            />
+
+            {content.cta && (
+              <div className="mt-4 border-t border-[#cce8c8] pt-3">
+                <p className="text-center text-sm font-medium text-[#075f58]">
+                  {
+                    content.cta.label
+                  }
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
         <MandatoryNotes
@@ -861,25 +965,25 @@ function ChannelContentPreview({
 
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-brand)]">
+      <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#07877B]">
         Leaflet concept
       </p>
 
-      <h3 className="mt-3 text-2xl font-semibold leading-8 text-[var(--ds-text-primary)]">
+      <h4 className="mt-3 text-2xl font-semibold leading-8 text-gray-900">
         {
           content.headline
         }
-      </h3>
+      </h4>
 
       {content.subheadline && (
-        <p className="mt-2 text-base leading-6 text-[var(--ds-text-secondary)]">
+        <p className="mt-2 text-base leading-6 text-gray-600">
           {
             content.subheadline
           }
         </p>
       )}
 
-      <p className="mt-5 text-sm leading-7 text-[var(--ds-text-secondary)]">
+      <p className="mt-5 text-sm leading-7 text-gray-700">
         {
           content.intro
         }
@@ -895,15 +999,15 @@ function ChannelContentPreview({
               key={
                 `${point.title}-${index}`
               }
-              className="rounded-lg border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-muted)] p-3"
+              className="border-l-2 border-[#bfe4df] pl-3"
             >
-              <p className="text-sm font-semibold text-[var(--ds-text-primary)]">
+              <p className="text-sm font-semibold text-gray-900">
                 {
                   point.title
                 }
               </p>
 
-              <p className="mt-1 text-xs leading-5 text-[var(--ds-text-secondary)]">
+              <p className="mt-1 text-xs leading-5 text-gray-600">
                 {
                   point.description
                 }
@@ -914,7 +1018,7 @@ function ChannelContentPreview({
       </div>
 
       {content.cta && (
-        <div className="mt-5 rounded-lg bg-[var(--ds-brand-primary)] px-4 py-3 text-[var(--ds-text-inverse)]">
+        <div className="mt-5 rounded-lg bg-[#07877B] px-4 py-3 text-white">
           <p className="text-sm font-medium">
             {
               content.cta.label
@@ -922,7 +1026,7 @@ function ChannelContentPreview({
           </p>
 
           {content.cta.supportingText && (
-            <p className="mt-1 text-xs text-white/80">
+            <p className="mt-1 text-xs leading-5 text-white/80">
               {
                 content.cta.supportingText
               }
@@ -932,12 +1036,12 @@ function ChannelContentPreview({
       )}
 
       {content.visualDirection && (
-        <div className="mt-5 border-t border-dashed border-[var(--ds-border-default)] pt-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-tertiary)]">
+        <div className="mt-5 rounded-lg bg-gray-50 px-4 py-3">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-gray-400">
             Visual direction
           </p>
 
-          <p className="mt-1 text-xs leading-5 text-[var(--ds-text-secondary)]">
+          <p className="mt-1 text-xs leading-5 text-gray-600">
             {
               content.visualDirection
             }
@@ -966,12 +1070,12 @@ function PreviewMeta({
     string;
 }) {
   return (
-    <div className="mb-3">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--ds-text-tertiary)]">
+    <div>
+      <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-gray-400">
         {label}
       </p>
 
-      <p className="mt-1 text-sm leading-6 text-[var(--ds-text-secondary)]">
+      <p className="mt-1 text-sm leading-6 text-gray-700">
         {value}
       </p>
     </div>
@@ -1003,9 +1107,9 @@ function SimplePoints({
             key={
               `${point}-${index}`
             }
-            className="flex gap-2 text-sm leading-6 text-[var(--ds-text-secondary)]"
+            className="flex gap-2 text-sm leading-6 text-gray-700"
           >
-            <span className="text-[var(--ds-text-brand)]">
+            <span className="mt-[1px] text-[#07877B]">
               •
             </span>
 
@@ -1034,7 +1138,7 @@ function MandatoryNotes({
   }
 
   return (
-    <div className="mt-6 border-t border-[var(--ds-border-subtle)] pt-4">
+    <div className="mt-6 border-t border-gray-200 pt-4">
       {notes.map(
         (
           note,
@@ -1044,7 +1148,7 @@ function MandatoryNotes({
             key={
               `${note}-${index}`
             }
-            className="mt-1 text-[11px] leading-5 text-[var(--ds-text-tertiary)]"
+            className="mt-1 text-[11px] leading-5 text-gray-500"
           >
             {note}
           </p>
