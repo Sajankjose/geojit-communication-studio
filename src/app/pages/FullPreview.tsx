@@ -1,28 +1,65 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
 import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  useNavigate,
+  useSearchParams,
+} from "react-router";
+
+import {
+  AlertCircle,
   ArrowLeft,
+  ArrowRight,
+  Check,
   CheckCircle2,
   Copy,
   Download,
+  Eye,
   FileText,
+  Loader2,
   Lock,
   MessageSquareText,
   Monitor,
   RotateCcw,
+  ShieldAlert,
+  ShieldCheck,
   Smartphone,
+  Sparkles,
   Tag,
   Users,
   XCircle,
 } from "lucide-react";
 
-import { TopNavBar } from "../components/TopNavBar";
-import { CategoryTag } from "../components/CategoryTag";
-import { useAuth } from "../auth/useAuth";
-import { StatusBadge } from "../components/StatusBadge";
-import { EmailPreview } from "../components/EmailPreview";
-import { CommunicationStateBar } from "../components/CommunicationStateBar";
-import { ProgressStepper } from "../components/ProgressStepper";
+import {
+  TopNavBar,
+} from "../components/TopNavBar";
+
+import {
+  CategoryTag,
+} from "../components/CategoryTag";
+
+import {
+  useAuth,
+} from "../auth/useAuth";
+
+import {
+  StatusBadge,
+} from "../components/StatusBadge";
+
+import {
+  EmailPreview,
+} from "../components/EmailPreview";
+
+import {
+  CommunicationStateBar,
+} from "../components/CommunicationStateBar";
+
+import {
+  ProgressStepper,
+} from "../components/ProgressStepper";
 
 import {
   getCommunicationById,
@@ -38,12 +75,13 @@ import {
 } from "../services/reviews";
 
 import {
-  assertCommunicationExportAllowed,
-} from "../services/communicationExports";
+  supabase,
+} from "../../lib/supabase";
 
-import { supabase } from "../../lib/supabase";
+import {
+  renderEmailHtml,
+} from "../email/renderEmailHtml";
 
-import { renderEmailHtml } from "../email/renderEmailHtml";
 
 type Category =
   | "research"
@@ -53,114 +91,218 @@ type Category =
   | "regulatory"
   | "onboarding";
 
+
 type ReviewerRole =
   | "marketing_reviewer"
   | "corpcom_reviewer";
+
 
 type ReviewDecision =
   | "approved"
   | "changes_requested"
   | "rejected";
 
+
+interface VariantSection {
+  type:
+    | "text"
+    | "bullets"
+    | "snapshot"
+    | "highlight"
+    | "steps"
+    | "timeline"
+    | "note";
+
+  title?:
+    string;
+
+  content?:
+    string;
+
+  items?:
+    Array<
+      | string
+      | {
+          label:
+            string;
+
+          value:
+            string;
+        }
+    >;
+}
+
+
 interface VariantContentData {
-  variant_key?: string;
-  variant_name?: string;
-  strategy?: string;
+  variant_key?:
+    string;
+
+  variant_name?:
+    string;
+
+  strategy?:
+    string;
+
   hero?: {
-    eyebrow?: string;
-    title?: string;
-    subtitle?: string;
+    eyebrow?:
+      string;
+
+    title?:
+      string;
+
+    subtitle?:
+      string;
   };
+
   body?: {
-    intro?: string;
-    sections?: Array<{
-      type:
-        | "text"
-        | "bullets"
-        | "snapshot"
-        | "highlight"
-        | "steps"
-        | "timeline"
-        | "note";
-      title?: string;
-      content?: string;
-      items?: Array<
-        | string
-        | {
-            label: string;
-            value: string;
-          }
-      >;
-    }>;
-    closing?: string;
+    intro?:
+      string;
+
+    sections?:
+      VariantSection[];
+
+    closing?:
+      string;
   };
+
   cta?: {
-    enabled?: boolean;
-    label?: string;
-    url?: string;
+    enabled?:
+      boolean;
+
+    label?:
+      string;
+
+    url?:
+      string;
   };
+
   disclaimer?: {
-    required?: boolean;
-    type?: string;
-    text?: string;
+    required?:
+      boolean;
+
+    type?:
+      string;
+
+    text?:
+      string;
   };
+
   compliance?: {
-    status?: string;
-    flags?: string[];
-    notes?: string[];
+    status?:
+      string;
+
+    flags?:
+      string[];
+
+    notes?:
+      string[];
   };
 }
+
 
 interface StoredVariant {
-  id: string;
-  communication_id: string;
-  ai_run_id: string | null;
-  variant_key: "A" | "B" | "C";
-  variant_name: string;
-  subject_lines: string[];
-  preheader: string | null;
-  content_data: VariantContentData | null;
+  id:
+    string;
+
+  communication_id:
+    string;
+
+  ai_run_id:
+    string | null;
+
+  variant_key:
+    "A"
+    | "B"
+    | "C";
+
+  variant_name:
+    string;
+
+  subject_lines:
+    string[];
+
+  preheader:
+    string | null;
+
+  content_data:
+    VariantContentData | null;
+
   cta_data: {
-    enabled?: boolean;
-    label?: string;
-    url?: string;
+    enabled?:
+      boolean;
+
+    label?:
+      string;
+
+    url?:
+      string;
   } | null;
+
   compliance_data: {
-    status?: string;
-    flags?: string[];
-    notes?: string[];
+    status?:
+      string;
+
+    flags?:
+      string[];
+
+    notes?:
+      string[];
   } | null;
-  is_selected: boolean;
+
+  is_selected:
+    boolean;
 }
 
+
 export function FullPreview() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const navigate =
+    useNavigate();
+
+  const [searchParams] =
+    useSearchParams();
 
   const {
     profile,
-  } = useAuth();
+  } =
+    useAuth();
 
   const communicationId =
-    searchParams.get("communicationId");
+    searchParams.get(
+      "communicationId"
+    );
 
   const variantId =
-    searchParams.get("variantId");
+    searchParams.get(
+      "variantId"
+    );
 
   const urlCategory =
-    searchParams.get("category") as Category | null;
+    searchParams.get(
+      "category"
+    ) as
+      | Category
+      | null;
+
+  const mode =
+    searchParams.get(
+      "mode"
+    );
 
   const isReviewMode =
-    searchParams.get("mode") === "review";
+    mode ===
+    "review";
 
   const isRevisionMode =
-    searchParams.get("mode") === "revision";
+    mode ===
+    "revision";
 
   const isCreator =
-    profile?.role === "creator";
+    profile?.role ===
+    "creator";
 
   const isAdmin =
-    profile?.role === "admin";
+    profile?.role ===
+    "admin";
 
   const reviewerRole =
     (
@@ -169,12 +311,27 @@ export function FullPreview() {
       profile?.role ===
         "corpcom_reviewer"
     )
-      ? (profile.role as ReviewerRole)
+      ? (
+          profile.role as
+            ReviewerRole
+        )
       : null;
 
-  const [category, setCategory] =
+  /**
+   * Only Creator can edit the communication.
+   * Reviewer + Admin access remains read-only.
+   */
+  const canEdit =
+    isCreator &&
+    !isReviewMode;
+
+  const [
+    category,
+    setCategory,
+  ] =
     useState<Category>(
-      urlCategory || "research"
+      urlCategory ||
+      "research"
     );
 
   const [
@@ -186,58 +343,78 @@ export function FullPreview() {
     );
 
   const [
-    communicationStatus,
-    setCommunicationStatus,
-  ] = useState("");
-
-  const [
     subcategory,
     setSubcategory,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     audience,
     setAudience,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     variant,
     setVariant,
   ] =
-    useState<StoredVariant | null>(
+    useState<
+      StoredVariant | null
+    >(
       null
     );
 
   const [
     subject,
     setSubject,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     preheader,
     setPreheader,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     ctaText,
     setCtaText,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     ctaUrl,
     setCtaUrl,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     ctaEnabled,
     setCtaEnabled,
-  ] = useState(false);
+  ] =
+    useState(
+      false
+    );
 
   const [
     editableContentData,
     setEditableContentData,
   ] =
-    useState<VariantContentData | null>(
+    useState<
+      VariantContentData | null
+    >(
       null
     );
 
@@ -246,34 +423,51 @@ export function FullPreview() {
     setViewMode,
   ] =
     useState<
-      "desktop" |
-      "mobile"
-    >("desktop");
+      "desktop"
+      | "mobile"
+    >(
+      "desktop"
+    );
 
   const [
     loading,
     setLoading,
-  ] = useState(true);
+  ] =
+    useState(
+      true
+    );
 
   const [
     saving,
     setSaving,
-  ] = useState(false);
+  ] =
+    useState(
+      false
+    );
 
   const [
     error,
     setError,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     savedMessage,
     setSavedMessage,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     previewDirty,
     setPreviewDirty,
-  ] = useState(false);
+  ] =
+    useState(
+      false
+    );
 
   const [
     approvalActionId,
@@ -281,12 +475,17 @@ export function FullPreview() {
   ] =
     useState<
       string | null
-    >(null);
+    >(
+      null
+    );
 
   const [
     reviewComments,
     setReviewComments,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     pendingDecision,
@@ -296,53 +495,26 @@ export function FullPreview() {
       | "changes_requested"
       | "rejected"
       | null
-    >(null);
+    >(
+      null
+    );
 
   const [
     decisionError,
     setDecisionError,
-  ] = useState("");
+  ] =
+    useState(
+      ""
+    );
 
   const [
     decisionSaving,
     setDecisionSaving,
-  ] = useState(false);
-
-  /**
-   * Creator editing is allowed only before submission,
-   * or when a reviewer has explicitly returned the
-   * communication for changes.
-   *
-   * Once the communication enters approval, the creator
-   * sees a read-only preview.
-   */
-  const creatorEditableStatuses = [
-    "draft",
-    "input_ready",
-    "generating",
-    "variants_ready",
-    "variant_selected",
-    "preview_ready",
-    "changes_requested",
-  ];
-
-  const canEdit =
-    isCreator &&
-    !isReviewMode &&
-    creatorEditableStatuses.includes(
-      communicationStatus
+  ] =
+    useState(
+      false
     );
 
-  /**
-   * Final HTML export is intentionally stricter than preview.
-   *
-   * Only the Creator can copy/download HTML, and only after
-   * CorpCom has completed final approval.
-   */
-  const canExportHtml =
-    isCreator &&
-    communicationStatus ===
-      "approved";
 
   useEffect(() => {
     if (
@@ -386,22 +558,17 @@ export function FullPreview() {
 
         setCommunicationTitle(
           communication.title ||
-            "New Communication"
-        );
-
-        setCommunicationStatus(
-          communication.status ||
-            ""
+          "New Communication"
         );
 
         setSubcategory(
           communication.subcategory ||
-            ""
+          ""
         );
 
         setAudience(
           communication.audience ||
-            ""
+          ""
         );
 
         const resolvedCategory =
@@ -418,9 +585,8 @@ export function FullPreview() {
         }
 
         /**
-         * Avoid .single() coercion errors.
-         * variant ID should be unique, but a missing / inaccessible
-         * row should become a controlled app error.
+         * Avoid .single() coercion failures so inaccessible
+         * variants become a controlled app message.
          */
         const {
           data:
@@ -455,7 +621,9 @@ export function FullPreview() {
               "communication_id",
               communicationId!
             )
-            .limit(1)
+            .limit(
+              1
+            )
             .maybeSingle();
 
         if (
@@ -481,7 +649,8 @@ export function FullPreview() {
         }
 
         const loadedVariant =
-          variantRow as StoredVariant;
+          variantRow as
+            StoredVariant;
 
         setVariant(
           loadedVariant
@@ -497,13 +666,15 @@ export function FullPreview() {
 
         setSubject(
           loadedVariant
-            .subject_lines?.[0] ||
-            ""
+            .subject_lines?.[
+              0
+            ] ||
+          ""
         );
 
         setPreheader(
           loadedVariant.preheader ||
-            ""
+          ""
         );
 
         const cta =
@@ -521,12 +692,12 @@ export function FullPreview() {
 
         setCtaText(
           cta.label ||
-            ""
+          ""
         );
 
         setCtaUrl(
           cta.url ||
-            ""
+          ""
         );
 
         if (
@@ -535,7 +706,7 @@ export function FullPreview() {
         ) {
           const stage =
             reviewerRole ===
-            "marketing_reviewer"
+              "marketing_reviewer"
               ? "marketing_review"
               : "corpcom_review";
 
@@ -574,7 +745,9 @@ export function FullPreview() {
                     false,
                 }
               )
-              .limit(1)
+              .limit(
+                1
+              )
               .maybeSingle();
 
           if (
@@ -587,15 +760,17 @@ export function FullPreview() {
 
           setApprovalActionId(
             approvalRow?.id ||
-              null
+            null
           );
 
           setReviewComments(
             approvalRow?.comments ||
-              ""
+            ""
           );
         }
-      } catch (err) {
+      } catch (
+        err
+      ) {
         if (
           cancelled
         ) {
@@ -623,7 +798,7 @@ export function FullPreview() {
       }
     }
 
-    loadPreview();
+    void loadPreview();
 
     return () => {
       cancelled =
@@ -636,8 +811,11 @@ export function FullPreview() {
     reviewerRole,
   ]);
 
+
   async function savePreviewEdits() {
-    if (!canEdit) {
+    if (
+      !canEdit
+    ) {
       throw new Error(
         "You do not have permission to edit this communication."
       );
@@ -658,8 +836,12 @@ export function FullPreview() {
       ...(
         variant.subject_lines ||
         []
-      ).slice(1),
-    ].filter(Boolean);
+      ).slice(
+        1
+      ),
+    ].filter(
+      Boolean
+    );
 
     const nextCta = {
       enabled:
@@ -727,7 +909,8 @@ export function FullPreview() {
 
     if (
       !updatedVariants ||
-      updatedVariants.length === 0
+      updatedVariants.length ===
+        0
     ) {
       throw new Error(
         "Variant could not be updated. You may not have permission to edit it in the current workflow stage."
@@ -735,7 +918,9 @@ export function FullPreview() {
     }
 
     setVariant(
-      (current) =>
+      (
+        current
+      ) =>
         current
           ? {
               ...current,
@@ -783,8 +968,11 @@ export function FullPreview() {
     }
   }
 
+
   async function handleSave() {
-    if (!canEdit) {
+    if (
+      !canEdit
+    ) {
       return;
     }
 
@@ -806,7 +994,9 @@ export function FullPreview() {
       setSavedMessage(
         "Preview changes saved."
       );
-    } catch (err) {
+    } catch (
+      err
+    ) {
       console.error(
         "Unable to save preview edits:",
         err
@@ -823,6 +1013,7 @@ export function FullPreview() {
       );
     }
   }
+
 
   function buildCurrentEmailHtml() {
     return renderEmailHtml({
@@ -862,18 +1053,8 @@ export function FullPreview() {
     });
   }
 
+
   async function handleCopyHtml() {
-    if (
-      !communicationId ||
-      !canExportHtml
-    ) {
-      setError(
-        "HTML export will be available after final CorpCom approval."
-      );
-
-      return;
-    }
-
     try {
       setError(
         ""
@@ -881,15 +1062,6 @@ export function FullPreview() {
 
       setSavedMessage(
         ""
-      );
-
-      /**
-       * Re-check the workflow state on Supabase immediately
-       * before export. The disabled button is only the UI layer;
-       * this RPC is the governance layer.
-       */
-      await assertCommunicationExportAllowed(
-        communicationId
       );
 
       const html =
@@ -902,34 +1074,24 @@ export function FullPreview() {
         );
 
       setSavedMessage(
-        "Approved email HTML copied to clipboard."
+        "Email HTML copied to clipboard."
       );
-    } catch (err) {
+    } catch (
+      err
+    ) {
       console.error(
         "Unable to copy HTML:",
         err
       );
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to copy HTML. Please try again."
+        "Unable to copy HTML. Please try again."
       );
     }
   }
 
-  async function handleDownloadHtml() {
-    if (
-      !communicationId ||
-      !canExportHtml
-    ) {
-      setError(
-        "HTML export will be available after final CorpCom approval."
-      );
 
-      return;
-    }
-
+  function handleDownloadHtml() {
     try {
       setError(
         ""
@@ -939,20 +1101,14 @@ export function FullPreview() {
         ""
       );
 
-      /**
-       * Final server-side permission check immediately
-       * before the HTML leaves Communication Studio.
-       */
-      await assertCommunicationExportAllowed(
-        communicationId
-      );
-
       const html =
         buildCurrentEmailHtml();
 
       const blob =
         new Blob(
-          [html],
+          [
+            html,
+          ],
           {
             type:
               "text/html;charset=utf-8",
@@ -975,7 +1131,7 @@ export function FullPreview() {
       anchor.download =
         `${slugify(
           communicationTitle ||
-            "geojit-communication"
+          "geojit-communication"
         )}.html`;
 
       document.body.appendChild(
@@ -991,21 +1147,22 @@ export function FullPreview() {
       );
 
       setSavedMessage(
-        "Approved email HTML downloaded."
+        "Email HTML downloaded."
       );
-    } catch (err) {
+    } catch (
+      err
+    ) {
       console.error(
         "Unable to download HTML:",
         err
       );
 
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to download HTML. Please try again."
+        "Unable to download HTML. Please try again."
       );
     }
   }
+
 
   async function handleSubmit() {
     if (
@@ -1036,7 +1193,9 @@ export function FullPreview() {
           category
         )}`
       );
-    } catch (err) {
+    } catch (
+      err
+    ) {
       console.error(
         "Unable to prepare approval submission:",
         err
@@ -1053,6 +1212,7 @@ export function FullPreview() {
       );
     }
   }
+
 
   async function handleReviewerDecision(
     decision:
@@ -1116,7 +1276,9 @@ export function FullPreview() {
             true,
         }
       );
-    } catch (err) {
+    } catch (
+      err
+    ) {
       console.error(
         "Unable to save reviewer decision:",
         err
@@ -1134,6 +1296,7 @@ export function FullPreview() {
     }
   }
 
+
   function beginReviewerDecision(
     decision:
       | "changes_requested"
@@ -1148,6 +1311,7 @@ export function FullPreview() {
     );
   }
 
+
   function cancelReviewerDecision() {
     setPendingDecision(
       null
@@ -1157,6 +1321,7 @@ export function FullPreview() {
       ""
     );
   }
+
 
   function handleBack() {
     if (
@@ -1179,10 +1344,6 @@ export function FullPreview() {
       return;
     }
 
-    /**
-     * Admin / non-Creator views should return to
-     * dashboard instead of entering Creator variant flow.
-     */
     if (
       !isCreator
     ) {
@@ -1202,44 +1363,36 @@ export function FullPreview() {
     );
   }
 
-  if (
-    loading
-  ) {
-    return (
-      <div className="min-h-screen bg-background">
-        <TopNavBar />
 
-        <div className="flex min-h-[70vh] items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#07877B]" />
+  const liveContentData =
+    useMemo(
+      () => ({
+        ...(
+          editableContentData ||
+          variant?.content_data ||
+          {}
+        ),
 
-            <p className="text-sm text-gray-600">
-              Loading selected variant...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+        cta: {
+          enabled:
+            ctaEnabled,
 
-  const liveContentData = {
-    ...(
-      editableContentData ||
-      variant?.content_data ||
-      {}
-    ),
+          label:
+            ctaText,
 
-    cta: {
-      enabled:
+          url:
+            ctaUrl,
+        },
+      }),
+      [
+        editableContentData,
+        variant,
         ctaEnabled,
-
-      label:
         ctaText,
-
-      url:
         ctaUrl,
-    },
-  };
+      ]
+    );
+
 
   const disclaimer =
     liveContentData.disclaimer;
@@ -1247,6 +1400,30 @@ export function FullPreview() {
   const compliance =
     liveContentData.compliance ||
     variant?.compliance_data;
+
+  const complianceSummary =
+    resolveCompliance(
+      compliance
+    );
+
+
+  if (
+    loading
+  ) {
+    return (
+      <div className="min-h-screen bg-background">
+        <TopNavBar />
+
+        <main className="mx-auto flex min-h-[72vh] max-w-3xl items-center justify-center px-6">
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            <Loader2 className="h-4 w-4 animate-spin text-[#07877B]" />
+            Loading selected communication...
+          </div>
+        </main>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -1260,8 +1437,12 @@ export function FullPreview() {
           category
         }
         status="preview-ready"
-        currentStep={5}
-        totalSteps={5}
+        currentStep={
+          5
+        }
+        totalSteps={
+          5
+        }
         onSaveDraft={
           canEdit
             ? handleSave
@@ -1270,16 +1451,44 @@ export function FullPreview() {
       />
 
       <ProgressStepper
-        currentStep={5}
+        currentStep={
+          5
+        }
       />
 
-      <main className="mx-auto max-w-7xl px-8 py-8">
-        <div className="mb-8 flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <div className="mb-2 flex flex-wrap items-center gap-3">
-              <h1 className="text-2xl text-gray-900">
-                Full Preview
-              </h1>
+      <main className="mx-auto max-w-7xl px-6 py-9 sm:px-8 sm:py-10">
+        <button
+          type="button"
+          onClick={
+            handleBack
+          }
+          disabled={
+            saving ||
+            decisionSaving
+          }
+          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B] disabled:opacity-50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {isReviewMode
+            ? "Back to Review Queue"
+            : isCreator
+              ? "Back to Variants"
+              : "Back to Dashboard"}
+        </button>
+
+
+        <header className="mb-7 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#07877B]" />
+
+              <p className="text-sm font-medium text-[#07877B]">
+                {isReviewMode
+                  ? "Communication Review"
+                  : isRevisionMode
+                    ? "Revise Communication"
+                    : "Full Preview"}
+              </p>
 
               <CategoryTag
                 category={
@@ -1288,285 +1497,172 @@ export function FullPreview() {
               />
 
               <StatusBadge
-                status={
-                  mapCommunicationStatusForBadge(
-                    communicationStatus
-                  )
-                }
+                status="preview-ready"
               />
             </div>
 
-            {isReviewMode ? (
-              <div className="mt-3 rounded-lg border border-[#b3d9d5] bg-[#f3fbfa] px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-[#07877B]" />
+            <h1 className="text-3xl text-gray-900">
+              {communicationTitle}
+            </h1>
 
-                  <span className="text-sm font-medium text-[#07877B]">
-                    Review Mode
-                  </span>
-                </div>
-
-                <p className="mt-1 text-sm text-gray-600">
-                  You are viewing the communication submitted for approval. Record your decision below or return to the Review Queue.
-                </p>
-              </div>
-            ) : isAdmin ? (
-              <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-blue-700" />
-
-                  <span className="text-sm font-medium text-blue-800">
-                    Admin View — Read Only
-                  </span>
-                </div>
-
-                <p className="mt-1 text-sm leading-6 text-blue-700">
-                  Administrators can inspect communications but cannot edit copy or submit approval decisions.
-                </p>
-              </div>
-            ) : isRevisionMode &&
-              isCreator ? (
-              <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <RotateCcw className="h-4 w-4 text-amber-700" />
-
-                  <span className="text-sm font-medium text-amber-800">
-                    Revision Mode
-                  </span>
-                </div>
-
-                <p className="mt-1 text-sm leading-6 text-amber-700">
-                  A reviewer has requested changes. Update the communication, save your changes, then resubmit it for Marketing review.
-                </p>
-              </div>
-            ) : isCreator &&
-              communicationStatus ===
-                "approved" ? (
-              <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-700" />
-
-                  <span className="text-sm font-medium text-green-800">
-                    Final CorpCom Approval Complete
-                  </span>
-                </div>
-
-                <p className="mt-1 text-sm leading-6 text-green-700">
-                  This is the approved final communication. Editing is locked and final HTML export is now available to the creator.
-                </p>
-              </div>
-            ) : isCreator &&
-              isApprovalWorkflowStatus(
-                communicationStatus
-              ) ? (
-              <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                <div className="flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-gray-600" />
-
-                  <span className="text-sm font-medium text-gray-800">
-                    Approval in Progress
-                  </span>
-                </div>
-
-                <p className="mt-1 text-sm leading-6 text-gray-600">
-                  The submitted communication is locked while it moves through Marketing and CorpCom approval. HTML export will be available only after final approval.
-                </p>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Review the selected AI-generated communication before submission.
-              </p>
-            )}
-
-            {variant && (
-              <p className="mt-1 text-xs text-gray-500">
-                Variant{" "}
-                {
-                  variant.variant_key
-                }{" "}
-                —{" "}
-                {
-                  variant.variant_name
-                }
-              </p>
-            )}
+            <p className="mt-3 text-sm leading-7 text-gray-600">
+              {isReviewMode
+                ? "Review the exact communication submitted by the Creator. This preview is read-only; record the review decision in the panel beside it."
+                : isRevisionMode
+                  ? "Review the requested changes, refine the selected communication and save it before resubmitting it into the approval workflow."
+                  : "Review the selected communication as the customer will receive it. Refine only the editable copy; layout, brand styling and governed fields remain controlled."}
+            </p>
           </div>
 
-          <div className="flex w-fit gap-2 rounded-lg border border-gray-200 bg-white p-1">
-            <button
-              type="button"
-              onClick={() =>
-                setViewMode(
-                  "desktop"
-                )
-              }
-              className={`flex items-center gap-2 rounded px-4 py-2 text-sm transition-all ${
-                viewMode ===
-                "desktop"
-                  ? "bg-[#07877B] text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <Monitor className="h-4 w-4" />
-              Desktop
-            </button>
 
-            <button
-              type="button"
-              onClick={() =>
-                setViewMode(
-                  "mobile"
-                )
+          <div className="flex flex-wrap items-center gap-3">
+            <ModePill
+              isReviewMode={
+                isReviewMode
               }
-              className={`flex items-center gap-2 rounded px-4 py-2 text-sm transition-all ${
-                viewMode ===
-                "mobile"
-                  ? "bg-[#07877B] text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <Smartphone className="h-4 w-4" />
-              Mobile
-            </button>
+              isRevisionMode={
+                isRevisionMode
+              }
+              isAdmin={
+                isAdmin
+              }
+              canEdit={
+                canEdit
+              }
+            />
+
+            <ViewToggle
+              value={
+                viewMode
+              }
+              onChange={
+                setViewMode
+              }
+            />
           </div>
-        </div>
+        </header>
+
 
         {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             {error}
           </div>
         )}
 
+
         {savedMessage && (
-          <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            {
-              savedMessage
-            }
+          <div className="mb-6 rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-700">
+            {savedMessage}
           </div>
         )}
 
-        <div className="grid gap-8 lg:grid-cols-[1fr,380px]">
-          <div
-            className={
-              viewMode ===
-              "mobile"
-                ? "mx-auto w-full max-w-[375px]"
-                : ""
-            }
-          >
-            <EmailPreview
-              category={
-                category
-              }
-              subject={
-                subject
-              }
-              preheader={
-                preheader
-              }
-              contentData={
-                liveContentData
-              }
-              cta={{
-                enabled:
-                  ctaEnabled,
 
-                label:
-                  ctaText,
+        {!variant ? (
+          <section className="rounded-2xl border border-gray-200 bg-white px-6 py-14 text-center">
+            <AlertCircle className="mx-auto h-6 w-6 text-gray-400" />
 
-                url:
-                  ctaUrl,
-              }}
-            />
-          </div>
+            <h2 className="mt-3 text-lg font-medium text-gray-900">
+              Preview unavailable
+            </h2>
 
-          <div className="space-y-6">
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-sm font-medium text-gray-900">
-                Communication Metadata
-              </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              The selected communication option could not be loaded.
+            </p>
+          </section>
+        ) : (
+          <div className="grid gap-7 xl:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="min-w-0">
+              <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+                <div className="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-medium uppercase tracking-[0.14em] text-[#07877B]">
+                        Variant {variant.variant_key}
+                      </span>
 
-              <div className="space-y-4">
-                <MetadataRow
-                  icon={
-                    Tag
-                  }
-                  label="Category"
-                  value={
-                    getCategoryLabel(
-                      category
-                    )
-                  }
-                />
+                      <span className="text-xs text-gray-400">
+                        {variant.variant_name}
+                      </span>
+                    </div>
 
-                <MetadataRow
-                  icon={
-                    FileText
-                  }
-                  label="Subcategory"
-                  value={
-                    subcategory ||
-                    "—"
-                  }
-                />
+                    <p className="mt-1 text-sm text-gray-600">
+                      Customer-facing email preview
+                    </p>
+                  </div>
 
-                <MetadataRow
-                  icon={
-                    Users
-                  }
-                  label="Audience"
-                  value={
-                    audience ||
-                    "—"
-                  }
-                />
-
-                <MetadataRow
-                  icon={
-                    Users
-                  }
-                  label="Variant"
-                  value={
-                    variant
-                      ? `${variant.variant_key} — ${variant.variant_name}`
-                      : "—"
-                  }
-                />
-
-                <MetadataRow
-                  icon={
-                    Lock
-                  }
-                  label="Sensitivity"
-                  value={
-                    category ===
-                    "regulatory"
-                      ? "High — Compliance Required"
-                      : "Standard"
-                  }
-                />
-              </div>
-            </div>
-
-            {canEdit && (
-              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-                <div className="mb-5 flex items-center justify-between">
-                  <h2>
-                    Editable Fields
-                  </h2>
-
-                  <span className="text-xs text-gray-500">
-                    Live preview
-                  </span>
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <Eye className="h-3.5 w-3.5" />
+                    {viewMode ===
+                    "desktop"
+                      ? "Desktop preview"
+                      : "Mobile preview"}
+                  </div>
                 </div>
 
-                <div className="space-y-4">
-                  <EditableField
-                    label="Subject Line"
-                    value={
+
+                <div className="bg-gray-50/60 p-4 sm:p-6">
+                  <div
+                    className={
+                      viewMode ===
+                        "mobile"
+                        ? "mx-auto w-full max-w-[375px]"
+                        : "mx-auto w-full"
+                    }
+                  >
+                    <EmailPreview
+                      category={
+                        category
+                      }
+                      subject={
+                        subject
+                      }
+                      preheader={
+                        preheader
+                      }
+                      contentData={
+                        liveContentData
+                      }
+                      cta={{
+                        enabled:
+                          ctaEnabled,
+
+                        label:
+                          ctaText,
+
+                        url:
+                          ctaUrl,
+                      }}
+                    />
+                  </div>
+                </div>
+              </section>
+
+
+              {canEdit && (
+                <div className="mt-6 space-y-6">
+                  <EditableHeaderFields
+                    subject={
                       subject
                     }
-                    onChange={(
+                    preheader={
+                      preheader
+                    }
+                    ctaEnabled={
+                      ctaEnabled
+                    }
+                    ctaText={
+                      ctaText
+                    }
+                    ctaUrl={
+                      ctaUrl
+                    }
+                    saving={
+                      saving
+                    }
+                    dirty={
+                      previewDirty
+                    }
+                    onSubjectChange={(
                       value
                     ) => {
                       setSubject(
@@ -1576,15 +1672,12 @@ export function FullPreview() {
                       setPreviewDirty(
                         true
                       );
-                    }}
-                  />
 
-                  <EditableField
-                    label="Preheader"
-                    value={
-                      preheader
-                    }
-                    onChange={(
+                      setSavedMessage(
+                        ""
+                      );
+                    }}
+                    onPreheaderChange={(
                       value
                     ) => {
                       setPreheader(
@@ -1594,48 +1687,27 @@ export function FullPreview() {
                       setPreviewDirty(
                         true
                       );
+
+                      setSavedMessage(
+                        ""
+                      );
                     }}
-                  />
+                    onCtaEnabledChange={(
+                      value
+                    ) => {
+                      setCtaEnabled(
+                        value
+                      );
 
-                  <div className="flex items-center justify-between rounded-lg border border-gray-200 p-3">
-                    <div>
-                      <p className="text-sm text-gray-700">
-                        CTA Enabled
-                      </p>
+                      setPreviewDirty(
+                        true
+                      );
 
-                      <p className="text-xs text-gray-500">
-                        Show primary action in the email
-                      </p>
-                    </div>
-
-                    <input
-                      type="checkbox"
-                      checked={
-                        ctaEnabled
-                      }
-                      onChange={(
-                        event
-                      ) => {
-                        setCtaEnabled(
-                          event
-                            .target
-                            .checked
-                        );
-
-                        setPreviewDirty(
-                          true
-                        );
-                      }}
-                      className="h-4 w-4 accent-[#07877B]"
-                    />
-                  </div>
-
-                  <EditableField
-                    label="CTA Text"
-                    value={
-                      ctaText
-                    }
-                    onChange={(
+                      setSavedMessage(
+                        ""
+                      );
+                    }}
+                    onCtaTextChange={(
                       value
                     ) => {
                       setCtaText(
@@ -1645,19 +1717,12 @@ export function FullPreview() {
                       setPreviewDirty(
                         true
                       );
-                    }}
-                    disabled={
-                      !ctaEnabled
-                    }
-                  />
 
-                  <EditableField
-                    label="CTA URL"
-                    type="url"
-                    value={
-                      ctaUrl
-                    }
-                    onChange={(
+                      setSavedMessage(
+                        ""
+                      );
+                    }}
+                    onCtaUrlChange={(
                       value
                     ) => {
                       setCtaUrl(
@@ -1667,438 +1732,209 @@ export function FullPreview() {
                       setPreviewDirty(
                         true
                       );
+
+                      setSavedMessage(
+                        ""
+                      );
                     }}
-                    disabled={
-                      !ctaEnabled
+                    onSave={() =>
+                      void handleSave()
                     }
                   />
 
-                  <button
-                    type="button"
-                    onClick={
-                      handleSave
+
+                  <BodyContentEditor
+                    contentData={
+                      editableContentData
                     }
-                    disabled={
-                      saving
-                    }
-                    className="w-full rounded-lg border border-[#07877B] px-4 py-2.5 text-sm text-[#07877B] transition-colors hover:bg-[#f3fbfa] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {saving
-                      ? "Saving..."
-                      : "Save Preview Changes"}
-                  </button>
-                </div>
-              </div>
-            )}
+                    onChange={(
+                      nextContentData
+                    ) => {
+                      setEditableContentData(
+                        nextContentData
+                      );
 
-            {canEdit && (
-              <BodyContentEditor
-                contentData={
-                  editableContentData
-                }
-                onChange={(
-                  nextContentData
-                ) => {
-                  setEditableContentData(
-                    nextContentData
-                  );
+                      setPreviewDirty(
+                        true
+                      );
 
-                  setPreviewDirty(
-                    true
-                  );
-
-                  setSavedMessage(
-                    ""
-                  );
-                }}
-              />
-            )}
-
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-6">
-              <div className="mb-4 flex items-center gap-2">
-                <Lock className="h-4 w-4 text-gray-500" />
-
-                <h3 className="text-sm text-gray-700">
-                  Controlled Fields
-                </h3>
-              </div>
-
-              <p className="mb-4 text-xs leading-5 text-muted-foreground">
-                Layout, brand styling and approved disclaimer rules remain controlled by Communication Studio.
-              </p>
-
-              <div className="space-y-3 text-sm">
-                <ControlledRow
-                  label="Layout"
-                  value="Controlled"
-                />
-
-                <ControlledRow
-                  label="Brand styling"
-                  value="Controlled"
-                />
-
-                <ControlledRow
-                  label="Disclaimer"
-                  value={
-                    disclaimer
-                      ?.required
-                      ? `${disclaimer.type || "Required"}`
-                      : "Not required"
-                  }
-                />
-
-                <ControlledRow
-                  label="Compliance"
-                  value={
-                    compliance
-                      ?.status ||
-                    "Not flagged"
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                <div className="mb-4 flex items-start gap-3">
-                  <div
-                    className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full ${
-                      canExportHtml
-                        ? "bg-green-50"
-                        : "bg-gray-100"
-                    }`}
-                  >
-                    {canExportHtml ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Lock className="h-4 w-4 text-gray-500" />
-                    )}
-                  </div>
-
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      Final HTML Export
-                    </p>
-
-                    <p className="mt-1 text-xs leading-5 text-gray-500">
-                      {canExportHtml
-                        ? "Final CorpCom approval is complete. The approved HTML can now be copied or downloaded."
-                        : isCreator
-                          ? "Copy and download will be enabled only after final CorpCom approval."
-                          : "HTML export is reserved for the communication creator after final CorpCom approval."}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <button
-                    type="button"
-                    onClick={
-                      handleCopyHtml
-                    }
-                    disabled={
-                      !canExportHtml
-                    }
-                    title={
-                      canExportHtml
-                        ? "Copy approved HTML"
-                        : "Available after final CorpCom approval"
-                    }
-                    className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm transition-all ${
-                      canExportHtml
-                        ? "border-gray-300 bg-white text-gray-700 hover:border-[#07877B] hover:bg-[#f7fbfa] hover:text-[#07877B]"
-                        : "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
-                    }`}
-                  >
-                    {canExportHtml ? (
-                      <Copy className="h-4 w-4" />
-                    ) : (
-                      <Lock className="h-4 w-4" />
-                    )}
-
-                    Copy HTML
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={
-                      handleDownloadHtml
-                    }
-                    disabled={
-                      !canExportHtml
-                    }
-                    title={
-                      canExportHtml
-                        ? "Download approved HTML"
-                        : "Available after final CorpCom approval"
-                    }
-                    className={`flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm transition-all ${
-                      canExportHtml
-                        ? "border-[#07877B] bg-[#07877B] text-white hover:bg-[#06766a]"
-                        : "cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400"
-                    }`}
-                  >
-                    {canExportHtml ? (
-                      <Download className="h-4 w-4" />
-                    ) : (
-                      <Lock className="h-4 w-4" />
-                    )}
-
-                    Download HTML
-                  </button>
-                </div>
-              </div>
-
-              {isReviewMode ? (
-                <>
-                  {reviewerRole &&
-                  approvalActionId ? (
-                    <div className="rounded-xl border border-gray-200 bg-white p-5">
-                      <div className="mb-4">
-                        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                          Review decision
-                        </p>
-
-                        <p className="mt-1 text-sm text-gray-600">
-                          {reviewerRole ===
-                          "marketing_reviewer"
-                            ? "Approve this copy to send it to CorpCom for final approval."
-                            : "CorpCom is the final approval stage for this communication."}
-                        </p>
-                      </div>
-
-                      {pendingDecision && (
-                        <div className="mb-4">
-                          <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-                            <MessageSquareText className="h-4 w-4" />
-
-                            {pendingDecision ===
-                            "changes_requested"
-                              ? "Changes required"
-                              : "Reason for rejection"}
-                          </label>
-
-                          <textarea
-                            rows={
-                              4
-                            }
-                            value={
-                              reviewComments
-                            }
-                            onChange={(
-                              event
-                            ) => {
-                              setReviewComments(
-                                event
-                                  .target
-                                  .value
-                              );
-
-                              if (
-                                decisionError
-                              ) {
-                                setDecisionError(
-                                  ""
-                                );
-                              }
-                            }}
-                            placeholder={
-                              pendingDecision ===
-                              "changes_requested"
-                                ? "Explain exactly what the creator should change..."
-                                : "Explain why this communication is being rejected..."
-                            }
-                            className={`w-full rounded-lg border px-3 py-3 text-sm focus:outline-none focus:ring-2 ${
-                              decisionError
-                                ? "border-red-300 focus:border-red-400 focus:ring-red-100"
-                                : "border-gray-300 focus:border-[#07877B] focus:ring-[#07877B]/20"
-                            }`}
-                          />
-
-                          {decisionError && (
-                            <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
-                              {
-                                decisionError
-                              }
-                            </div>
-                          )}
-
-                          <div className="mt-3 flex gap-3">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleReviewerDecision(
-                                  pendingDecision
-                                )
-                              }
-                              disabled={
-                                decisionSaving
-                              }
-                              className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
-                                pendingDecision ===
-                                "changes_requested"
-                                  ? "bg-amber-500 text-white hover:bg-amber-600"
-                                  : "bg-red-600 text-white hover:bg-red-700"
-                              }`}
-                            >
-                              {decisionSaving
-                                ? "Saving..."
-                                : pendingDecision ===
-                                    "changes_requested"
-                                  ? "Send Back to Creator"
-                                  : "Confirm Rejection"}
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={
-                                cancelReviewerDecision
-                              }
-                              disabled={
-                                decisionSaving
-                              }
-                              className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {!pendingDecision && (
-                        <div className="space-y-3">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleReviewerDecision(
-                                "approved"
-                              )
-                            }
-                            disabled={
-                              decisionSaving
-                            }
-                            className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-3 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <CheckCircle2 className="h-4 w-4" />
-
-                            {decisionSaving
-                              ? "Saving..."
-                              : reviewerRole ===
-                                  "marketing_reviewer"
-                                ? "Approve & Send to CorpCom"
-                                : "Final Approve"}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              beginReviewerDecision(
-                                "changes_requested"
-                              )
-                            }
-                            disabled={
-                              decisionSaving
-                            }
-                            className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-amber-800 transition-colors hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <RotateCcw className="h-4 w-4" />
-                            Request Changes
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              beginReviewerDecision(
-                                "rejected"
-                              )
-                            }
-                            disabled={
-                              decisionSaving
-                            }
-                            className="flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <XCircle className="h-4 w-4" />
-                            Reject
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                      No pending review action was found for this communication. Return to the Review Queue and refresh the workflow.
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={
-                      handleBack
-                    }
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 transition-all hover:bg-gray-50"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Review Queue
-                  </button>
-                </>
-              ) : canEdit ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={
-                      handleSubmit
-                    }
-                    disabled={
-                      saving
-                    }
-                    className="w-full rounded-lg bg-[#07877B] px-4 py-3 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {saving
-                      ? "Saving..."
-                      : isRevisionMode
-                        ? "Resubmit for Marketing Approval"
-                        : "Submit for Approval"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={
-                      handleBack
-                    }
-                    className="w-full text-center text-sm text-gray-600 transition-colors hover:text-[#07877B]"
-                  >
-                    Back to Variants
-                  </button>
-                </>
-              ) : (
-                <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-600">
-                  {isCreator &&
-                  communicationStatus ===
-                    "approved"
-                    ? "This communication has received final CorpCom approval and is locked against further editing."
-                    : isCreator
-                      ? "This communication is currently in the approval workflow and is read-only until a reviewer requests changes."
-                      : "This preview is read-only for your current role."}
+                      setSavedMessage(
+                        ""
+                      );
+                    }}
+                  />
                 </div>
               )}
             </div>
-          </div>
-        </div>
 
-        <div className="mt-8 flex justify-between border-t border-gray-200 pt-6">
+
+            <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
+              <CommunicationSummary
+                category={
+                  category
+                }
+                subcategory={
+                  subcategory
+                }
+                audience={
+                  audience
+                }
+                variant={
+                  variant
+                }
+              />
+
+
+              <GovernancePanel
+                disclaimer={
+                  disclaimer
+                }
+                complianceSummary={
+                  complianceSummary
+                }
+              />
+
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    void handleCopyHtml()
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy HTML
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    handleDownloadHtml
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  <Download className="h-4 w-4" />
+                  Download
+                </button>
+              </div>
+
+
+              {isReviewMode &&
+              reviewerRole ? (
+                <ReviewerDecisionPanel
+                  reviewerRole={
+                    reviewerRole
+                  }
+                  approvalActionId={
+                    approvalActionId
+                  }
+                  comments={
+                    reviewComments
+                  }
+                  pendingDecision={
+                    pendingDecision
+                  }
+                  decisionError={
+                    decisionError
+                  }
+                  saving={
+                    decisionSaving
+                  }
+                  onCommentsChange={(
+                    value
+                  ) => {
+                    setReviewComments(
+                      value
+                    );
+
+                    if (
+                      decisionError
+                    ) {
+                      setDecisionError(
+                        ""
+                      );
+                    }
+                  }}
+                  onApprove={() =>
+                    void handleReviewerDecision(
+                      "approved"
+                    )
+                  }
+                  onRequestChanges={() =>
+                    beginReviewerDecision(
+                      "changes_requested"
+                    )
+                  }
+                  onReject={() =>
+                    beginReviewerDecision(
+                      "rejected"
+                    )
+                  }
+                  onConfirm={() => {
+                    if (
+                      pendingDecision
+                    ) {
+                      void handleReviewerDecision(
+                        pendingDecision
+                      );
+                    }
+                  }}
+                  onCancel={
+                    cancelReviewerDecision
+                  }
+                  onBack={
+                    handleBack
+                  }
+                />
+              ) : canEdit ? (
+                <CreatorActionPanel
+                  saving={
+                    saving
+                  }
+                  dirty={
+                    previewDirty
+                  }
+                  isRevisionMode={
+                    isRevisionMode
+                  }
+                  onSave={() =>
+                    void handleSave()
+                  }
+                  onContinue={() =>
+                    void handleSubmit()
+                  }
+                />
+              ) : (
+                <ReadOnlyPanel
+                  isAdmin={
+                    isAdmin
+                  }
+                />
+              )}
+            </aside>
+          </div>
+        )}
+
+
+        <div className="mt-8 border-t border-gray-200 pt-6">
           <button
             type="button"
             onClick={
               handleBack
             }
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-gray-700 transition-all hover:bg-gray-50"
+            disabled={
+              saving ||
+              decisionSaving
+            }
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
           >
             <ArrowLeft className="h-4 w-4" />
 
             {isReviewMode
               ? "Back to Review Queue"
               : isCreator
-                ? "Back"
+                ? "Back to Variants"
                 : "Back to Dashboard"}
           </button>
         </div>
@@ -2107,6 +1943,861 @@ export function FullPreview() {
   );
 }
 
+
+function ViewToggle({
+  value,
+  onChange,
+}: {
+  value:
+    "desktop"
+    | "mobile";
+
+  onChange:
+    (
+      value:
+        "desktop"
+        | "mobile"
+    ) => void;
+}) {
+  return (
+    <div className="flex rounded-lg border border-gray-200 bg-white p-1">
+      <button
+        type="button"
+        onClick={() =>
+          onChange(
+            "desktop"
+          )
+        }
+        className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+          value ===
+          "desktop"
+            ? "bg-[#07877B] text-white"
+            : "text-gray-600 hover:bg-gray-50"
+        }`}
+      >
+        <Monitor className="h-3.5 w-3.5" />
+        Desktop
+      </button>
+
+      <button
+        type="button"
+        onClick={() =>
+          onChange(
+            "mobile"
+          )
+        }
+        className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+          value ===
+          "mobile"
+            ? "bg-[#07877B] text-white"
+            : "text-gray-600 hover:bg-gray-50"
+        }`}
+      >
+        <Smartphone className="h-3.5 w-3.5" />
+        Mobile
+      </button>
+    </div>
+  );
+}
+
+
+function ModePill({
+  isReviewMode,
+  isRevisionMode,
+  isAdmin,
+  canEdit,
+}: {
+  isReviewMode:
+    boolean;
+
+  isRevisionMode:
+    boolean;
+
+  isAdmin:
+    boolean;
+
+  canEdit:
+    boolean;
+}) {
+  if (
+    isReviewMode
+  ) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-[#e8f5f4] px-3 py-1.5 text-xs font-medium text-[#075f58]">
+        <Lock className="h-3.5 w-3.5" />
+        Read-only review
+      </span>
+    );
+  }
+
+  if (
+    isRevisionMode
+  ) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+        <RotateCcw className="h-3.5 w-3.5" />
+        Revision mode
+      </span>
+    );
+  }
+
+  if (
+    isAdmin ||
+    !canEdit
+  ) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-600">
+        <Lock className="h-3.5 w-3.5" />
+        Read-only
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full bg-[#e8f5f4] px-3 py-1.5 text-xs font-medium text-[#075f58]">
+      <Check className="h-3.5 w-3.5" />
+      Editable preview
+    </span>
+  );
+}
+
+
+function CommunicationSummary({
+  category,
+  subcategory,
+  audience,
+  variant,
+}: {
+  category:
+    Category;
+
+  subcategory:
+    string;
+
+  audience:
+    string;
+
+  variant:
+    StoredVariant;
+}) {
+  return (
+    <section className="rounded-2xl border border-gray-200 bg-white p-5">
+      <p className="text-sm font-medium text-gray-900">
+        Communication summary
+      </p>
+
+      <div className="mt-4 space-y-4">
+        <MetadataRow
+          icon={
+            Tag
+          }
+          label="Category"
+          value={
+            getCategoryLabel(
+              category
+            )
+          }
+        />
+
+        <MetadataRow
+          icon={
+            FileText
+          }
+          label="Subcategory"
+          value={
+            subcategory ||
+            "—"
+          }
+        />
+
+        <MetadataRow
+          icon={
+            Users
+          }
+          label="Audience"
+          value={
+            audience ||
+            "—"
+          }
+        />
+
+        <MetadataRow
+          icon={
+            Sparkles
+          }
+          label="Selected variant"
+          value={`Variant ${variant.variant_key} · ${variant.variant_name}`}
+        />
+      </div>
+    </section>
+  );
+}
+
+
+function GovernancePanel({
+  disclaimer,
+  complianceSummary,
+}: {
+  disclaimer:
+    VariantContentData["disclaimer"];
+
+  complianceSummary: {
+    label:
+      string;
+
+    detail:
+      string;
+
+    className:
+      string;
+
+    icon:
+      typeof ShieldCheck;
+  };
+}) {
+  const Icon =
+    complianceSummary.icon;
+
+  return (
+    <section className="rounded-2xl border border-[#bfe4df] bg-[#f7fcfb] p-5">
+      <div className="flex items-center gap-2">
+        <ShieldCheck className="h-4 w-4 text-[#07877B]" />
+
+        <p className="text-sm font-medium text-gray-900">
+          Governed fields
+        </p>
+      </div>
+
+      <p className="mt-2 text-xs leading-5 text-gray-500">
+        Layout, brand styling and disclaimer rules remain controlled by Communication Studio.
+      </p>
+
+      <div className="mt-4 space-y-3">
+        <ControlledRow
+          label="Layout"
+          value="Controlled"
+        />
+
+        <ControlledRow
+          label="Brand styling"
+          value="Controlled"
+        />
+
+        <ControlledRow
+          label="Disclaimer"
+          value={
+            disclaimer?.required
+              ? (
+                  disclaimer.type ||
+                  "Required"
+                )
+              : "Not required"
+          }
+        />
+      </div>
+
+      <div className={`mt-4 rounded-xl px-3 py-3 ${complianceSummary.className}`}>
+        <div className="flex items-start gap-2">
+          <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+
+          <div>
+            <p className="text-xs font-medium">
+              {
+                complianceSummary.label
+              }
+            </p>
+
+            <p className="mt-1 text-xs leading-5 opacity-80">
+              {
+                complianceSummary.detail
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+function EditableHeaderFields({
+  subject,
+  preheader,
+  ctaEnabled,
+  ctaText,
+  ctaUrl,
+  saving,
+  dirty,
+  onSubjectChange,
+  onPreheaderChange,
+  onCtaEnabledChange,
+  onCtaTextChange,
+  onCtaUrlChange,
+  onSave,
+}: {
+  subject:
+    string;
+
+  preheader:
+    string;
+
+  ctaEnabled:
+    boolean;
+
+  ctaText:
+    string;
+
+  ctaUrl:
+    string;
+
+  saving:
+    boolean;
+
+  dirty:
+    boolean;
+
+  onSubjectChange:
+    (
+      value:
+        string
+    ) => void;
+
+  onPreheaderChange:
+    (
+      value:
+        string
+    ) => void;
+
+  onCtaEnabledChange:
+    (
+      value:
+        boolean
+    ) => void;
+
+  onCtaTextChange:
+    (
+      value:
+        string
+    ) => void;
+
+  onCtaUrlChange:
+    (
+      value:
+        string
+    ) => void;
+
+  onSave:
+    () => void;
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
+        <div>
+          <h2 className="text-base font-medium text-gray-900">
+            Email details
+          </h2>
+
+          <p className="mt-1 text-xs text-gray-500">
+            These fields update the preview immediately.
+          </p>
+        </div>
+
+        {dirty && (
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+            Unsaved changes
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-4 px-6 py-6">
+        <EditableField
+          label="Subject Line"
+          value={
+            subject
+          }
+          onChange={
+            onSubjectChange
+          }
+        />
+
+        <EditableField
+          label="Preheader"
+          value={
+            preheader
+          }
+          onChange={
+            onPreheaderChange
+          }
+        />
+
+        <div className="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-gray-700">
+              Primary CTA
+            </p>
+
+            <p className="mt-0.5 text-xs text-gray-500">
+              Show the primary action in the email.
+            </p>
+          </div>
+
+          <input
+            type="checkbox"
+            checked={
+              ctaEnabled
+            }
+            onChange={(
+              event
+            ) =>
+              onCtaEnabledChange(
+                event.target.checked
+              )
+            }
+            className="h-4 w-4 accent-[#07877B]"
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <EditableField
+            label="CTA Text"
+            value={
+              ctaText
+            }
+            onChange={
+              onCtaTextChange
+            }
+            disabled={
+              !ctaEnabled
+            }
+          />
+
+          <EditableField
+            label="CTA URL"
+            type="url"
+            value={
+              ctaUrl
+            }
+            onChange={
+              onCtaUrlChange
+            }
+            disabled={
+              !ctaEnabled
+            }
+          />
+        </div>
+
+        <div className="flex justify-end border-t border-gray-100 pt-4">
+          <button
+            type="button"
+            onClick={
+              onSave
+            }
+            disabled={
+              saving ||
+              !dirty
+            }
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#9bcfc9] bg-white px-4 py-2.5 text-sm font-medium text-[#075f58] transition-colors hover:bg-[#f3fbfa] disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Check className="h-4 w-4" />
+                Save Preview Changes
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+function CreatorActionPanel({
+  saving,
+  dirty,
+  isRevisionMode,
+  onSave,
+  onContinue,
+}: {
+  saving:
+    boolean;
+
+  dirty:
+    boolean;
+
+  isRevisionMode:
+    boolean;
+
+  onSave:
+    () => void;
+
+  onContinue:
+    () => void;
+}) {
+  return (
+    <section className="rounded-2xl border border-gray-200 bg-white p-5">
+      <p className="text-sm font-medium text-gray-900">
+        {isRevisionMode
+          ? "Ready to complete the revision?"
+          : "Ready for approval?"}
+      </p>
+
+      <p className="mt-2 text-xs leading-5 text-gray-500">
+        {isRevisionMode
+          ? "Save the requested changes, then continue to the approval checkpoint for resubmission."
+          : "Save any final edits before moving to the approval submission checkpoint."}
+      </p>
+
+      {dirty && (
+        <div className="mt-4 rounded-xl bg-amber-50 px-3 py-3 text-xs text-amber-700">
+          You have unsaved preview changes.
+        </div>
+      )}
+
+      <div className="mt-5 space-y-2">
+        {dirty && (
+          <button
+            type="button"
+            onClick={
+              onSave
+            }
+            disabled={
+              saving
+            }
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#9bcfc9] bg-white px-4 py-2.5 text-sm font-medium text-[#075f58] hover:bg-[#f3fbfa] disabled:opacity-50"
+          >
+            <Check className="h-4 w-4" />
+            Save Changes
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={
+            onContinue
+          }
+          disabled={
+            saving
+          }
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              {isRevisionMode
+                ? "Continue to Resubmission"
+                : "Continue to Approval"}
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+
+function ReviewerDecisionPanel({
+  reviewerRole,
+  approvalActionId,
+  comments,
+  pendingDecision,
+  decisionError,
+  saving,
+  onCommentsChange,
+  onApprove,
+  onRequestChanges,
+  onReject,
+  onConfirm,
+  onCancel,
+  onBack,
+}: {
+  reviewerRole:
+    ReviewerRole;
+
+  approvalActionId:
+    string | null;
+
+  comments:
+    string;
+
+  pendingDecision:
+    | "changes_requested"
+    | "rejected"
+    | null;
+
+  decisionError:
+    string;
+
+  saving:
+    boolean;
+
+  onCommentsChange:
+    (
+      value:
+        string
+    ) => void;
+
+  onApprove:
+    () => void;
+
+  onRequestChanges:
+    () => void;
+
+  onReject:
+    () => void;
+
+  onConfirm:
+    () => void;
+
+  onCancel:
+    () => void;
+
+  onBack:
+    () => void;
+}) {
+  return (
+    <section className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="flex items-center gap-2">
+        <MessageSquareText className="h-4 w-4 text-[#07877B]" />
+
+        <p className="text-sm font-medium text-gray-900">
+          Review decision
+        </p>
+      </div>
+
+      <p className="mt-2 text-xs leading-5 text-gray-500">
+        {reviewerRole ===
+        "marketing_reviewer"
+          ? "Marketing review is the first approval stage. Approval sends the communication to CorpCom."
+          : "CorpCom is the final approval stage for this communication."}
+      </p>
+
+      {!approvalActionId ? (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
+          No pending review action was found for this communication. Return to the Review Queue and refresh the workflow.
+        </div>
+      ) : (
+        <>
+          <div className="mt-5">
+            <label className="mb-2 block text-xs font-medium text-gray-600">
+              Reviewer comment
+            </label>
+
+            <textarea
+              rows={
+                5
+              }
+              value={
+                comments
+              }
+              onChange={(
+                event
+              ) =>
+                onCommentsChange(
+                  event.target.value
+                )
+              }
+              placeholder={
+                pendingDecision ===
+                  "changes_requested"
+                  ? "Explain exactly what needs to be changed..."
+                  : pendingDecision ===
+                      "rejected"
+                    ? "Add the reason for rejection..."
+                    : "Optional comment for this review..."
+              }
+              className="w-full resize-y rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm leading-6 text-gray-900 outline-none transition focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10"
+            />
+          </div>
+
+          {decisionError && (
+            <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-xs text-red-700">
+              {
+                decisionError
+              }
+            </div>
+          )}
+
+          {pendingDecision ? (
+            <div
+              className={`mt-4 rounded-xl border px-4 py-4 ${
+                pendingDecision ===
+                  "changes_requested"
+                  ? "border-amber-200 bg-amber-50"
+                  : "border-red-200 bg-red-50"
+              }`}
+            >
+              <p
+                className={`text-sm font-medium ${
+                  pendingDecision ===
+                    "changes_requested"
+                    ? "text-amber-800"
+                    : "text-red-700"
+                }`}
+              >
+                {pendingDecision ===
+                  "changes_requested"
+                  ? "Send back to Creator?"
+                  : "Reject this communication?"}
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-gray-600">
+                {pendingDecision ===
+                  "changes_requested"
+                  ? "The Creator will receive your comment and can revise the communication before resubmitting."
+                  : "A rejection ends the current approval path for this communication."}
+              </p>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={
+                    onCancel
+                  }
+                  disabled={
+                    saving
+                  }
+                  className="rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    onConfirm
+                  }
+                  disabled={
+                    saving
+                  }
+                  className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-white disabled:opacity-50 ${
+                    pendingDecision ===
+                      "changes_requested"
+                      ? "bg-amber-600 hover:bg-amber-700"
+                      : "bg-red-600 hover:bg-red-700"
+                  }`}
+                >
+                  {saving && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+
+                  {pendingDecision ===
+                    "changes_requested"
+                    ? "Send Back"
+                    : "Confirm Reject"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-4 space-y-2">
+              <button
+                type="button"
+                onClick={
+                  onApprove
+                }
+                disabled={
+                  saving
+                }
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-[#06766a] disabled:opacity-50"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" />
+                )}
+
+                {reviewerRole ===
+                "marketing_reviewer"
+                  ? "Approve & Send to CorpCom"
+                  : "Final Approve"}
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  onRequestChanges
+                }
+                disabled={
+                  saving
+                }
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-amber-300 bg-white px-4 py-2.5 text-sm font-medium text-amber-800 transition-colors hover:bg-amber-50 disabled:opacity-50"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Request Changes
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  onReject
+                }
+                disabled={
+                  saving
+                }
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 disabled:opacity-50"
+              >
+                <XCircle className="h-4 w-4" />
+                Reject
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      <button
+        type="button"
+        onClick={
+          onBack
+        }
+        disabled={
+          saving
+        }
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 border-t border-gray-100 pt-4 text-sm text-gray-600 hover:text-[#07877B] disabled:opacity-50"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Review Queue
+      </button>
+    </section>
+  );
+}
+
+
+function ReadOnlyPanel({
+  isAdmin,
+}: {
+  isAdmin:
+    boolean;
+}) {
+  return (
+    <section className="rounded-2xl border border-gray-200 bg-white p-5">
+      <div className="flex items-center gap-2">
+        <Lock className="h-4 w-4 text-gray-500" />
+
+        <p className="text-sm font-medium text-gray-900">
+          Read-only preview
+        </p>
+      </div>
+
+      <p className="mt-2 text-xs leading-5 text-gray-500">
+        {isAdmin
+          ? "Admin access is for oversight. Admin cannot edit or submit a Creator communication."
+          : "This communication cannot be edited with your current role."}
+      </p>
+    </section>
+  );
+}
+
+
 function BodyContentEditor({
   contentData,
   onChange,
@@ -2114,10 +2805,11 @@ function BodyContentEditor({
   contentData:
     VariantContentData | null;
 
-  onChange: (
-    next:
-      VariantContentData
-  ) => void;
+  onChange:
+    (
+      next:
+        VariantContentData
+    ) => void;
 }) {
   const body =
     contentData?.body ||
@@ -2148,15 +2840,13 @@ function BodyContentEditor({
     });
   }
 
+
   function updateSection(
-    index: number,
+    index:
+      number,
     patch:
       Partial<
-        NonNullable<
-          NonNullable<
-            VariantContentData["body"]
-          >["sections"]
-        >[number]
+        VariantSection
       >
   ) {
     const nextSections =
@@ -2179,6 +2869,7 @@ function BodyContentEditor({
         nextSections,
     });
   }
+
 
   function updateBullet(
     sectionIndex:
@@ -2222,19 +2913,20 @@ function BodyContentEditor({
     );
   }
 
+
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="mb-5">
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="border-b border-gray-100 px-6 py-5">
         <h2 className="text-base font-medium text-gray-900">
-          Email Body Content
+          Email body content
         </h2>
 
         <p className="mt-1 text-xs leading-5 text-gray-500">
-          Edit the generated copy here. Changes update the preview immediately.
+          Refine the generated copy. Every change updates the customer preview above.
         </p>
       </div>
 
-      <div className="space-y-5">
+      <div className="space-y-5 px-6 py-6">
         <EditableTextArea
           label="Introduction"
           value={
@@ -2260,21 +2952,17 @@ function BodyContentEditor({
               key={
                 sectionIndex
               }
-              className="rounded-lg border border-gray-200 bg-gray-50 p-4"
+              className="rounded-xl border border-gray-200 bg-gray-50/60 p-4"
             >
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Section{" "}
-                  {
-                    sectionIndex +
-                    1
-                  }{" "}
-                  ·{" "}
-                  {
-                    section.type
-                  }
-                </p>
-              </div>
+              <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.14em] text-gray-400">
+                Section{" "}
+                {sectionIndex +
+                  1}
+                {" · "}
+                {formatSectionType(
+                  section.type
+                )}
+              </p>
 
               <div className="space-y-3">
                 <EditableField
@@ -2306,8 +2994,8 @@ function BodyContentEditor({
                   section.items
                 ) ? (
                   <div>
-                    <label className="mb-2 block text-sm text-gray-700">
-                      Bullet Points
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                      Points
                     </label>
 
                     <div className="space-y-2">
@@ -2329,7 +3017,7 @@ function BodyContentEditor({
                               }
                               className="flex gap-2"
                             >
-                              <span className="pt-2 text-sm text-[#07877B]">
+                              <span className="pt-2.5 text-sm text-[#07877B]">
                                 •
                               </span>
 
@@ -2346,12 +3034,10 @@ function BodyContentEditor({
                                   updateBullet(
                                     sectionIndex,
                                     bulletIndex,
-                                    event
-                                      .target
-                                      .value
+                                    event.target.value
                                   )
                                 }
-                                className="min-h-[64px] flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
+                                className="min-h-[64px] flex-1 resize-y rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm leading-6 text-gray-900 outline-none transition focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10"
                               />
                             </div>
                           );
@@ -2400,9 +3086,10 @@ function BodyContentEditor({
           }
         />
       </div>
-    </div>
+    </section>
   );
 }
+
 
 function EditableTextArea({
   label,
@@ -2415,14 +3102,15 @@ function EditableTextArea({
   value:
     string;
 
-  onChange: (
-    value:
-      string
-  ) => void;
+  onChange:
+    (
+      value:
+        string
+    ) => void;
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm text-gray-700">
+      <label className="mb-2 block text-sm font-medium text-gray-700">
         {label}
       </label>
 
@@ -2437,23 +3125,24 @@ function EditableTextArea({
           event
         ) =>
           onChange(
-            event
-              .target
-              .value
+            event.target.value
           )
         }
-        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
+        className="w-full resize-y rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm leading-6 text-gray-900 outline-none transition focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10"
       />
     </div>
   );
 }
 
+
 function EditableField({
   label,
   value,
   onChange,
-  type = "text",
-  disabled = false,
+  type =
+    "text",
+  disabled =
+    false,
 }: {
   label:
     string;
@@ -2461,10 +3150,11 @@ function EditableField({
   value:
     string;
 
-  onChange: (
-    value:
-      string
-  ) => void;
+  onChange:
+    (
+      value:
+        string
+    ) => void;
 
   type?:
     string;
@@ -2474,7 +3164,7 @@ function EditableField({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-sm text-gray-700">
+      <label className="mb-2 block text-sm font-medium text-gray-700">
         {label}
       </label>
 
@@ -2492,19 +3182,19 @@ function EditableField({
           event
         ) =>
           onChange(
-            event
-              .target
-              .value
+            event.target.value
           )
         }
-        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm transition-all focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20 disabled:bg-gray-100 disabled:text-gray-400"
+        className="w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none transition focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10 disabled:bg-gray-100 disabled:text-gray-400"
       />
     </div>
   );
 }
 
+
 function MetadataRow({
-  icon: Icon,
+  icon:
+    Icon,
   label,
   value,
 }: {
@@ -2519,24 +3209,23 @@ function MetadataRow({
 }) {
   return (
     <div className="flex items-start gap-3">
-      <Icon className="mt-0.5 h-4 w-4 text-gray-400" />
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gray-100">
+        <Icon className="h-3.5 w-3.5 text-gray-500" />
+      </div>
 
-      <div>
-        <div className="text-xs text-muted-foreground">
-          {
-            label
-          }
-        </div>
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-gray-400">
+          {label}
+        </p>
 
-        <div className="text-sm text-gray-900">
-          {
-            value
-          }
-        </div>
+        <p className="mt-1 text-sm leading-5 text-gray-800">
+          {value}
+        </p>
       </div>
     </div>
   );
 }
+
 
 function ControlledRow({
   label,
@@ -2549,59 +3238,157 @@ function ControlledRow({
     string;
 }) {
   return (
-    <div className="flex justify-between gap-4">
-      <span className="text-muted-foreground">
+    <div className="flex items-start justify-between gap-4 text-xs">
+      <span className="text-gray-500">
         {label}
       </span>
 
-      <span className="text-right text-gray-700">
+      <span className="text-right font-medium text-gray-700">
         {value}
       </span>
     </div>
   );
 }
 
-function isApprovalWorkflowStatus(
-  status: string
+
+function resolveCompliance(
+  compliance:
+    VariantContentData["compliance"] |
+    StoredVariant["compliance_data"]
 ) {
-  return [
-    "pending_approval",
-    "submitted",
-    "marketing_review",
-    "marketing_approved",
-    "corpcom_review",
-  ].includes(
-    status
-  );
+  const status =
+    compliance?.status?.toLowerCase() ||
+    "unknown";
+
+  const flags =
+    compliance?.flags ||
+    [];
+
+  const notes =
+    compliance?.notes ||
+    [];
+
+  const count =
+    new Set([
+      ...flags,
+      ...notes,
+    ]).size;
+
+  if (
+    status ===
+    "pass"
+  ) {
+    return {
+      label:
+        "Governance check passed",
+
+      detail:
+        "No governance issues are currently flagged.",
+
+      className:
+        "bg-green-50 text-green-700",
+
+      icon:
+        CheckCircle2,
+    };
+  }
+
+  if (
+    status ===
+      "fail"
+  ) {
+    return {
+      label:
+        "Governance issue",
+
+      detail:
+        count >
+          0
+          ? `${count} item${count === 1 ? "" : "s"} require review.`
+          : "A governance issue has been flagged.",
+
+      className:
+        "bg-red-50 text-red-700",
+
+      icon:
+        ShieldAlert,
+    };
+  }
+
+  if (
+    status ===
+      "warning" ||
+    count >
+      0
+  ) {
+    return {
+      label:
+        "Review suggested",
+
+      detail:
+        count >
+          0
+          ? `${count} item${count === 1 ? "" : "s"} should be reviewed.`
+          : "A governance warning is present.",
+
+      className:
+        "bg-amber-50 text-amber-700",
+
+      icon:
+        ShieldAlert,
+    };
+  }
+
+  return {
+    label:
+      "Governance status",
+
+    detail:
+      "No additional governance status is available.",
+
+    className:
+      "bg-gray-100 text-gray-600",
+
+    icon:
+      ShieldCheck,
+  };
 }
 
-function mapCommunicationStatusForBadge(
-  status: string
-) {
-  switch (status) {
-    case "draft":
-    case "input_ready":
-    case "generating":
-    case "variants_ready":
-    case "variant_selected":
-    case "preview_ready":
-    case "pending_approval":
-    case "submitted":
-    case "marketing_review":
-    case "marketing_approved":
-    case "corpcom_review":
-    case "changes_requested":
-    case "rejected":
-    case "approved":
-      return status;
 
-    default:
-      return "preview_ready";
+function formatSectionType(
+  type:
+    VariantSection["type"]
+) {
+  switch (
+    type
+  ) {
+    case "text":
+      return "Text";
+
+    case "bullets":
+      return "Key points";
+
+    case "snapshot":
+      return "Snapshot";
+
+    case "highlight":
+      return "Highlight";
+
+    case "steps":
+      return "Steps";
+
+    case "timeline":
+      return "Timeline";
+
+    case "note":
+      return "Note";
   }
 }
 
+
 function slugify(
-  value: string
+  value:
+    string
 ) {
   return (
     value
@@ -2618,6 +3405,7 @@ function slugify(
     "geojit-communication"
   );
 }
+
 
 function getCategoryLabel(
   category:
@@ -2646,10 +3434,12 @@ function getCategoryLabel(
   }
 }
 
+
 function mapDatabaseCategoryToUi(
   value:
     string | null
-): Category | null {
+):
+  Category | null {
   switch (
     value
   ) {
