@@ -1,7 +1,9 @@
 import {
+  ArrowLeft,
   ArrowRight,
+  Check,
+  FileText,
   Sparkles,
-  SlidersHorizontal,
 } from "lucide-react";
 
 import {
@@ -13,10 +15,9 @@ import {
   TopNavBar,
 } from "../components/TopNavBar";
 
-import {
-  DesignSystemCard,
-  DesignSystemIcon,
-} from "../design-system";
+type CreationMode =
+  | "guided"
+  | "expert";
 
 export function CreationModeSelection() {
   const navigate =
@@ -30,145 +31,300 @@ export function CreationModeSelection() {
       "communicationId"
     );
 
-  function handleGuidedCreation() {
-    if (!communicationId) {
-      navigate("/");
-      return;
-    }
-
-    navigate(
-      `/create/guided?communicationId=${encodeURIComponent(
-        communicationId
-      )}`
-    );
+  function handleBack() {
+    navigate("/");
   }
 
-  function handleExpertCreation() {
-    if (!communicationId) {
+  function handleSelect(
+    mode:
+      CreationMode
+  ) {
+    if (
+      !communicationId
+    ) {
       navigate("/");
       return;
     }
 
-    navigate(
-      `/create/category?communicationId=${encodeURIComponent(
+    const communicationParam =
+      `communicationId=${encodeURIComponent(
         communicationId
-      )}`
+      )}`;
+
+    if (
+      mode ===
+      "guided"
+    ) {
+      navigate(
+        `/create/guided?${communicationParam}`
+      );
+
+      return;
+    }
+
+    navigate(
+      `/create/category?${communicationParam}`
     );
   }
 
   return (
-    <div className="ds-page">
+    <div className="min-h-screen bg-background">
       <TopNavBar />
 
-      <main className="mx-auto max-w-5xl px-6 py-12 md:py-16">
+      <main className="mx-auto max-w-5xl px-6 py-10 sm:py-12">
+        <button
+          type="button"
+          onClick={
+            handleBack
+          }
+          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </button>
 
-        <div className="mb-10 text-center">
-          <p className="ds-label-3 mb-2 text-[var(--ds-brand-primary)]">
-            Create Communication
-          </p>
+        <header className="mb-9 max-w-3xl">
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-[#07877B]" />
 
-          <h1 className="ds-title-2">
-            How would you like to create?
+            <p className="text-sm font-medium text-[#07877B]">
+              Create Communication
+            </p>
+          </div>
+
+          <h1 className="text-3xl leading-tight text-gray-900 sm:text-4xl">
+            How would you like to start?
           </h1>
 
-          <p className="ds-body-sm mx-auto mt-3 max-w-2xl">
-            Choose the approach that best matches how you want to work.
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-600">
+            Both paths use the same Geojit governance and approval process.
+            Choose the starting experience that best matches what you already have.
           </p>
-        </div>
+        </header>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        {!communicationId && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+            Communication ID is missing. Please return to the Dashboard and start a new communication.
+          </div>
+        )}
 
-          <button
-            type="button"
-            onClick={
-              handleGuidedCreation
-            }
-            className="group text-left"
-          >
-            <DesignSystemCard className="h-full p-7 transition-all group-hover:-translate-y-0.5 group-hover:border-[var(--ds-brand-primary)] group-hover:shadow-[var(--ds-shadow-raised)] md:p-8">
+        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          <div className="grid lg:grid-cols-2">
+            <ModeOption
+              mode="guided"
+              title="Guided Creation"
+              description="Start with your idea in your own words. Communication Studio helps understand it, shape the brief and adapt it for the channels you need."
+              label="Recommended for most communications"
+              icon={
+                Sparkles
+              }
+              benefits={[
+                "Start from a rough idea or customer insight",
+                "AI helps turn intent into a clear brief",
+                "Create channel-specific Email, WhatsApp and Leaflet options",
+              ]}
+              actionLabel="Start Guided Creation"
+              disabled={
+                !communicationId
+              }
+              onSelect={() =>
+                handleSelect(
+                  "guided"
+                )
+              }
+            />
 
-              <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-[var(--ds-radius-md)] bg-[var(--ds-surface-subtle)]">
-                <DesignSystemIcon
-                  size="lg"
-                  tone="action"
-                >
-                  <Sparkles />
-                </DesignSystemIcon>
-              </div>
+            <ModeOption
+              mode="expert"
+              title="Expert Creation"
+              description="Use the existing structured workflow when you already know the communication category, inputs and content requirements."
+              label="For structured inputs"
+              icon={
+                FileText
+              }
+              benefits={[
+                "Choose the communication category first",
+                "Enter structured, category-specific details",
+                "Continue through the existing variant and preview workflow",
+              ]}
+              actionLabel="Start Expert Creation"
+              disabled={
+                !communicationId
+              }
+              onSelect={() =>
+                handleSelect(
+                  "expert"
+                )
+              }
+              bordered
+            />
+          </div>
+        </section>
 
-              <h2 className="ds-title-3">
-                Guided Creation
-              </h2>
+        <section className="mt-6 rounded-2xl border border-[#bfe4df] bg-[#f7fcfb] px-6 py-5 sm:px-7">
+          <div className="flex items-start gap-4">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e2f3f0] text-[#07877B]">
+              <Check className="h-4 w-4" />
+            </div>
 
-              <p className="ds-body-sm mt-3">
-                Have an idea but not sure how to structure it? AI will help you capture, understand and shape the idea into a clear communication.
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                Different starting points. Same governance.
               </p>
 
-              <div className="ds-button-md mt-8 flex items-center gap-2 text-[var(--ds-brand-primary)]">
-                Start Guided
-
-                <DesignSystemIcon
-                  size="sm"
-                  tone="action"
-                  className="transition-transform group-hover:translate-x-1"
-                >
-                  <ArrowRight />
-                </DesignSystemIcon>
-              </div>
-
-            </DesignSystemCard>
-          </button>
-
-          <button
-            type="button"
-            onClick={
-              handleExpertCreation
-            }
-            className="group text-left"
-          >
-            <DesignSystemCard className="h-full p-7 transition-all group-hover:-translate-y-0.5 group-hover:border-[var(--ds-brand-primary)] group-hover:shadow-[var(--ds-shadow-raised)] md:p-8">
-
-              <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-[var(--ds-radius-md)] bg-[var(--ds-surface-muted)]">
-                <DesignSystemIcon
-                  size="lg"
-                  tone="secondary"
-                >
-                  <SlidersHorizontal />
-                </DesignSystemIcon>
-              </div>
-
-              <h2 className="ds-title-3">
-                Expert Creation
-              </h2>
-
-              <p className="ds-body-sm mt-3">
-                Know exactly what you want to create? Continue with the structured workflow and provide the required communication details directly.
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
+                Whichever path you choose, the communication remains within
+                the same brand, content-quality and approval framework before
+                it can move forward.
               </p>
-
-              <div className="ds-button-md mt-8 flex items-center gap-2 text-[var(--ds-brand-primary)]">
-                Start Expert
-
-                <DesignSystemIcon
-                  size="sm"
-                  tone="action"
-                  className="transition-transform group-hover:translate-x-1"
-                >
-                  <ArrowRight />
-                </DesignSystemIcon>
-              </div>
-
-            </DesignSystemCard>
-          </button>
-
-        </div>
-
-        <div className="mt-8 rounded-[var(--ds-radius-md)] border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-muted)] px-5 py-4">
-          <p className="ds-body-xs text-center">
-            Guided Creation is ideal when you want help expressing the idea. Expert Creation keeps the existing structured workflow unchanged.
-          </p>
-        </div>
-
+            </div>
+          </div>
+        </section>
       </main>
     </div>
+  );
+}
+
+
+function ModeOption({
+  mode,
+  title,
+  description,
+  label,
+  icon:
+    Icon,
+  benefits,
+  actionLabel,
+  onSelect,
+  disabled,
+  bordered = false,
+}: {
+  mode:
+    CreationMode;
+
+  title:
+    string;
+
+  description:
+    string;
+
+  label:
+    string;
+
+  icon:
+    typeof Sparkles;
+
+  benefits:
+    string[];
+
+  actionLabel:
+    string;
+
+  onSelect:
+    () => void;
+
+  disabled:
+    boolean;
+
+  bordered?:
+    boolean;
+}) {
+  const guided =
+    mode ===
+    "guided";
+
+  return (
+    <article
+      className={`flex min-h-[470px] flex-col px-6 py-7 sm:px-8 sm:py-8 ${
+        bordered
+          ? "border-t border-gray-200 lg:border-l lg:border-t-0"
+          : ""
+      } ${
+        guided
+          ? "bg-[#fbfefd]"
+          : "bg-white"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div
+          className={`flex h-11 w-11 items-center justify-center rounded-xl ${
+            guided
+              ? "bg-[#dff2ef] text-[#07877B]"
+              : "bg-gray-100 text-gray-600"
+          }`}
+        >
+          <Icon className="h-5 w-5" />
+        </div>
+
+        <span
+          className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+            guided
+              ? "bg-[#e8f5f4] text-[#075f58]"
+              : "bg-gray-100 text-gray-600"
+          }`}
+        >
+          {label}
+        </span>
+      </div>
+
+      <div className="mt-7">
+        <h2 className="text-2xl text-gray-900">
+          {title}
+        </h2>
+
+        <p className="mt-3 text-sm leading-7 text-gray-600">
+          {description}
+        </p>
+      </div>
+
+      <div className="mt-7 space-y-3">
+        {benefits.map(
+          (
+            benefit
+          ) => (
+            <div
+              key={
+                benefit
+              }
+              className="flex items-start gap-3"
+            >
+              <div
+                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                  guided
+                    ? "bg-[#e8f5f4] text-[#07877B]"
+                    : "bg-gray-100 text-gray-500"
+                }`}
+              >
+                <Check className="h-3 w-3" />
+              </div>
+
+              <p className="text-sm leading-6 text-gray-600">
+                {benefit}
+              </p>
+            </div>
+          )
+        )}
+      </div>
+
+      <div className="mt-auto pt-8">
+        <button
+          type="button"
+          onClick={
+            onSelect
+          }
+          disabled={
+            disabled
+          }
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+            guided
+              ? "bg-[#07877B] text-white shadow-sm hover:bg-[#06766a]"
+              : "border border-gray-300 bg-white text-gray-800 hover:border-[#9bcfc9] hover:bg-[#f3fbfa]"
+          }`}
+        >
+          {actionLabel}
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+    </article>
   );
 }
