@@ -1,31 +1,57 @@
-import { generateCommunication } from "../services/aiGeneration";
-import { ChangeEvent, DragEvent, useEffect, useRef, useState } from "react";
+import {
+  generateCommunication,
+} from "../services/aiGeneration";
+
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+import type {
+  ChangeEvent,
+  DragEvent,
+  ReactNode,
+  RefObject,
+} from "react";
+
 import {
   useNavigate,
   useSearchParams,
 } from "react-router";
 
 import {
-  ArrowLeft,
-  Sparkles,
-  FileText,
-  Upload,
-  Link as LinkIcon,
-  CheckCircle2,
-  FileUp,
-  Trash2,
-  RefreshCw,
   AlertCircle,
-  ShieldCheck,
-  ScanSearch,
-  WandSparkles,
-  PencilLine,
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  CheckCircle2,
   CircleCheckBig,
+  FileText,
+  FileUp,
+  Link as LinkIcon,
+  Loader2,
+  PencilLine,
+  RefreshCw,
+  ScanSearch,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  Upload,
+  WandSparkles,
 } from "lucide-react";
 
-import { TopNavBar } from "../components/TopNavBar";
-import { CommunicationStateBar } from "../components/CommunicationStateBar";
-import { ProgressStepper } from "../components/ProgressStepper";
+import {
+  TopNavBar,
+} from "../components/TopNavBar";
+
+import {
+  CommunicationStateBar,
+} from "../components/CommunicationStateBar";
+
+import {
+  ProgressStepper,
+} from "../components/ProgressStepper";
 
 import {
   getCommunicationById,
@@ -54,6 +80,7 @@ import {
   extractPdfFacts,
 } from "../services/pdfFactExtraction";
 
+
 type Category =
   | "research"
   | "education"
@@ -61,6 +88,12 @@ type Category =
   | "service"
   | "regulatory"
   | "onboarding";
+
+type InputMethod =
+  | "manual"
+  | "paste"
+  | "upload"
+  | "url";
 
 interface FormData {
   title: string;
@@ -74,331 +107,15 @@ interface FormData {
   ctaText: string;
   ctaUrl: string;
 
-  details: Record<string, string>;
+  details: Record<
+    string,
+    string
+  >;
 }
 
-export function SmartInputForm() {
-  const navigate = useNavigate();
 
-  const [searchParams] =
-    useSearchParams();
-
-  const communicationId =
-    searchParams.get(
-      "communicationId"
-    );
-
-  const [category, setCategory] =
-    useState<Category>(
-      (searchParams.get("category") ||
-        "research") as Category
-    );
-
-  const [
-    inputMethod,
-    setInputMethod,
-  ] = useState("manual");
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [generating, setGenerating] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
-
-  const [savedMessage, setSavedMessage] =
-    useState("");
-
-  const [hasUnsavedChanges, setHasUnsavedChanges] =
-    useState(false);
-
-  const [loadingDraft, setLoadingDraft] =
-    useState(true);
-
-  const [formData, setFormData] =
-    useState<FormData>({
-      title: "",
-      subcategory: "",
-      audience: "",
-      topic: "",
-      keyMessage: "",
-      supportingPoints: "",
-      ctaText: "",
-      ctaUrl: "",
-      details: {},
-    });
-
-  const [sourceFile, setSourceFile] =
-    useState<SourceFileMetadata | null>(null);
-
-  const [uploadingFile, setUploadingFile] =
-    useState(false);
-
-  const [removingFile, setRemovingFile] =
-    useState(false);
-
-  const [uploadError, setUploadError] =
-    useState("");
-
-  const [
-    processingPdf,
-    setProcessingPdf,
-  ] =
-    useState(false);
-
-  const [
-    extractionResult,
-    setExtractionResult,
-  ] =
-    useState<PdfExtractionResult | null>(
-      null
-    );
-
-  const [
-    extractionError,
-    setExtractionError,
-  ] =
-    useState("");
-
-  const [
-    extractingFacts,
-    setExtractingFacts,
-  ] =
-    useState(false);
-
-  const [
-    factExtraction,
-    setFactExtraction,
-  ] =
-    useState<FactExtractionResponse | null>(
-      null
-    );
-
-  const [
-    factExtractionError,
-    setFactExtractionError,
-  ] =
-    useState("");
-
-  const [
-    verifiedFacts,
-    setVerifiedFacts,
-  ] =
-    useState<Record<string, any>>({});
-
-  const [
-    factsApplied,
-    setFactsApplied,
-  ] =
-    useState(false);
-
-  const [dragActive, setDragActive] =
-    useState(false);
-
-  const fileInputRef =
-    useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    async function loadDraft() {
-      if (!communicationId) {
-        setLoadingDraft(false);
-        return;
-      }
-
-      try {
-        setLoadingDraft(true);
-        setError("");
-
-        const communication =
-          await getCommunicationById(
-            communicationId
-          );
-
-        const savedInput =
-          communication.input_data || {};
-
-        const savedDetails =
-          (
-            savedInput.categorySpecificDetails ||
-            {}
-          ) as Record<string, string>;
-
-        const savedCategory =
-          mapDatabaseCategoryToUi(
-            communication.category
-          );
-
-        const savedSourceFile =
-          savedInput.sourceFile;
-
-        if (
-          savedSourceFile &&
-          typeof savedSourceFile === "object" &&
-          !Array.isArray(savedSourceFile)
-        ) {
-          setSourceFile(
-            savedSourceFile as SourceFileMetadata
-          );
-        } else {
-          setSourceFile(null);
-        }
-
-        const savedVerifiedFacts =
-          savedInput.verifiedSourceFacts;
-
-        if (
-          savedVerifiedFacts &&
-          typeof savedVerifiedFacts === "object" &&
-          !Array.isArray(savedVerifiedFacts)
-        ) {
-          setVerifiedFacts(
-            savedVerifiedFacts as Record<string, any>
-          );
-
-          setFactExtraction({
-            success: true,
-            facts:
-              savedVerifiedFacts as Record<string, unknown>,
-            usage: {
-              sourceCharacters: 0,
-              promptTokens: null,
-              completionTokens: null,
-              totalTokens: null,
-              model: "saved",
-            },
-          });
-
-          setFactsApplied(
-            Boolean(
-              savedInput.sourceFactsApplied
-            )
-          );
-        }
-
-        const savedExtraction =
-          savedInput.sourceExtraction;
-
-        if (
-          savedExtraction &&
-          typeof savedExtraction === "object" &&
-          !Array.isArray(savedExtraction)
-        ) {
-          setExtractionResult({
-            success: true,
-            extraction: {
-              pageCount:
-                Number(savedExtraction.pageCount || 0),
-              fileSize:
-                Number(savedExtraction.fileSize || 0),
-              rawCharacters:
-                Number(savedExtraction.rawCharacters || 0),
-              cleanedCharacters:
-                Number(savedExtraction.cleanedCharacters || 0),
-              compactText: "",
-              relevantText: "",
-              truncated:
-                Boolean(savedExtraction.truncated),
-              requiresOcr:
-                Boolean(savedExtraction.requiresOcr),
-            },
-            relevance: {
-              relevant:
-                Boolean(savedExtraction.relevant),
-              score:
-                Number(savedExtraction.relevanceScore || 0),
-              matchedSignals:
-                Array.isArray(savedExtraction.matchedSignals)
-                  ? savedExtraction.matchedSignals
-                  : [],
-              reason:
-                typeof savedExtraction.reason === "string"
-                  ? savedExtraction.reason
-                  : "",
-            },
-          });
-        } else {
-          setExtractionResult(null);
-        }
-
-        if (savedCategory) {
-          setCategory(savedCategory);
-        }
-
-        setInputMethod(
-          typeof savedInput.inputMethod ===
-            "string"
-            ? savedInput.inputMethod
-            : "manual"
-        );
-
-        setFormData({
-          title:
-            communication.title ===
-            "New Communication"
-              ? ""
-              : communication.title || "",
-
-          subcategory:
-            communication.subcategory || "",
-
-          audience:
-            communication.audience || "",
-
-          topic:
-            typeof savedInput.topic ===
-            "string"
-              ? savedInput.topic
-              : "",
-
-          keyMessage:
-            typeof savedInput.keyMessage ===
-            "string"
-              ? savedInput.keyMessage
-              : "",
-
-          supportingPoints:
-            typeof savedInput.supportingPoints ===
-            "string"
-              ? savedInput.supportingPoints
-              : "",
-
-          ctaText:
-            typeof savedInput.ctaText ===
-            "string"
-              ? savedInput.ctaText
-              : "",
-
-          ctaUrl:
-            typeof savedInput.ctaUrl ===
-            "string"
-              ? savedInput.ctaUrl
-              : "",
-
-          details: savedDetails,
-        });
-        setHasUnsavedChanges(false);
-      } catch (err) {
-        console.error(
-          "Unable to load draft:",
-          err
-        );
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load the saved communication."
-        );
-      } finally {
-        setLoadingDraft(false);
-      }
-    }
-
-    loadDraft();
-  }, [communicationId]);
-
-  const subcategories: Record<
+const SUBCATEGORIES:
+  Record<
     Category,
     string[]
   > = {
@@ -452,7 +169,9 @@ export function SmartInputForm() {
     ],
   };
 
-  const audienceTypes: Record<
+
+const AUDIENCE_TYPES:
+  Record<
     Category,
     string[]
   > = {
@@ -505,96 +224,619 @@ export function SmartInputForm() {
     ],
   };
 
-  function updateField(
-    field: keyof Omit<
-      FormData,
-      "details"
-    >,
-    value: string
-  ) {
-    setFormData((current) => ({
-      ...current,
-      [field]: value,
-    }));
 
-    setSavedMessage("");
-    setHasUnsavedChanges(true);
+const INPUT_METHODS: Array<{
+  id: InputMethod;
+  label: string;
+  helper: string;
+  icon: typeof FileText;
+}> = [
+  {
+    id: "manual",
+    label: "Manual Entry",
+    helper:
+      "Enter the important facts directly.",
+    icon:
+      FileText,
+  },
+
+  {
+    id: "paste",
+    label: "Paste Content",
+    helper:
+      "Use existing source copy or notes.",
+    icon:
+      FileText,
+  },
+
+  {
+    id: "upload",
+    label: "Upload PDF",
+    helper:
+      "Extract and verify facts from a PDF.",
+    icon:
+      Upload,
+  },
+
+  {
+    id: "url",
+    label: "Source URL",
+    helper:
+      "Save a reference link with the brief.",
+    icon:
+      LinkIcon,
+  },
+];
+
+
+export function SmartInputForm() {
+  const navigate =
+    useNavigate();
+
+  const [searchParams] =
+    useSearchParams();
+
+  const communicationId =
+    searchParams.get(
+      "communicationId"
+    );
+
+  const [
+    category,
+    setCategory,
+  ] =
+    useState<Category>(
+      (
+        searchParams.get(
+          "category"
+        ) ||
+        "research"
+      ) as Category
+    );
+
+  const [
+    inputMethod,
+    setInputMethod,
+  ] =
+    useState<InputMethod>(
+      "manual"
+    );
+
+  const [
+    saving,
+    setSaving,
+  ] =
+    useState(false);
+
+  const [
+    generating,
+    setGenerating,
+  ] =
+    useState(false);
+
+  const [
+    error,
+    setError,
+  ] =
+    useState("");
+
+  const [
+    savedMessage,
+    setSavedMessage,
+  ] =
+    useState("");
+
+  const [
+    hasUnsavedChanges,
+    setHasUnsavedChanges,
+  ] =
+    useState(false);
+
+  const [
+    loadingDraft,
+    setLoadingDraft,
+  ] =
+    useState(true);
+
+  const [
+    formData,
+    setFormData,
+  ] =
+    useState<FormData>({
+      title: "",
+      subcategory: "",
+      audience: "",
+      topic: "",
+      keyMessage: "",
+      supportingPoints: "",
+      ctaText: "",
+      ctaUrl: "",
+      details: {},
+    });
+
+  const [
+    sourceFile,
+    setSourceFile,
+  ] =
+    useState<
+      SourceFileMetadata | null
+    >(null);
+
+  const [
+    uploadingFile,
+    setUploadingFile,
+  ] =
+    useState(false);
+
+  const [
+    removingFile,
+    setRemovingFile,
+  ] =
+    useState(false);
+
+  const [
+    uploadError,
+    setUploadError,
+  ] =
+    useState("");
+
+  const [
+    processingPdf,
+    setProcessingPdf,
+  ] =
+    useState(false);
+
+  const [
+    extractionResult,
+    setExtractionResult,
+  ] =
+    useState<
+      PdfExtractionResult | null
+    >(null);
+
+  const [
+    extractionError,
+    setExtractionError,
+  ] =
+    useState("");
+
+  const [
+    extractingFacts,
+    setExtractingFacts,
+  ] =
+    useState(false);
+
+  const [
+    factExtraction,
+    setFactExtraction,
+  ] =
+    useState<
+      FactExtractionResponse | null
+    >(null);
+
+  const [
+    factExtractionError,
+    setFactExtractionError,
+  ] =
+    useState("");
+
+  const [
+    verifiedFacts,
+    setVerifiedFacts,
+  ] =
+    useState<
+      Record<string, any>
+    >({});
+
+  const [
+    factsApplied,
+    setFactsApplied,
+  ] =
+    useState(false);
+
+  const [
+    dragActive,
+    setDragActive,
+  ] =
+    useState(false);
+
+  const fileInputRef =
+    useRef<
+      HTMLInputElement | null
+    >(null);
+
+
+  useEffect(() => {
+    async function loadDraft() {
+      if (
+        !communicationId
+      ) {
+        setLoadingDraft(
+          false
+        );
+
+        return;
+      }
+
+      try {
+        setLoadingDraft(
+          true
+        );
+
+        setError(
+          ""
+        );
+
+        const communication =
+          await getCommunicationById(
+            communicationId
+          );
+
+        const savedInput =
+          communication.input_data ||
+          {};
+
+        const savedDetails =
+          (
+            savedInput.categorySpecificDetails ||
+            {}
+          ) as Record<
+            string,
+            string
+          >;
+
+        const savedCategory =
+          mapDatabaseCategoryToUi(
+            communication.category
+          );
+
+        const savedSourceFile =
+          savedInput.sourceFile;
+
+        if (
+          savedSourceFile &&
+          typeof savedSourceFile ===
+            "object" &&
+          !Array.isArray(
+            savedSourceFile
+          )
+        ) {
+          setSourceFile(
+            savedSourceFile as SourceFileMetadata
+          );
+        } else {
+          setSourceFile(
+            null
+          );
+        }
+
+        const savedVerifiedFacts =
+          savedInput.verifiedSourceFacts;
+
+        if (
+          savedVerifiedFacts &&
+          typeof savedVerifiedFacts ===
+            "object" &&
+          !Array.isArray(
+            savedVerifiedFacts
+          )
+        ) {
+          const facts =
+            savedVerifiedFacts as Record<
+              string,
+              any
+            >;
+
+          setVerifiedFacts(
+            facts
+          );
+
+          setFactExtraction({
+            success:
+              true,
+
+            facts,
+
+            usage: {
+              sourceCharacters:
+                0,
+              promptTokens:
+                null,
+              completionTokens:
+                null,
+              totalTokens:
+                null,
+              model:
+                "saved",
+            },
+          });
+
+          setFactsApplied(
+            Boolean(
+              savedInput.sourceFactsApplied
+            )
+          );
+        } else {
+          setVerifiedFacts(
+            {}
+          );
+
+          setFactExtraction(
+            null
+          );
+
+          setFactsApplied(
+            false
+          );
+        }
+
+        const savedExtraction =
+          savedInput.sourceExtraction;
+
+        if (
+          savedExtraction &&
+          typeof savedExtraction ===
+            "object" &&
+          !Array.isArray(
+            savedExtraction
+          )
+        ) {
+          setExtractionResult({
+            success:
+              true,
+
+            extraction: {
+              pageCount:
+                Number(
+                  savedExtraction.pageCount ||
+                  0
+                ),
+
+              fileSize:
+                Number(
+                  savedExtraction.fileSize ||
+                  0
+                ),
+
+              rawCharacters:
+                Number(
+                  savedExtraction.rawCharacters ||
+                  0
+                ),
+
+              cleanedCharacters:
+                Number(
+                  savedExtraction.cleanedCharacters ||
+                  0
+                ),
+
+              compactText:
+                "",
+
+              relevantText:
+                "",
+
+              truncated:
+                Boolean(
+                  savedExtraction.truncated
+                ),
+
+              requiresOcr:
+                Boolean(
+                  savedExtraction.requiresOcr
+                ),
+            },
+
+            relevance: {
+              relevant:
+                Boolean(
+                  savedExtraction.relevant
+                ),
+
+              score:
+                Number(
+                  savedExtraction.relevanceScore ||
+                  0
+                ),
+
+              matchedSignals:
+                Array.isArray(
+                  savedExtraction.matchedSignals
+                )
+                  ? savedExtraction.matchedSignals
+                  : [],
+
+              reason:
+                typeof savedExtraction.reason ===
+                  "string"
+                  ? savedExtraction.reason
+                  : "",
+            },
+          });
+        } else {
+          setExtractionResult(
+            null
+          );
+        }
+
+        if (
+          savedCategory
+        ) {
+          setCategory(
+            savedCategory
+          );
+        }
+
+        setInputMethod(
+          isInputMethod(
+            savedInput.inputMethod
+          )
+            ? savedInput.inputMethod
+            : "manual"
+        );
+
+        setFormData({
+          title:
+            communication.title ===
+              "New Communication"
+              ? ""
+              : communication.title ||
+                "",
+
+          subcategory:
+            communication.subcategory ||
+            "",
+
+          audience:
+            communication.audience ||
+            "",
+
+          topic:
+            typeof savedInput.topic ===
+              "string"
+              ? savedInput.topic
+              : "",
+
+          keyMessage:
+            typeof savedInput.keyMessage ===
+              "string"
+              ? savedInput.keyMessage
+              : "",
+
+          supportingPoints:
+            typeof savedInput.supportingPoints ===
+              "string"
+              ? savedInput.supportingPoints
+              : "",
+
+          ctaText:
+            typeof savedInput.ctaText ===
+              "string"
+              ? savedInput.ctaText
+              : "",
+
+          ctaUrl:
+            typeof savedInput.ctaUrl ===
+              "string"
+              ? savedInput.ctaUrl
+              : "",
+
+          details:
+            savedDetails,
+        });
+
+        setHasUnsavedChanges(
+          false
+        );
+      } catch (err) {
+        console.error(
+          "Unable to load draft:",
+          err
+        );
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load the saved communication."
+        );
+      } finally {
+        setLoadingDraft(
+          false
+        );
+      }
+    }
+
+    void loadDraft();
+  }, [communicationId]);
+
+
+  function updateField(
+    field:
+      keyof Omit<
+        FormData,
+        "details"
+      >,
+    value:
+      string
+  ) {
+    setFormData(
+      (current) => ({
+        ...current,
+        [field]:
+          value,
+      })
+    );
+
+    setSavedMessage(
+      ""
+    );
+
+    setHasUnsavedChanges(
+      true
+    );
   }
+
 
   function updateDetail(
-    field: string,
-    value: string
+    field:
+      string,
+    value:
+      string
   ) {
-    setFormData((current) => ({
-      ...current,
+    setFormData(
+      (current) => ({
+        ...current,
 
-      details: {
-        ...current.details,
-        [field]: value,
-      },
-    }));
+        details: {
+          ...current.details,
+          [field]:
+            value,
+        },
+      })
+    );
 
-    setSavedMessage("");
-    setHasUnsavedChanges(true);
+    setSavedMessage(
+      ""
+    );
+
+    setHasUnsavedChanges(
+      true
+    );
   }
 
-  function mapCategoryToDatabase(
-    value: Category
+
+  function handleInputMethodChange(
+    method:
+      InputMethod
   ) {
-    switch (value) {
-      case "research":
-        return "Research & Advisory";
+    setInputMethod(
+      method
+    );
 
-      case "education":
-        return "Investor Education";
+    setSavedMessage(
+      ""
+    );
 
-      case "product":
-        return "Product & Sales";
+    setError(
+      ""
+    );
 
-      case "service":
-        return "Service & Transactional";
-
-      case "regulatory":
-        return "Regulatory & Compliance";
-
-      case "onboarding":
-        return "Onboarding & Journey";
-    }
+    setHasUnsavedChanges(
+      true
+    );
   }
 
-  function mapDatabaseCategoryToUi(
-    value: string | null
-  ): Category | null {
-    switch (value) {
-      case "Research & Advisory":
-        return "research";
-
-      case "Investor Education":
-        return "education";
-
-      case "Product & Sales":
-        return "product";
-
-      case "Service & Transactional":
-        return "service";
-
-      case "Regulatory & Compliance":
-        return "regulatory";
-
-      case "Onboarding & Journey":
-        return "onboarding";
-
-      default:
-        return null;
-    }
-  }
 
   function buildInputData(
-    nextSourceFile: SourceFileMetadata | null = sourceFile
+    nextSourceFile:
+      SourceFileMetadata | null =
+        sourceFile
   ) {
     const communicationType =
-      category === "product"
-        ? formData.details.communicationType || null
+      category ===
+        "product"
+        ? formData.details.communicationType ||
+          null
         : null;
 
     const sourceExtraction =
@@ -602,22 +844,31 @@ export function SmartInputForm() {
         ? {
             pageCount:
               extractionResult.extraction.pageCount,
+
             fileSize:
               extractionResult.extraction.fileSize,
+
             rawCharacters:
               extractionResult.extraction.rawCharacters,
+
             cleanedCharacters:
               extractionResult.extraction.cleanedCharacters,
+
             truncated:
               extractionResult.extraction.truncated,
+
             requiresOcr:
               extractionResult.extraction.requiresOcr,
+
             relevant:
               extractionResult.relevance.relevant,
+
             relevanceScore:
               extractionResult.relevance.score,
+
             matchedSignals:
               extractionResult.relevance.matchedSignals,
+
             reason:
               extractionResult.relevance.reason,
           }
@@ -625,20 +876,28 @@ export function SmartInputForm() {
 
     return {
       inputMethod,
-      title: formData.title,
-      audience: formData.audience,
-      topic: formData.topic,
-      keyMessage: formData.keyMessage,
-      supportingPoints: formData.supportingPoints,
-      ctaText: formData.ctaText,
-      ctaUrl: formData.ctaUrl,
 
-      /**
-       * Kept both at the top level and inside
-       * categorySpecificDetails so the generation starter /
-       * worker can resolve Product communication intent
-       * reliably while remaining backwards compatible.
-       */
+      title:
+        formData.title,
+
+      audience:
+        formData.audience,
+
+      topic:
+        formData.topic,
+
+      keyMessage:
+        formData.keyMessage,
+
+      supportingPoints:
+        formData.supportingPoints,
+
+      ctaText:
+        formData.ctaText,
+
+      ctaUrl:
+        formData.ctaUrl,
+
       communicationType,
 
       categorySpecificDetails:
@@ -652,7 +911,8 @@ export function SmartInputForm() {
       verifiedSourceFacts:
         Object.keys(
           verifiedFacts
-        ).length > 0
+        ).length >
+          0
           ? verifiedFacts
           : null,
 
@@ -661,27 +921,38 @@ export function SmartInputForm() {
     };
   }
 
+
   async function persistSourceFile(
-    nextSourceFile: SourceFileMetadata | null
+    nextSourceFile:
+      SourceFileMetadata | null
   ) {
-    if (!communicationId) {
-      throw new Error("Communication ID is missing.");
+    if (
+      !communicationId
+    ) {
+      throw new Error(
+        "Communication ID is missing."
+      );
     }
 
     await updateCommunication(
       communicationId,
       {
-        input_data: buildInputData(
-          nextSourceFile
-        ),
+        input_data:
+          buildInputData(
+            nextSourceFile
+          ),
       }
     );
   }
 
+
   async function persistExtractionResult(
-    result: PdfExtractionResult | null
+    result:
+      PdfExtractionResult | null
   ) {
-    if (!communicationId) {
+    if (
+      !communicationId
+    ) {
       throw new Error(
         "Communication ID is missing."
       );
@@ -692,29 +963,40 @@ export function SmartInputForm() {
       {
         input_data: {
           ...buildInputData(),
+
           sourceExtraction:
             result
               ? {
                   pageCount:
                     result.extraction.pageCount,
+
                   fileSize:
                     result.extraction.fileSize,
+
                   rawCharacters:
                     result.extraction.rawCharacters,
+
                   cleanedCharacters:
                     result.extraction.cleanedCharacters,
+
                   truncated:
                     result.extraction.truncated,
+
                   requiresOcr:
                     result.extraction.requiresOcr,
+
                   relevant:
                     result.relevance.relevant,
+
                   relevanceScore:
                     result.relevance.score,
+
                   matchedSignals:
                     result.relevance.matchedSignals,
+
                   reason:
                     result.relevance.reason,
+
                   processedAt:
                     new Date().toISOString(),
                 }
@@ -723,6 +1005,7 @@ export function SmartInputForm() {
       }
     );
   }
+
 
   async function handleProcessPdf() {
     if (
@@ -733,15 +1016,27 @@ export function SmartInputForm() {
     }
 
     try {
-      setProcessingPdf(true);
-      setExtractionError("");
-      setError("");
-      setSavedMessage("");
+      setProcessingPdf(
+        true
+      );
+
+      setExtractionError(
+        ""
+      );
+
+      setError(
+        ""
+      );
+
+      setSavedMessage(
+        ""
+      );
 
       const result =
         await extractCommunicationPdf({
           sourcePath:
             sourceFile.path,
+
           category,
         });
 
@@ -787,15 +1082,25 @@ export function SmartInputForm() {
           : "Unable to process PDF."
       );
     } finally {
-      setProcessingPdf(false);
+      setProcessingPdf(
+        false
+      );
     }
   }
 
+
   async function persistVerifiedFacts(
-    nextFacts: Record<string, any>,
-    applied = factsApplied
+    nextFacts:
+      Record<
+        string,
+        any
+      >,
+    applied =
+      factsApplied
   ) {
-    if (!communicationId) {
+    if (
+      !communicationId
+    ) {
       throw new Error(
         "Communication ID is missing."
       );
@@ -806,18 +1111,22 @@ export function SmartInputForm() {
       {
         input_data: {
           ...buildInputData(),
+
           verifiedSourceFacts:
             Object.keys(
               nextFacts
-            ).length > 0
+            ).length >
+              0
               ? nextFacts
               : null,
+
           sourceFactsApplied:
             applied,
         },
       }
     );
   }
+
 
   async function handleExtractFacts() {
     if (
@@ -834,29 +1143,54 @@ export function SmartInputForm() {
       setFactExtractionError(
         "Process the PDF again before extracting facts."
       );
+
       return;
     }
 
     try {
-      setExtractingFacts(true);
-      setFactExtractionError("");
-      setError("");
-      setSavedMessage("");
-      setFactsApplied(false);
+      setExtractingFacts(
+        true
+      );
+
+      setFactExtractionError(
+        ""
+      );
+
+      setError(
+        ""
+      );
+
+      setSavedMessage(
+        ""
+      );
+
+      setFactsApplied(
+        false
+      );
 
       const result =
         await extractPdfFacts({
           communicationId,
+
           category,
+
           relevantText:
             extractionResult.extraction.relevantText,
         });
 
       const facts =
-        result.facts as Record<string, any>;
+        result.facts as Record<
+          string,
+          any
+        >;
 
-      setFactExtraction(result);
-      setVerifiedFacts(facts);
+      setFactExtraction(
+        result
+      );
+
+      setVerifiedFacts(
+        facts
+      );
 
       await persistVerifiedFacts(
         facts,
@@ -878,40 +1212,63 @@ export function SmartInputForm() {
           : "Unable to extract key facts."
       );
     } finally {
-      setExtractingFacts(false);
+      setExtractingFacts(
+        false
+      );
     }
   }
 
+
   function updateVerifiedFact(
-    key: string,
-    value: any
+    key:
+      string,
+    value:
+      any
   ) {
     setVerifiedFacts(
       (current) => ({
         ...current,
-        [key]: value,
+        [key]:
+          value,
       })
     );
 
-    setFactsApplied(false);
-    setSavedMessage("");
+    setFactsApplied(
+      false
+    );
+
+    setSavedMessage(
+      ""
+    );
   }
 
+
   function updateVerifiedListItem(
-    key: string,
-    index: number,
-    value: string
+    key:
+      string,
+    index:
+      number,
+    value:
+      string
   ) {
     setVerifiedFacts(
       (current) => {
         const currentList =
           Array.isArray(
-            current[key]
+            current[
+              key
+            ]
           )
-            ? [...current[key]]
+            ? [
+                ...current[
+                  key
+                ],
+              ]
             : [];
 
-        currentList[index] =
+        currentList[
+          index
+        ] =
           value;
 
         return {
@@ -922,9 +1279,15 @@ export function SmartInputForm() {
       }
     );
 
-    setFactsApplied(false);
-    setSavedMessage("");
+    setFactsApplied(
+      false
+    );
+
+    setSavedMessage(
+      ""
+    );
   }
+
 
   async function handleApplyFacts() {
     const facts =
@@ -933,7 +1296,8 @@ export function SmartInputForm() {
     if (
       Object.keys(
         facts
-      ).length === 0
+      ).length ===
+      0
     ) {
       return;
     }
@@ -955,7 +1319,8 @@ export function SmartInputForm() {
       formData.supportingPoints;
 
     if (
-      category === "research"
+      category ===
+      "research"
     ) {
       if (
         typeof facts.securityOrCompany ===
@@ -978,7 +1343,8 @@ export function SmartInputForm() {
         "string"
       ) {
         nextDetails.recommendation =
-          facts.recommendation || "";
+          facts.recommendation ||
+          "";
       }
 
       if (
@@ -986,7 +1352,8 @@ export function SmartInputForm() {
         "string"
       ) {
         nextDetails.currentPrice =
-          facts.currentPrice || "";
+          facts.currentPrice ||
+          "";
       }
 
       if (
@@ -994,7 +1361,8 @@ export function SmartInputForm() {
         "string"
       ) {
         nextDetails.targetPrice =
-          facts.targetPrice || "";
+          facts.targetPrice ||
+          "";
       }
 
       if (
@@ -1002,7 +1370,8 @@ export function SmartInputForm() {
         "string"
       ) {
         nextDetails.timeHorizon =
-          facts.timeHorizon || "";
+          facts.timeHorizon ||
+          "";
       }
 
       if (
@@ -1012,8 +1381,12 @@ export function SmartInputForm() {
       ) {
         nextDetails.rationale =
           facts.keyRationale
-            .filter(Boolean)
-            .join("\n• ");
+            .filter(
+              Boolean
+            )
+            .join(
+              "\n• "
+            );
       }
 
       if (
@@ -1023,8 +1396,12 @@ export function SmartInputForm() {
       ) {
         nextDetails.riskFactors =
           facts.riskFactors
-            .filter(Boolean)
-            .join("\n• ");
+            .filter(
+              Boolean
+            )
+            .join(
+              "\n• "
+            );
       }
 
       if (
@@ -1034,8 +1411,12 @@ export function SmartInputForm() {
       ) {
         nextSupportingPoints =
           facts.keyFacts
-            .filter(Boolean)
-            .join("\n• ");
+            .filter(
+              Boolean
+            )
+            .join(
+              "\n• "
+            );
       }
 
       if (
@@ -1073,7 +1454,8 @@ export function SmartInputForm() {
         "string"
       ) {
         nextDetails.authority =
-          facts.authority || "";
+          facts.authority ||
+          "";
       }
 
       if (
@@ -1081,7 +1463,8 @@ export function SmartInputForm() {
         "string"
       ) {
         nextDetails.referenceNumber =
-          facts.circularOrReferenceNumber || "";
+          facts.circularOrReferenceNumber ||
+          "";
       }
 
       if (
@@ -1099,7 +1482,8 @@ export function SmartInputForm() {
         "string"
       ) {
         nextDetails.affectedProducts =
-          facts.affectedProductsOrUsers || "";
+          facts.affectedProductsOrUsers ||
+          "";
       }
 
       if (
@@ -1109,8 +1493,12 @@ export function SmartInputForm() {
       ) {
         nextDetails.requiredActions =
           facts.requiredActions
-            .filter(Boolean)
-            .join("\n• ");
+            .filter(
+              Boolean
+            )
+            .join(
+              "\n• "
+            );
       }
 
       if (
@@ -1120,8 +1508,12 @@ export function SmartInputForm() {
       ) {
         nextSupportingPoints =
           facts.keyFacts
-            .filter(Boolean)
-            .join("\n• ");
+            .filter(
+              Boolean
+            )
+            .join(
+              "\n• "
+            );
       }
 
       if (
@@ -1137,21 +1529,31 @@ export function SmartInputForm() {
     setFormData(
       (current) => ({
         ...current,
+
         title:
           nextTitle,
+
         topic:
           nextTopic,
+
         keyMessage:
           nextKeyMessage,
+
         supportingPoints:
           nextSupportingPoints,
+
         details:
           nextDetails,
       })
     );
 
-    setFactsApplied(true);
-    setHasUnsavedChanges(true);
+    setFactsApplied(
+      true
+    );
+
+    setHasUnsavedChanges(
+      true
+    );
 
     try {
       await persistVerifiedFacts(
@@ -1170,25 +1572,52 @@ export function SmartInputForm() {
     );
   }
 
-  async function handlePdfFile(file: File) {
-    if (!communicationId || uploadingFile) {
+
+  async function handlePdfFile(
+    file:
+      File
+  ) {
+    if (
+      !communicationId ||
+      uploadingFile
+    ) {
       return;
     }
 
-    const validationError = validatePdfFile(file);
+    const validationError =
+      validatePdfFile(
+        file
+      );
 
-    if (validationError) {
-      setUploadError(validationError);
+    if (
+      validationError
+    ) {
+      setUploadError(
+        validationError
+      );
+
       return;
     }
 
     try {
-      setUploadingFile(true);
-      setUploadError("");
-      setError("");
-      setSavedMessage("");
+      setUploadingFile(
+        true
+      );
 
-      const previousFile = sourceFile;
+      setUploadError(
+        ""
+      );
+
+      setError(
+        ""
+      );
+
+      setSavedMessage(
+        ""
+      );
+
+      const previousFile =
+        sourceFile;
 
       const uploaded =
         await uploadCommunicationPdf({
@@ -1197,13 +1626,19 @@ export function SmartInputForm() {
         });
 
       try {
-        await persistSourceFile(uploaded);
-      } catch (metadataError) {
+        await persistSourceFile(
+          uploaded
+        );
+      } catch (
+        metadataError
+      ) {
         try {
           await removeCommunicationPdf(
             uploaded.path
           );
-        } catch (cleanupError) {
+        } catch (
+          cleanupError
+        ) {
           console.error(
             "Unable to clean up uploaded PDF:",
             cleanupError
@@ -1213,21 +1648,54 @@ export function SmartInputForm() {
         throw metadataError;
       }
 
-      setSourceFile(uploaded);
-      setHasUnsavedChanges(false);
+      setSourceFile(
+        uploaded
+      );
+
+      setExtractionResult(
+        null
+      );
+
+      setExtractionError(
+        ""
+      );
+
+      setFactExtraction(
+        null
+      );
+
+      setVerifiedFacts(
+        {}
+      );
+
+      setFactsApplied(
+        false
+      );
+
+      setFactExtractionError(
+        ""
+      );
+
+      setHasUnsavedChanges(
+        false
+      );
+
       setSavedMessage(
         "PDF uploaded successfully."
       );
 
       if (
         previousFile?.path &&
-        previousFile.path !== uploaded.path
+        previousFile.path !==
+          uploaded.path
       ) {
         try {
           await removeCommunicationPdf(
             previousFile.path
           );
-        } catch (removeOldError) {
+        } catch (
+          removeOldError
+        ) {
           console.warn(
             "New PDF saved, but previous PDF could not be removed:",
             removeOldError
@@ -1246,38 +1714,80 @@ export function SmartInputForm() {
           : "Unable to upload PDF."
       );
     } finally {
-      setUploadingFile(false);
+      setUploadingFile(
+        false
+      );
 
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+      if (
+        fileInputRef.current
+      ) {
+        fileInputRef.current.value =
+          "";
       }
     }
   }
 
+
   async function handleRemovePdf() {
-    if (!sourceFile || removingFile) {
+    if (
+      !sourceFile ||
+      removingFile
+    ) {
       return;
     }
 
     try {
-      setRemovingFile(true);
-      setUploadError("");
-      setError("");
+      setRemovingFile(
+        true
+      );
+
+      setUploadError(
+        ""
+      );
+
+      setError(
+        ""
+      );
 
       await removeCommunicationPdf(
         sourceFile.path
       );
 
-      await persistSourceFile(null);
+      await persistSourceFile(
+        null
+      );
 
-      setSourceFile(null);
-      setExtractionResult(null);
-      setExtractionError("");
-      setFactExtraction(null);
-      setVerifiedFacts({});
-      setFactsApplied(false);
-      setFactExtractionError("");
-      setSavedMessage("PDF removed.");
+      setSourceFile(
+        null
+      );
+
+      setExtractionResult(
+        null
+      );
+
+      setExtractionError(
+        ""
+      );
+
+      setFactExtraction(
+        null
+      );
+
+      setVerifiedFacts(
+        {}
+      );
+
+      setFactsApplied(
+        false
+      );
+
+      setFactExtractionError(
+        ""
+      );
+
+      setSavedMessage(
+        "PDF removed."
+      );
     } catch (err) {
       console.error(
         "Unable to remove PDF:",
@@ -1290,58 +1800,101 @@ export function SmartInputForm() {
           : "Unable to remove PDF."
       );
     } finally {
-      setRemovingFile(false);
+      setRemovingFile(
+        false
+      );
     }
   }
+
 
   function handleFileInputChange(
-    event: ChangeEvent<HTMLInputElement>
+    event:
+      ChangeEvent<HTMLInputElement>
   ) {
-    const file = event.target.files?.[0];
-    if (file) handlePdfFile(file);
+    const file =
+      event.target.files?.[
+        0
+      ];
+
+    if (
+      file
+    ) {
+      void handlePdfFile(
+        file
+      );
+    }
   }
+
 
   function handleDragOver(
-    event: DragEvent<HTMLDivElement>
+    event:
+      DragEvent<HTMLDivElement>
   ) {
     event.preventDefault();
-    if (!uploadingFile) {
-      setDragActive(true);
+
+    if (
+      !uploadingFile
+    ) {
+      setDragActive(
+        true
+      );
     }
   }
+
 
   function handleDragLeave(
-    event: DragEvent<HTMLDivElement>
+    event:
+      DragEvent<HTMLDivElement>
   ) {
     event.preventDefault();
-    setDragActive(false);
+
+    setDragActive(
+      false
+    );
   }
 
+
   function handleDrop(
-    event: DragEvent<HTMLDivElement>
+    event:
+      DragEvent<HTMLDivElement>
   ) {
     event.preventDefault();
-    setDragActive(false);
+
+    setDragActive(
+      false
+    );
 
     const file =
-      event.dataTransfer.files?.[0];
+      event.dataTransfer.files?.[
+        0
+      ];
 
-    if (file) {
-      handlePdfFile(file);
+    if (
+      file
+    ) {
+      void handlePdfFile(
+        file
+      );
     }
   }
 
+
   async function saveToSupabase(
-    nextStatus = "draft"
+    nextStatus =
+      "draft"
   ) {
-    if (!communicationId) {
+    if (
+      !communicationId
+    ) {
       throw new Error(
         "Communication ID is missing. Please return to the dashboard and start again."
       );
     }
 
     const databaseCategory =
-      mapCategoryToDatabase(category);
+      mapCategoryToDatabase(
+        category
+      );
 
     const inputData =
       buildInputData();
@@ -1388,8 +1941,10 @@ export function SmartInputForm() {
             inputMethod,
 
             communicationType:
-              category === "product"
-                ? formData.details.communicationType || null
+              category ===
+                "product"
+                ? formData.details.communicationType ||
+                  null
                 : null,
           },
         }
@@ -1406,11 +1961,20 @@ export function SmartInputForm() {
     return result;
   }
 
+
   async function handleSaveDraft() {
     try {
-      setSaving(true);
-      setError("");
-      setSavedMessage("");
+      setSaving(
+        true
+      );
+
+      setError(
+        ""
+      );
+
+      setSavedMessage(
+        ""
+      );
 
       await saveToSupabase(
         "draft"
@@ -1419,7 +1983,10 @@ export function SmartInputForm() {
       setSavedMessage(
         "All changes saved."
       );
-      setHasUnsavedChanges(false);
+
+      setHasUnsavedChanges(
+        false
+      );
     } catch (err) {
       console.error(
         "Save draft failed:",
@@ -1432,28 +1999,36 @@ export function SmartInputForm() {
           : "Unable to save draft."
       );
     } finally {
-      setSaving(false);
+      setSaving(
+        false
+      );
     }
   }
 
+
   async function handleGenerate() {
-    if (generating) {
+    if (
+      generating
+    ) {
       return;
     }
 
     if (
-      inputMethod === "upload" &&
+      inputMethod ===
+        "upload" &&
       sourceFile &&
       !extractionResult
     ) {
       setError(
         "Please process the uploaded PDF before generating communication options."
       );
+
       return;
     }
 
     if (
-      inputMethod === "upload" &&
+      inputMethod ===
+        "upload" &&
       sourceFile &&
       extractionResult &&
       !extractionResult.relevance.relevant
@@ -1461,11 +2036,13 @@ export function SmartInputForm() {
       setError(
         "This PDF may not be relevant to the selected category. Please review the document or choose another PDF before generating."
       );
+
       return;
     }
 
     if (
-      inputMethod === "upload" &&
+      inputMethod ===
+        "upload" &&
       sourceFile &&
       extractionResult?.relevance.relevant &&
       !factExtraction
@@ -1473,11 +2050,13 @@ export function SmartInputForm() {
       setError(
         "Please extract and verify the key facts from the PDF before generating communication options."
       );
+
       return;
     }
 
     if (
-      inputMethod === "upload" &&
+      inputMethod ===
+        "upload" &&
       sourceFile &&
       factExtraction &&
       !factsApplied
@@ -1485,47 +2064,68 @@ export function SmartInputForm() {
       setError(
         "Please review the extracted facts and click “Use these facts” before generating communication options."
       );
+
       return;
     }
 
     if (
-      category === "product" &&
+      category ===
+        "product" &&
       formData.details.communicationType ===
         "feature_explainer"
     ) {
       const featureIssues =
         getFeatureExplainerInputIssues({
           inputMethod,
+
           details:
             formData.details,
+
           pastedContent:
             formData.details.pastedContent ||
             "",
+
           verifiedFacts,
+
           factsApplied,
         });
 
       if (
-        featureIssues.length > 0
+        featureIssues.length >
+        0
       ) {
         setError(
-          featureIssues[0]
+          featureIssues[
+            0
+          ]
         );
+
         return;
       }
     }
 
-    if (!communicationId) {
+    if (
+      !communicationId
+    ) {
       setError(
         "Communication ID is missing. Please return to the dashboard and start again."
       );
+
       return;
     }
 
     try {
-      setGenerating(true);
-      setError("");
-      setSavedMessage("");
+      setGenerating(
+        true
+      );
+
+      setError(
+        ""
+      );
+
+      setSavedMessage(
+        ""
+      );
 
       const savedCommunication =
         await saveToSupabase(
@@ -1535,15 +2135,21 @@ export function SmartInputForm() {
       const result =
         await generateCommunication({
           communicationId,
+
           category,
+
           title:
             savedCommunication.title,
+
           subcategory:
             savedCommunication.subcategory,
+
           audience:
             savedCommunication.audience,
+
           objective:
             savedCommunication.objective,
+
           inputData:
             savedCommunication.input_data,
         });
@@ -1576,43 +2182,60 @@ export function SmartInputForm() {
         await updateCommunication(
           communicationId,
           {
-            status: "draft",
+            status:
+              "draft",
           }
         );
-      } catch (statusError) {
+      } catch (
+        statusError
+      ) {
         console.error(
           "Unable to restore draft status:",
           statusError
         );
       }
     } finally {
-      setGenerating(false);
+      setGenerating(
+        false
+      );
     }
   }
 
+
   function handleBack() {
-    navigate(
-      `/create/category?communicationId=${communicationId}`
-    );
+    if (
+      communicationId
+    ) {
+      navigate(
+        `/create/category?communicationId=${encodeURIComponent(
+          communicationId
+        )}`
+      );
+
+      return;
+    }
+
+    navigate("/");
   }
 
-  if (loadingDraft) {
+
+  if (
+    loadingDraft
+  ) {
     return (
       <div className="min-h-screen bg-background">
         <TopNavBar />
 
-        <div className="flex min-h-[70vh] items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-gray-200 border-t-[#07877B]" />
-
-            <p className="text-sm text-gray-600">
-              Loading communication...
-            </p>
+        <main className="mx-auto flex min-h-[72vh] max-w-3xl items-center justify-center px-6">
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            <Loader2 className="h-4 w-4 animate-spin text-[#07877B]" />
+            Loading communication...
           </div>
-        </div>
+        </main>
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -1623,668 +2246,449 @@ export function SmartInputForm() {
           formData.title ||
           "New Communication"
         }
-        category={category}
+        category={
+          category
+        }
         status="input-complete"
-        currentStep={2}
-        totalSteps={5}
+        currentStep={
+          2
+        }
+        totalSteps={
+          5
+        }
         onSaveDraft={
           handleSaveDraft
         }
       />
 
       <ProgressStepper
-        currentStep={2}
+        currentStep={
+          2
+        }
       />
 
-      <main className="mx-auto max-w-7xl px-8 py-8">
+      <main className="mx-auto max-w-7xl px-6 py-9 sm:px-8 sm:py-10">
+        <button
+          type="button"
+          onClick={
+            handleBack
+          }
+          disabled={
+            saving ||
+            generating
+          }
+          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B] disabled:opacity-50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Category
+        </button>
 
-          {/* Page introduction */}
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="mb-1 text-sm font-medium text-[#07877B]">
-              Step 2 · Add the source information
-            </p>
-            <h1 className="text-2xl text-gray-900">
-              Give AI the facts it needs
+        <header className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="mb-3 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#07877B]" />
+
+              <p className="text-sm font-medium text-[#07877B]">
+                Expert Creation
+              </p>
+            </div>
+
+            <h1 className="text-3xl text-gray-900">
+              Give AI the source information
             </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-600">
-              Add only the source facts and instructions that matter. You can enter them manually,
-              paste existing content, or prepare a source for upload.
+
+            <p className="mt-3 text-sm leading-7 text-gray-600">
+              Add the verified facts and instructions that should shape the communication.
+              You can enter them manually, paste source material, upload a PDF for
+              extraction, or retain a source URL for reference.
             </p>
           </div>
 
-          <div className="text-sm">
-            {saving ? (
-              <span className="text-gray-500">Saving…</span>
-            ) : hasUnsavedChanges ? (
-              <span className="text-amber-700">Unsaved changes</span>
-            ) : savedMessage ? (
-              <span className="text-green-700">✓ Saved</span>
-            ) : null}
-          </div>
-        </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-[#e8f5f4] px-3 py-1.5 text-xs font-medium text-[#075f58]">
+              {getCategoryLabel(
+                category
+              )}
+            </span>
 
-        {/* Messages */}
+            <SaveState
+              saving={
+                saving
+              }
+              hasUnsavedChanges={
+                hasUnsavedChanges
+              }
+              savedMessage={
+                savedMessage
+              }
+            />
+          </div>
+        </header>
+
+        {!communicationId && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+            Communication ID is missing. Please return to the Dashboard and start again.
+          </div>
+        )}
 
         {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        {savedMessage && !hasUnsavedChanges && (
-          <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-            {savedMessage}
-          </div>
-        )}
+        {savedMessage &&
+          !hasUnsavedChanges && (
+            <div className="mb-6 rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-700">
+              {savedMessage}
+            </div>
+          )}
 
-        <div className="grid gap-8 lg:grid-cols-[1fr,320px]">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="space-y-6">
+            <FormSection
+              number="01"
+              title="Communication basics"
+              helper="Identify the communication and who should receive it."
+            >
+              <TextField
+                label="Communication Title"
+                value={
+                  formData.title
+                }
+                onChange={(value) =>
+                  updateField(
+                    "title",
+                    value
+                  )
+                }
+                placeholder={
+                  getTitlePlaceholder(
+                    category
+                  )
+                }
+              />
 
-          {/* MAIN FORM */}
-          <div className="space-y-8">
-
-            {/* Basic Information */}
-            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-              <div className="mb-6">
-                <h2 className="text-lg text-gray-900">
-                  Communication basics
-                </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Identify the communication and who should receive it.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-
-                <TextField
-                  label="Communication Title"
-                  value={formData.title}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <SelectField
+                  label="Subcategory"
+                  value={
+                    formData.subcategory
+                  }
                   onChange={(value) =>
                     updateField(
-                      "title",
+                      "subcategory",
                       value
                     )
                   }
-                  placeholder={
-                    getTitlePlaceholder(
+                  options={
+                    SUBCATEGORIES[
                       category
-                    )
+                    ]
                   }
+                  placeholder="Select subcategory"
                 />
 
-                <div className="grid gap-4 sm:grid-cols-2">
-
-                  <SelectField
-                    label="Subcategory"
-                    value={
-                      formData.subcategory
-                    }
-                    onChange={(value) =>
-                      updateField(
-                        "subcategory",
-                        value
-                      )
-                    }
-                    options={
-                      subcategories[
-                        category
-                      ]
-                    }
-                    placeholder="Select subcategory"
-                  />
-
-                  <SelectField
-                    label="Audience Type"
-                    value={
-                      formData.audience
-                    }
-                    onChange={(value) =>
-                      updateField(
-                        "audience",
-                        value
-                      )
-                    }
-                    options={
-                      audienceTypes[
-                        category
-                      ]
-                    }
-                    placeholder="Select audience"
-                  />
-
-                </div>
-
+                <SelectField
+                  label="Audience Type"
+                  value={
+                    formData.audience
+                  }
+                  onChange={(value) =>
+                    updateField(
+                      "audience",
+                      value
+                    )
+                  }
+                  options={
+                    AUDIENCE_TYPES[
+                      category
+                    ]
+                  }
+                  placeholder="Select audience"
+                />
               </div>
+            </FormSection>
 
-            </section>
 
-            {/* Input Method */}
-            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <FormSection
+              number="02"
+              title="Source information"
+              helper="Choose the easiest way to provide the facts AI should work from."
+            >
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {INPUT_METHODS.map(
+                  (
+                    method
+                  ) => {
+                    const Icon =
+                      method.icon;
 
-              <div className="mb-6">
-                <h2 className="text-lg text-gray-900">
-                  Source information
-                </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Choose the easiest way to provide the facts AI should work from.
-                </p>
-              </div>
-
-              <div className="mb-6 grid gap-3 sm:grid-cols-3">
-
-                {[
-                  {
-                    id: "manual",
-                    icon: FileText,
-                    label:
-                      "Manual Entry",
-                  },
-                  {
-                    id: "paste",
-                    icon: FileText,
-                    label:
-                      "Paste Content",
-                  },
-                  {
-                    id: "upload",
-                    icon: Upload,
-                    label:
-                      "Upload File",
-                  },
-                  {
-                    id: "url",
-                    icon: LinkIcon,
-                    label:
-                      "Paste URL",
-                  },
-                ].map((method) => (
-
-                  <button
-                    type="button"
-                    key={method.id}
-                    onClick={() =>
-                      setInputMethod(
-                        method.id
-                      )
-                    }
-                    className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${
+                    const selected =
                       inputMethod ===
-                      method.id
-                        ? "border-[#07877B] bg-[#e8f5f4]/30"
-                        : "border-gray-200 bg-white hover:border-gray-300"
-                    }`}
-                  >
+                      method.id;
 
-                    <method.icon className="h-5 w-5" />
-
-                    <span className="text-sm">
-                      {method.label}
-                    </span>
-
-                  </button>
-
-                ))}
-
-              </div>
-
-              {/* Manual Entry */}
-              {inputMethod ===
-                "manual" && (
-
-                <div className="space-y-4">
-
-                  <TextField
-                    label={
-                      getTopicLabel(
-                        category
-                      )
-                    }
-                    value={
-                      formData.topic
-                    }
-                    onChange={(value) =>
-                      updateField(
-                        "topic",
-                        value
-                      )
-                    }
-                    placeholder={
-                      getTopicPlaceholder(
-                        category
-                      )
-                    }
-                  />
-
-                  <TextAreaField
-                    label="Key Message"
-                    value={
-                      formData.keyMessage
-                    }
-                    onChange={(value) =>
-                      updateField(
-                        "keyMessage",
-                        value
-                      )
-                    }
-                    rows={3}
-                    placeholder={
-                      getKeyMessagePlaceholder(
-                        category
-                      )
-                    }
-                  />
-
-                  <TextAreaField
-                    label="Supporting Points"
-                    value={
-                      formData.supportingPoints
-                    }
-                    onChange={(value) =>
-                      updateField(
-                        "supportingPoints",
-                        value
-                      )
-                    }
-                    rows={4}
-                    placeholder={
-                      getSupportingPlaceholder(
-                        category
-                      )
-                    }
-                  />
-
-                </div>
-              )}
-
-              {/* Paste */}
-              {inputMethod ===
-                "paste" && (
-
-                <TextAreaField
-                  label="Paste source content"
-                  value={
-                    formData.details
-                      .pastedContent ||
-                    ""
-                  }
-                  onChange={(value) =>
-                    updateDetail(
-                      "pastedContent",
-                      value
-                    )
-                  }
-                  rows={10}
-                  placeholder="Paste the available content here. AI will structure it in the next stage."
-                />
-
-              )}
-
-              {/* URL */}
-              {inputMethod ===
-                "url" && (
-
-                <TextField
-                  label="Source URL"
-                  value={
-                    formData.details
-                      .sourceUrl ||
-                    ""
-                  }
-                  onChange={(value) =>
-                    updateDetail(
-                      "sourceUrl",
-                      value
-                    )
-                  }
-                  placeholder="https://..."
-                />
-
-              )}
-
-              {/* Upload placeholders */}
-              {inputMethod ===
-                "upload" && (
-
-                <div className="space-y-4">
-
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf,application/pdf"
-                    onChange={handleFileInputChange}
-                    className="hidden"
-                  />
-
-                  {!sourceFile ? (
-                    <div
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                      className={`rounded-xl border-2 border-dashed p-8 text-center transition-all ${
-                        dragActive
-                          ? "border-[#07877B] bg-[#e8f5f4]/50"
-                          : "border-gray-300 bg-gray-50/40 hover:border-[#07877B]/60"
-                      }`}
-                    >
-                      <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm">
-                        {uploadingFile ? (
-                          <RefreshCw className="h-6 w-6 animate-spin text-[#07877B]" />
-                        ) : (
-                          <FileUp className="h-6 w-6 text-[#07877B]" />
-                        )}
-                      </div>
-
-                      <p className="font-medium text-gray-900">
-                        {uploadingFile
-                          ? "Uploading PDF…"
-                          : "Drop your PDF here"}
-                      </p>
-
-                      <p className="mt-1 text-sm text-gray-500">
-                        or choose a file from your computer
-                      </p>
-
+                    return (
                       <button
                         type="button"
-                        onClick={() =>
-                          fileInputRef.current?.click()
+                        key={
+                          method.id
                         }
-                        disabled={uploadingFile}
-                        className="mt-5 rounded-lg border border-[#07877B] bg-white px-5 py-2.5 text-sm font-medium text-[#07877B] transition-colors hover:bg-[#e8f5f4]/40 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() =>
+                          handleInputMethodChange(
+                            method.id
+                          )
+                        }
+                        className={`rounded-xl border p-4 text-left transition-all ${
+                          selected
+                            ? "border-[#07877B] bg-[#f3fbfa]"
+                            : "border-gray-200 bg-white hover:border-[#9bcfc9] hover:bg-gray-50/60"
+                        }`}
                       >
-                        Choose PDF
+                        <div className="flex items-start justify-between gap-3">
+                          <div
+                            className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+                              selected
+                                ? "bg-[#dff2ef] text-[#07877B]"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </div>
+
+                          <SelectionIndicator
+                            selected={
+                              selected
+                            }
+                          />
+                        </div>
+
+                        <p className="mt-3 text-sm font-medium text-gray-900">
+                          {
+                            method.label
+                          }
+                        </p>
+
+                        <p className="mt-1 text-xs leading-5 text-gray-500">
+                          {
+                            method.helper
+                          }
+                        </p>
                       </button>
+                    );
+                  }
+                )}
+              </div>
 
-                      <div className="mx-auto mt-5 flex max-w-md flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-gray-400">
-                        <span>PDF only</span>
-                        <span>•</span>
-                        <span>Maximum 10 MB</span>
-                        <span>•</span>
-                        <span>1 file</span>
-                      </div>
+              <div className="border-t border-gray-100 pt-5">
+                {inputMethod ===
+                  "manual" && (
+                  <div className="space-y-4">
+                    <TextField
+                      label={
+                        getTopicLabel(
+                          category
+                        )
+                      }
+                      value={
+                        formData.topic
+                      }
+                      onChange={(value) =>
+                        updateField(
+                          "topic",
+                          value
+                        )
+                      }
+                      placeholder={
+                        getTopicPlaceholder(
+                          category
+                        )
+                      }
+                    />
+
+                    <TextAreaField
+                      label="Key Message"
+                      value={
+                        formData.keyMessage
+                      }
+                      onChange={(value) =>
+                        updateField(
+                          "keyMessage",
+                          value
+                        )
+                      }
+                      rows={
+                        3
+                      }
+                      placeholder={
+                        getKeyMessagePlaceholder(
+                          category
+                        )
+                      }
+                    />
+
+                    <TextAreaField
+                      label="Supporting Points"
+                      value={
+                        formData.supportingPoints
+                      }
+                      onChange={(value) =>
+                        updateField(
+                          "supportingPoints",
+                          value
+                        )
+                      }
+                      rows={
+                        4
+                      }
+                      placeholder={
+                        getSupportingPlaceholder(
+                          category
+                        )
+                      }
+                    />
+                  </div>
+                )}
+
+                {inputMethod ===
+                  "paste" && (
+                  <TextAreaField
+                    label="Paste source content"
+                    value={
+                      formData.details.pastedContent ||
+                      ""
+                    }
+                    onChange={(value) =>
+                      updateDetail(
+                        "pastedContent",
+                        value
+                      )
+                    }
+                    rows={
+                      12
+                    }
+                    placeholder="Paste the available source content here. AI will structure it in the next stage."
+                  />
+                )}
+
+                {inputMethod ===
+                  "url" && (
+                  <div className="space-y-3">
+                    <TextField
+                      label="Source URL"
+                      value={
+                        formData.details.sourceUrl ||
+                        ""
+                      }
+                      onChange={(value) =>
+                        updateDetail(
+                          "sourceUrl",
+                          value
+                        )
+                      }
+                      placeholder="https://..."
+                      type="url"
+                    />
+
+                    <div className="rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
+                      The URL is retained as a source reference. For communication types
+                      that require verified facts, add those facts in the category-specific
+                      section rather than relying on the URL alone.
                     </div>
-                  ) : (
-                    <div className="rounded-xl border border-green-200 bg-green-50/40 p-5">
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="flex min-w-0 items-start gap-3">
-                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-green-100">
-                            <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          </div>
+                  </div>
+                )}
 
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-gray-900">
-                              {sourceFile.name}
-                            </p>
+                {inputMethod ===
+                  "upload" && (
+                  <PdfSourcePanel
+                    sourceFile={
+                      sourceFile
+                    }
+                    uploadingFile={
+                      uploadingFile
+                    }
+                    removingFile={
+                      removingFile
+                    }
+                    dragActive={
+                      dragActive
+                    }
+                    fileInputRef={
+                      fileInputRef
+                    }
+                    uploadError={
+                      uploadError
+                    }
+                    processingPdf={
+                      processingPdf
+                    }
+                    extractionResult={
+                      extractionResult
+                    }
+                    extractionError={
+                      extractionError
+                    }
+                    extractingFacts={
+                      extractingFacts
+                    }
+                    factExtraction={
+                      factExtraction
+                    }
+                    factExtractionError={
+                      factExtractionError
+                    }
+                    category={
+                      category
+                    }
+                    verifiedFacts={
+                      verifiedFacts
+                    }
+                    factsApplied={
+                      factsApplied
+                    }
+                    onFileInputChange={
+                      handleFileInputChange
+                    }
+                    onDragOver={
+                      handleDragOver
+                    }
+                    onDragLeave={
+                      handleDragLeave
+                    }
+                    onDrop={
+                      handleDrop
+                    }
+                    onReplace={() =>
+                      fileInputRef.current?.click()
+                    }
+                    onRemove={() =>
+                      void handleRemovePdf()
+                    }
+                    onProcess={() =>
+                      void handleProcessPdf()
+                    }
+                    onExtractFacts={() =>
+                      void handleExtractFacts()
+                    }
+                    onChangeFact={
+                      updateVerifiedFact
+                    }
+                    onChangeListItem={
+                      updateVerifiedListItem
+                    }
+                    onApplyFacts={() =>
+                      void handleApplyFacts()
+                    }
+                  />
+                )}
+              </div>
+            </FormSection>
 
-                            <p className="mt-1 text-xs text-gray-500">
-                              {formatFileSize(
-                                sourceFile.size
-                              )}
-                              {" · "}
-                              Uploaded securely
-                            </p>
-                          </div>
-                        </div>
 
-                        <div className="flex flex-shrink-0 gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              fileInputRef.current?.click()
-                            }
-                            disabled={
-                              uploadingFile ||
-                              removingFile
-                            }
-                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                          >
-                            <RefreshCw className="h-4 w-4" />
-                            Replace
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={handleRemovePdf}
-                            disabled={
-                              uploadingFile ||
-                              removingFile
-                            }
-                            className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            {removingFile
-                              ? "Removing…"
-                              : "Remove"}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 border-t border-green-100 pt-4">
-                        {!extractionResult ? (
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p className="text-sm font-medium text-gray-800">
-                                Ready to process
-                              </p>
-                              <p className="mt-1 text-xs text-gray-500">
-                                Extract text and check relevance before using this PDF for AI generation.
-                              </p>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={handleProcessPdf}
-                              disabled={
-                                processingPdf ||
-                                uploadingFile ||
-                                removingFile
-                              }
-                              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {processingPdf ? (
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <ScanSearch className="h-4 w-4" />
-                              )}
-
-                              {processingPdf
-                                ? "Processing…"
-                                : "Process PDF"}
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                              <div className="flex items-start gap-3">
-                                <div
-                                  className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-                                    extractionResult.relevance.relevant
-                                      ? "bg-green-100"
-                                      : "bg-amber-100"
-                                  }`}
-                                >
-                                  {extractionResult.relevance.relevant ? (
-                                    <ShieldCheck className="h-5 w-5 text-green-600" />
-                                  ) : (
-                                    <AlertCircle className="h-5 w-5 text-amber-600" />
-                                  )}
-                                </div>
-
-                                <div>
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {extractionResult.relevance.relevant
-                                      ? "Document looks relevant"
-                                      : "Relevance needs review"}
-                                  </p>
-
-                                  <p className="mt-1 text-xs leading-5 text-gray-500">
-                                    {extractionResult.relevance.reason}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <span
-                                className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-medium ${
-                                  extractionResult.relevance.relevant
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-amber-100 text-amber-700"
-                                }`}
-                              >
-                                {extractionResult.relevance.score}% relevance
-                              </span>
-                            </div>
-
-                            <div className="grid gap-3 sm:grid-cols-3">
-                              <div className="rounded-lg bg-white px-4 py-3">
-                                <p className="text-xs text-gray-500">
-                                  Pages
-                                </p>
-                                <p className="mt-1 text-sm font-medium text-gray-900">
-                                  {extractionResult.extraction.pageCount}
-                                </p>
-                              </div>
-
-                              <div className="rounded-lg bg-white px-4 py-3">
-                                <p className="text-xs text-gray-500">
-                                  Extracted text
-                                </p>
-                                <p className="mt-1 text-sm font-medium text-gray-900">
-                                  {extractionResult.extraction.cleanedCharacters.toLocaleString()} chars
-                                </p>
-                              </div>
-
-                              <div className="rounded-lg bg-white px-4 py-3">
-                                <p className="text-xs text-gray-500">
-                                  OCR required
-                                </p>
-                                <p className="mt-1 text-sm font-medium text-gray-900">
-                                  {extractionResult.extraction.requiresOcr
-                                    ? "Yes"
-                                    : "No"}
-                                </p>
-                              </div>
-                            </div>
-
-                            {extractionResult.relevance.matchedSignals.length > 0 && (
-                              <div>
-                                <p className="mb-2 text-xs font-medium text-gray-600">
-                                  Matched signals
-                                </p>
-
-                                <div className="flex flex-wrap gap-2">
-                                  {extractionResult.relevance.matchedSignals.map(
-                                    (signal) => (
-                                      <span
-                                        key={signal}
-                                        className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600"
-                                      >
-                                        {signal}
-                                      </span>
-                                    )
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {extractionResult.relevance.relevant && (
-                              <div className="rounded-xl border border-[#b3d9d5] bg-white p-4">
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                  <div>
-                                    <p className="text-sm font-medium text-gray-900">
-                                      Extract key facts
-                                    </p>
-                                    <p className="mt-1 text-xs leading-5 text-gray-500">
-                                      AI will use only the filtered source text, not the full PDF.
-                                    </p>
-                                  </div>
-
-                                  <button
-                                    type="button"
-                                    onClick={handleExtractFacts}
-                                    disabled={extractingFacts}
-                                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-50"
-                                  >
-                                    {extractingFacts ? (
-                                      <RefreshCw className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <WandSparkles className="h-4 w-4" />
-                                    )}
-
-                                    {extractingFacts
-                                      ? "Extracting…"
-                                      : factExtraction
-                                        ? "Extract Again"
-                                        : "Extract Key Facts"}
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-
-                            <button
-                              type="button"
-                              onClick={handleProcessPdf}
-                              disabled={processingPdf}
-                              className="inline-flex items-center gap-2 text-xs font-medium text-[#07877B] hover:text-[#06766a] disabled:opacity-50"
-                            >
-                              <RefreshCw
-                                className={`h-3.5 w-3.5 ${
-                                  processingPdf
-                                    ? "animate-spin"
-                                    : ""
-                                }`}
-                              />
-                              Process again
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {uploadError && (
-                    <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                      <span>{uploadError}</span>
-                    </div>
-                  )}
-
-                  {extractionError && (
-                    <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                      <span>{extractionError}</span>
-                    </div>
-                  )}
-
-                  {factExtractionError && (
-                    <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0" />
-                      <span>{factExtractionError}</span>
-                    </div>
-                  )}
-
-                  {factExtraction &&
-                    Object.keys(verifiedFacts).length > 0 && (
-                      <FactVerificationPanel
-                        category={category}
-                        facts={verifiedFacts}
-                        usage={factExtraction.usage}
-                        applied={factsApplied}
-                        onChange={updateVerifiedFact}
-                        onChangeListItem={updateVerifiedListItem}
-                        onApply={handleApplyFacts}
-                      />
-                    )}
-
-                </div>
-
-              )}
-
-            </section>
-
-            {/* Category Specific */}
             <CategorySpecificFields
-              category={category}
+              category={
+                category
+              }
               details={
                 formData.details
               }
@@ -2293,25 +2697,13 @@ export function SmartInputForm() {
               }
             />
 
-            {/* CTA */}
-            <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
 
-              <div className="mb-6">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg text-gray-900">
-                    Call to action
-                  </h2>
-                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                    Optional
-                  </span>
-                </div>
-                <p className="mt-1 text-sm text-gray-500">
-                  Add this only when the email should drive the reader to a specific action.
-                </p>
-              </div>
-
+            <FormSection
+              number="04"
+              title="Call to action"
+              helper="Optional. Add this only when the communication should drive the reader to a specific action."
+            >
               <div className="grid gap-4 sm:grid-cols-2">
-
                 <TextField
                   label="CTA Text"
                   value={
@@ -2340,142 +2732,653 @@ export function SmartInputForm() {
                   placeholder="https://..."
                   type="url"
                 />
-
               </div>
-
-            </section>
-
+            </FormSection>
           </div>
 
-          {/* HELP PANEL */}
-          <aside className="space-y-6">
 
-            <div className="rounded-xl border border-[#b3d9d5] bg-[#e8f5f4]/50 p-6">
+          <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
+            <div className="rounded-2xl border border-[#bfe4df] bg-[#f7fcfb] p-5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-[#07877B]" />
 
-              <div className="mb-3 flex items-center gap-2">
-
-                <Sparkles className="h-5 w-5 text-[#07877B]" />
-
-                <h3 className="text-sm text-[#075f58]">
-                  AI Tip
-                </h3>
-
+                <p className="text-sm font-medium text-gray-900">
+                  AI guidance
+                </p>
               </div>
 
-              <p className="text-sm text-[#075f58]">
+              <p className="mt-3 text-sm leading-6 text-gray-600">
                 {getAiTip(
                   category
                 )}
               </p>
-
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+              <p className="text-sm font-medium text-gray-900">
+                Input readiness
+              </p>
 
-              <h3 className="mb-3 text-sm">
-                What makes a good input?
-              </h3>
+              <div className="mt-4 space-y-3">
+                <ReadinessItem
+                  ready={
+                    Boolean(
+                      formData.title.trim()
+                    )
+                  }
+                  label="Communication title"
+                />
 
-              <ul className="space-y-2 text-sm text-muted-foreground">
+                <ReadinessItem
+                  ready={
+                    Boolean(
+                      formData.subcategory
+                    )
+                  }
+                  label="Subcategory"
+                />
 
-                {[
-                  "Clear, concise messaging",
-                  "Specific data points",
-                  "Relevant context",
-                  "Actionable takeaways",
-                ].map((item) => (
+                <ReadinessItem
+                  ready={
+                    Boolean(
+                      formData.audience
+                    )
+                  }
+                  label="Audience"
+                />
 
-                  <li
-                    key={item}
-                    className="flex gap-2"
-                  >
+                <ReadinessItem
+                  ready={
+                    getSourceReady({
+                      inputMethod,
+                      formData,
+                      sourceFile,
+                      extractionResult,
+                      factExtraction,
+                      factsApplied,
+                    })
+                  }
+                  label="Source information"
+                />
+              </div>
 
-                    <span className="text-[#07877B]">
-                      •
-                    </span>
-
-                    <span>
-                      {item}
-                    </span>
-
-                  </li>
-
-                ))}
-
-              </ul>
-
+              <div className="mt-5 border-t border-gray-100 pt-4">
+                <p className="text-xs leading-5 text-gray-500">
+                  AI will generate from the information you provide. Specific facts,
+                  dates, prices, recommendations and mandatory requirements should
+                  always come from a verified source.
+                </p>
+              </div>
             </div>
 
+            <button
+              type="button"
+              onClick={() =>
+                void handleSaveDraft()
+              }
+              disabled={
+                saving ||
+                generating ||
+                !communicationId
+              }
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Save Draft
+                </>
+              )}
+            </button>
           </aside>
-
         </div>
 
-        {/* Actions */}
-        <div className="mt-8 flex items-center justify-between border-t border-gray-200 pt-6">
 
-          <button
-            type="button"
-            onClick={handleBack}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-gray-700 transition-all hover:bg-gray-50"
-          >
-
-            <ArrowLeft className="h-4 w-4" />
-
-            Back
-
-          </button>
-
-          <div className="flex gap-3">
-
+        <div className="mt-9 border-t border-gray-200 pt-6">
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
               onClick={
-                handleSaveDraft
+                handleBack
               }
               disabled={
                 saving ||
                 generating
               }
-              className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-gray-700 transition-all hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
             >
-
-              {saving
-                ? "Saving..."
-                : "Save Draft"}
-
+              <ArrowLeft className="h-4 w-4" />
+              Back
             </button>
 
-            <button
-              type="button"
-              onClick={
-                handleGenerate
-              }
-              disabled={
-                saving ||
-                generating
-              }
-              className="inline-flex items-center gap-2 rounded-lg bg-[#07877B] px-8 py-3 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-            >
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <p className="text-xs text-gray-500 sm:text-right">
+                Next: AI generates the communication options
+              </p>
 
-              <Sparkles className="h-4 w-4" />
-
-              {generating
-                ? "Generating..."
-                : category === "regulatory"
-                  ? "Generate 2 Options"
-                  : "Generate 3 Options"}
-
-            </button>
-
+              <button
+                type="button"
+                onClick={() =>
+                  void handleGenerate()
+                }
+                disabled={
+                  saving ||
+                  generating ||
+                  !communicationId
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-7 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    {category ===
+                    "regulatory"
+                      ? "Generate 2 Options"
+                      : "Generate 3 Options"}
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-
         </div>
-
       </main>
     </div>
   );
 }
 
+
+function PdfSourcePanel({
+  sourceFile,
+  uploadingFile,
+  removingFile,
+  dragActive,
+  fileInputRef,
+  uploadError,
+  processingPdf,
+  extractionResult,
+  extractionError,
+  extractingFacts,
+  factExtraction,
+  factExtractionError,
+  category,
+  verifiedFacts,
+  factsApplied,
+  onFileInputChange,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onReplace,
+  onRemove,
+  onProcess,
+  onExtractFacts,
+  onChangeFact,
+  onChangeListItem,
+  onApplyFacts,
+}: {
+  sourceFile:
+    SourceFileMetadata | null;
+
+  uploadingFile:
+    boolean;
+
+  removingFile:
+    boolean;
+
+  dragActive:
+    boolean;
+
+  fileInputRef:
+    RefObject<HTMLInputElement | null>;
+
+  uploadError:
+    string;
+
+  processingPdf:
+    boolean;
+
+  extractionResult:
+    PdfExtractionResult | null;
+
+  extractionError:
+    string;
+
+  extractingFacts:
+    boolean;
+
+  factExtraction:
+    FactExtractionResponse | null;
+
+  factExtractionError:
+    string;
+
+  category:
+    Category;
+
+  verifiedFacts:
+    Record<string, any>;
+
+  factsApplied:
+    boolean;
+
+  onFileInputChange:
+    (
+      event:
+        ChangeEvent<HTMLInputElement>
+    ) => void;
+
+  onDragOver:
+    (
+      event:
+        DragEvent<HTMLDivElement>
+    ) => void;
+
+  onDragLeave:
+    (
+      event:
+        DragEvent<HTMLDivElement>
+    ) => void;
+
+  onDrop:
+    (
+      event:
+        DragEvent<HTMLDivElement>
+    ) => void;
+
+  onReplace:
+    () => void;
+
+  onRemove:
+    () => void;
+
+  onProcess:
+    () => void;
+
+  onExtractFacts:
+    () => void;
+
+  onChangeFact:
+    (
+      key:
+        string,
+      value:
+        any
+    ) => void;
+
+  onChangeListItem:
+    (
+      key:
+        string,
+      index:
+        number,
+      value:
+        string
+    ) => void;
+
+  onApplyFacts:
+    () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <input
+        ref={
+          fileInputRef
+        }
+        type="file"
+        accept=".pdf,application/pdf"
+        onChange={
+          onFileInputChange
+        }
+        className="hidden"
+      />
+
+      {!sourceFile ? (
+        <div
+          onDragOver={
+            onDragOver
+          }
+          onDragLeave={
+            onDragLeave
+          }
+          onDrop={
+            onDrop
+          }
+          className={`rounded-2xl border border-dashed px-6 py-10 text-center transition-all ${
+            dragActive
+              ? "border-[#07877B] bg-[#f3fbfa]"
+              : "border-gray-300 bg-gray-50/60"
+          }`}
+        >
+          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm">
+            {uploadingFile ? (
+              <Loader2 className="h-5 w-5 animate-spin text-[#07877B]" />
+            ) : (
+              <FileUp className="h-5 w-5 text-[#07877B]" />
+            )}
+          </div>
+
+          <p className="mt-4 text-sm font-medium text-gray-900">
+            {uploadingFile
+              ? "Uploading PDF..."
+              : "Drop a PDF here or choose a file"}
+          </p>
+
+          <p className="mt-1 text-xs leading-5 text-gray-500">
+            PDF only · Maximum 10 MB · One source file
+          </p>
+
+          <button
+            type="button"
+            onClick={() =>
+              fileInputRef.current?.click()
+            }
+            disabled={
+              uploadingFile
+            }
+            className="mt-4 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+          >
+            Choose PDF
+          </button>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-gray-200 bg-gray-50/60 p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#e8f5f4]">
+                <CheckCircle2 className="h-5 w-5 text-[#07877B]" />
+              </div>
+
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-gray-900">
+                  {
+                    sourceFile.name
+                  }
+                </p>
+
+                <p className="mt-1 text-xs text-gray-500">
+                  {formatFileSize(
+                    sourceFile.size
+                  )}
+                  {" · "}
+                  Uploaded securely
+                </p>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={
+                  onReplace
+                }
+                disabled={
+                  uploadingFile ||
+                  removingFile
+                }
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Replace
+              </button>
+
+              <button
+                type="button"
+                onClick={
+                  onRemove
+                }
+                disabled={
+                  uploadingFile ||
+                  removingFile
+                }
+                className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+              >
+                {removingFile ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {uploadError && (
+        <InlineError>
+          {uploadError}
+        </InlineError>
+      )}
+
+      {sourceFile &&
+        !extractionResult && (
+          <div className="rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  Process the PDF
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-gray-500">
+                  Extract text and check whether the document is relevant to the selected communication category.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  onProcess
+                }
+                disabled={
+                  processingPdf
+                }
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#06766a] disabled:opacity-50"
+              >
+                {processingPdf ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ScanSearch className="h-4 w-4" />
+                )}
+
+                {processingPdf
+                  ? "Processing..."
+                  : "Process PDF"}
+              </button>
+            </div>
+          </div>
+        )}
+
+      {extractionError && (
+        <InlineError>
+          {extractionError}
+        </InlineError>
+      )}
+
+      {extractionResult && (
+        <div
+          className={`rounded-2xl border p-5 ${
+            extractionResult.relevance.relevant
+              ? "border-green-200 bg-green-50/40"
+              : "border-amber-200 bg-amber-50/50"
+          }`}
+        >
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                  extractionResult.relevance.relevant
+                    ? "bg-green-100"
+                    : "bg-amber-100"
+                }`}
+              >
+                {extractionResult.relevance.relevant ? (
+                  <ShieldCheck className="h-5 w-5 text-green-600" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-amber-600" />
+                )}
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  {extractionResult.relevance.relevant
+                    ? "Document looks relevant"
+                    : "Relevance needs review"}
+                </p>
+
+                <p className="mt-1 max-w-2xl text-xs leading-5 text-gray-600">
+                  {
+                    extractionResult.relevance.reason
+                  }
+                </p>
+              </div>
+            </div>
+
+            <span
+              className={`inline-flex w-fit rounded-full px-2.5 py-1 text-xs font-medium ${
+                extractionResult.relevance.relevant
+                  ? "bg-green-100 text-green-700"
+                  : "bg-amber-100 text-amber-700"
+              }`}
+            >
+              {extractionResult.relevance.score}% relevance
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <Metric
+              label="Pages"
+              value={
+                String(
+                  extractionResult.extraction.pageCount
+                )
+              }
+            />
+
+            <Metric
+              label="Extracted text"
+              value={`${extractionResult.extraction.cleanedCharacters.toLocaleString()} chars`}
+            />
+
+            <Metric
+              label="OCR required"
+              value={
+                extractionResult.extraction.requiresOcr
+                  ? "Yes"
+                  : "No"
+              }
+            />
+          </div>
+
+          {extractionResult.relevance.matchedSignals.length >
+            0 && (
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-medium text-gray-600">
+                Matched signals
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {extractionResult.relevance.matchedSignals.map(
+                  (
+                    signal
+                  ) => (
+                    <span
+                      key={
+                        signal
+                      }
+                      className="rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-600"
+                    >
+                      {signal}
+                    </span>
+                  )
+                )}
+              </div>
+            </div>
+          )}
+
+          {extractionResult.relevance.relevant &&
+            !factExtraction && (
+              <div className="mt-5 border-t border-green-200 pt-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      Extract the key facts
+                    </p>
+
+                    <p className="mt-1 text-xs leading-5 text-gray-600">
+                      AI identifies the important source facts so you can verify them before generation.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={
+                      onExtractFacts
+                    }
+                    disabled={
+                      extractingFacts
+                    }
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#07877B] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#06766a] disabled:opacity-50"
+                  >
+                    {extractingFacts ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <WandSparkles className="h-4 w-4" />
+                    )}
+
+                    {extractingFacts
+                      ? "Extracting facts..."
+                      : "Extract Key Facts"}
+                  </button>
+                </div>
+              </div>
+            )}
+        </div>
+      )}
+
+      {factExtractionError && (
+        <InlineError>
+          {factExtractionError}
+        </InlineError>
+      )}
+
+      {factExtraction && (
+        <FactVerificationPanel
+          category={
+            category
+          }
+          facts={
+            verifiedFacts
+          }
+          usage={
+            factExtraction.usage
+          }
+          applied={
+            factsApplied
+          }
+          onChange={
+            onChangeFact
+          }
+          onChangeListItem={
+            onChangeListItem
+          }
+          onApply={
+            onApplyFacts
+          }
+        />
+      )}
+    </div>
+  );
+}
 
 
 function FactVerificationPanel({
@@ -2487,26 +3390,55 @@ function FactVerificationPanel({
   onChangeListItem,
   onApply,
 }: {
-  category: Category;
-  facts: Record<string, any>;
+  category:
+    Category;
+
+  facts:
+    Record<
+      string,
+      any
+    >;
+
   usage: {
-    sourceCharacters: number;
-    promptTokens: number | null;
-    completionTokens: number | null;
-    totalTokens: number | null;
-    model: string;
+    sourceCharacters:
+      number;
+
+    promptTokens:
+      number | null;
+
+    completionTokens:
+      number | null;
+
+    totalTokens:
+      number | null;
+
+    model:
+      string;
   };
-  applied: boolean;
-  onChange: (
-    key: string,
-    value: any
-  ) => void;
-  onChangeListItem: (
-    key: string,
-    index: number,
-    value: string
-  ) => void;
-  onApply: () => void;
+
+  applied:
+    boolean;
+
+  onChange:
+    (
+      key:
+        string,
+      value:
+        any
+    ) => void;
+
+  onChangeListItem:
+    (
+      key:
+        string,
+      index:
+        number,
+      value:
+        string
+    ) => void;
+
+  onApply:
+    () => void;
 }) {
   const visibleFields =
     getFactFields(
@@ -2514,11 +3446,12 @@ function FactVerificationPanel({
     );
 
   return (
-    <div className="rounded-xl border border-[#b3d9d5] bg-[#f7fbfa] p-5">
+    <div className="rounded-2xl border border-[#bfe4df] bg-[#f7fcfb] p-5">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <PencilLine className="h-4 w-4 text-[#07877B]" />
+
             <h3 className="text-sm font-medium text-gray-900">
               Review extracted facts
             </h3>
@@ -2529,37 +3462,52 @@ function FactVerificationPanel({
           </p>
         </div>
 
-        {usage.totalTokens !== null &&
-          usage.model !== "saved" && (
+        {usage.totalTokens !==
+          null &&
+          usage.model !==
+            "saved" && (
             <div className="rounded-full bg-white px-3 py-1 text-xs text-gray-500">
               {usage.totalTokens.toLocaleString()} tokens
             </div>
           )}
       </div>
 
-      <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         {visibleFields.map(
-          (field) => {
+          (
+            field
+          ) => {
             const value =
-              facts[field.key];
+              facts[
+                field.key
+              ];
 
             if (
-              field.type === "list"
+              field.type ===
+              "list"
             ) {
               const items =
-                Array.isArray(value)
+                Array.isArray(
+                  value
+                )
                   ? value
                   : [];
 
               return (
                 <div
-                  key={field.key}
+                  key={
+                    field.key
+                  }
+                  className="sm:col-span-2"
                 >
                   <label className="mb-2 block text-xs font-medium text-gray-600">
-                    {field.label}
+                    {
+                      field.label
+                    }
                   </label>
 
-                  {items.length === 0 ? (
+                  {items.length ===
+                  0 ? (
                     <div className="rounded-lg border border-dashed border-gray-300 bg-white px-3 py-3 text-xs text-gray-400">
                       Not found in source
                     </div>
@@ -2575,7 +3523,8 @@ function FactVerificationPanel({
                           <input
                             key={`${field.key}-${index}`}
                             value={
-                              item || ""
+                              item ||
+                              ""
                             }
                             onChange={(
                               event
@@ -2586,7 +3535,7 @@ function FactVerificationPanel({
                                 event.target.value
                               )
                             }
-                            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
+                            className={inputClassName}
                           />
                         )
                       )}
@@ -2598,10 +3547,14 @@ function FactVerificationPanel({
 
             return (
               <div
-                key={field.key}
+                key={
+                  field.key
+                }
               >
                 <label className="mb-2 block text-xs font-medium text-gray-600">
-                  {field.label}
+                  {
+                    field.label
+                  }
                 </label>
 
                 <input
@@ -2620,7 +3573,7 @@ function FactVerificationPanel({
                     )
                   }
                   placeholder="Not found in source"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
+                  className={inputClassName}
                 />
               </div>
             );
@@ -2629,20 +3582,23 @@ function FactVerificationPanel({
       </div>
 
       <div className="mt-5 flex flex-col gap-3 border-t border-[#d8ebe8] pt-5 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs text-gray-500">
+        <p className="text-xs leading-5 text-gray-500">
           Missing facts can stay blank. Do not add information that is not supported by the source.
         </p>
 
         <button
           type="button"
-          onClick={onApply}
-          className={`inline-flex flex-shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium ${
+          onClick={
+            onApply
+          }
+          className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium ${
             applied
               ? "border border-green-200 bg-green-50 text-green-700"
               : "bg-[#07877B] text-white hover:bg-[#06766a]"
           }`}
         >
           <CircleCheckBig className="h-4 w-4" />
+
           {applied
             ? "Facts applied"
             : "Use these facts"}
@@ -2652,11 +3608,1480 @@ function FactVerificationPanel({
   );
 }
 
+
+function CategorySpecificFields({
+  category,
+  details,
+  updateDetail,
+}: {
+  category:
+    Category;
+
+  details:
+    Record<
+      string,
+      string
+    >;
+
+  updateDetail:
+    (
+      field:
+        string,
+      value:
+        string
+    ) => void;
+}) {
+  if (
+    category ===
+    "research"
+  ) {
+    return (
+      <FormSection
+        number="03"
+        title="Fundamental Research details"
+        helper="Add the verified recommendation, price information, rationale and risk factors."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField
+            label="Recommendation"
+            value={
+              details.recommendation ||
+              ""
+            }
+            onChange={(value) =>
+              updateDetail(
+                "recommendation",
+                value
+              )
+            }
+            options={[
+              "Buy",
+              "Sell",
+              "Accumulate",
+              "Hold",
+            ]}
+          />
+
+          <SelectField
+            label="Time Horizon"
+            value={
+              details.timeHorizon ||
+              ""
+            }
+            onChange={(value) =>
+              updateDetail(
+                "timeHorizon",
+                value
+              )
+            }
+            options={[
+              "Short Term (0-3 months)",
+              "Medium Term (3-12 months)",
+              "Long Term (12+ months)",
+            ]}
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            label="Current Price"
+            value={
+              details.currentPrice ||
+              ""
+            }
+            onChange={(value) =>
+              updateDetail(
+                "currentPrice",
+                value
+              )
+            }
+            placeholder="₹ 2,450"
+          />
+
+          <TextField
+            label="Target Price"
+            value={
+              details.targetPrice ||
+              ""
+            }
+            onChange={(value) =>
+              updateDetail(
+                "targetPrice",
+                value
+              )
+            }
+            placeholder="₹ 2,850"
+          />
+        </div>
+
+        <TextAreaField
+          label="Key Rationale"
+          value={
+            details.rationale ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "rationale",
+              value
+            )
+          }
+          rows={
+            4
+          }
+          placeholder="Why this recommendation? Add the key verified drivers and catalysts."
+        />
+
+        <TextAreaField
+          label="Risk Factors"
+          value={
+            details.riskFactors ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "riskFactors",
+              value
+            )
+          }
+          rows={
+            4
+          }
+          placeholder="Key risks investors should be aware of."
+        />
+      </FormSection>
+    );
+  }
+
+
+  if (
+    category ===
+    "education"
+  ) {
+    return (
+      <FormSection
+        number="03"
+        title="Investor Education details"
+        helper="Define the complexity, format and learning outcome."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField
+            label="Difficulty Level"
+            value={
+              details.difficulty ||
+              ""
+            }
+            onChange={(value) =>
+              updateDetail(
+                "difficulty",
+                value
+              )
+            }
+            options={[
+              "Beginner",
+              "Intermediate",
+              "Advanced",
+              "All Levels",
+            ]}
+          />
+
+          <SelectField
+            label="Content Format"
+            value={
+              details.contentFormat ||
+              ""
+            }
+            onChange={(value) =>
+              updateDetail(
+                "contentFormat",
+                value
+              )
+            }
+            options={[
+              "Article / Guide",
+              "Video Tutorial",
+              "Infographic",
+              "Step-by-Step Tutorial",
+              "Case Study",
+            ]}
+          />
+        </div>
+
+        <TextField
+          label="Key Concepts Covered"
+          value={
+            details.keyConcepts ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "keyConcepts",
+              value
+            )
+          }
+          placeholder="e.g., NAV, SIP, Asset Allocation"
+        />
+
+        <TextAreaField
+          label="Learning Outcome"
+          value={
+            details.learningOutcome ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "learningOutcome",
+              value
+            )
+          }
+          rows={
+            3
+          }
+          placeholder="What should readers understand after reading?"
+        />
+      </FormSection>
+    );
+  }
+
+
+  if (
+    category ===
+    "product"
+  ) {
+    const communicationType =
+      details.communicationType ||
+      "";
+
+    const isFeatureExplainer =
+      communicationType ===
+      "feature_explainer";
+
+    return (
+      <FormSection
+        number="03"
+        title="Product & Sales details"
+        helper="Choose the communication intent and provide the verified product facts."
+      >
+        <div className="rounded-xl border border-[#bfe4df] bg-[#f7fcfb] p-4">
+          <div className="mb-1 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-[#07877B]" />
+
+            <p className="text-sm font-medium text-gray-900">
+              Communication intent
+            </p>
+          </div>
+
+          <p className="mb-4 text-xs leading-5 text-gray-500">
+            This controls the content architecture used by AI.
+          </p>
+
+          <ValueSelectField
+            label="Communication Type"
+            value={
+              communicationType
+            }
+            onChange={(value) =>
+              updateDetail(
+                "communicationType",
+                value
+              )
+            }
+            placeholder="Select communication type"
+            options={[
+              {
+                value:
+                  "feature_explainer",
+                label:
+                  "Feature Explainer",
+              },
+              {
+                value:
+                  "product_launch",
+                label:
+                  "Product Launch",
+              },
+              {
+                value:
+                  "product_update",
+                label:
+                  "Product Update",
+              },
+              {
+                value:
+                  "offer_plan",
+                label:
+                  "Offer / Plan",
+              },
+              {
+                value:
+                  "product_benefit",
+                label:
+                  "Product Benefit",
+              },
+              {
+                value:
+                  "cross_sell_adoption",
+                label:
+                  "Cross-sell / Adoption",
+              },
+            ]}
+          />
+        </div>
+
+        {isFeatureExplainer ? (
+          <>
+            <div className="rounded-xl bg-blue-50 px-4 py-3">
+              <p className="text-sm font-medium text-blue-900">
+                Provide the facts, not the email copy
+              </p>
+
+              <p className="mt-1 text-xs leading-5 text-blue-700">
+                Add enough verified information for AI to explain what the feature is,
+                why it matters, how it works and how customers can use it.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Feature Name *"
+                value={
+                  details.featureName ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "featureName",
+                    value
+                  )
+                }
+                placeholder="e.g., One-Cancel-Other (OCO) Orders"
+              />
+
+              <TextField
+                label="Product / Platform *"
+                value={
+                  details.productPlatform ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "productPlatform",
+                    value
+                  )
+                }
+                placeholder="e.g., Flip"
+              />
+            </div>
+
+            <TextAreaField
+              label="What is the feature? *"
+              value={
+                details.featureExplanation ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "featureExplanation",
+                  value
+                )
+              }
+              rows={
+                4
+              }
+              placeholder="Explain the feature factually in simple terms. What does it enable the customer to do?"
+            />
+
+            <TextAreaField
+              label="Customer need / problem it addresses"
+              value={
+                details.customerProblem ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "customerProblem",
+                  value
+                )
+              }
+              rows={
+                3
+              }
+              placeholder="What customer situation, task or problem makes this feature useful?"
+            />
+
+            <TextAreaField
+              label="How does it work? *"
+              value={
+                details.howItWorks ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "howItWorks",
+                  value
+                )
+              }
+              rows={
+                4
+              }
+              placeholder="Describe the verified mechanism or workflow. Do not add unsupported steps."
+            />
+
+            <TextAreaField
+              label="Key benefits / capabilities *"
+              value={
+                details.keyBenefits ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "keyBenefits",
+                  value
+                )
+              }
+              rows={
+                4
+              }
+              placeholder={"One benefit per line, for example:\nManage two related orders together\nReduce manual order monitoring"}
+            />
+
+            <TextAreaField
+              label="Practical example / use case"
+              value={
+                details.practicalExample ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "practicalExample",
+                  value
+                )
+              }
+              rows={
+                4
+              }
+              placeholder="Add a verified example or scenario. Leave blank if the source does not support one."
+            />
+
+            <TextAreaField
+              label="How to access / use the feature"
+              value={
+                details.usageGuidance ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "usageGuidance",
+                  value
+                )
+              }
+              rows={
+                4
+              }
+              placeholder="Where is the feature available and what should the customer do? Add only verified steps."
+            />
+
+            <TextAreaField
+              label="Important conditions / limitations"
+              value={
+                details.conditionsLimitations ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "conditionsLimitations",
+                  value
+                )
+              }
+              rows={
+                4
+              }
+              placeholder="Eligibility, operational conditions, limitations, risks or other points customers should know."
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Launch Date / Availability"
+                type="date"
+                value={
+                  details.launchDate ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "launchDate",
+                    value
+                  )
+                }
+              />
+
+              <SelectField
+                label="Target Segment"
+                value={
+                  details.targetSegment ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "targetSegment",
+                    value
+                  )
+                }
+                options={[
+                  "All Customers",
+                  "New Customers",
+                  "Premium Segment",
+                  "Active Traders",
+                  "Investors",
+                ]}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Launch Date / Availability"
+                type="date"
+                value={
+                  details.launchDate ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "launchDate",
+                    value
+                  )
+                }
+              />
+
+              <SelectField
+                label="Target Segment"
+                value={
+                  details.targetSegment ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "targetSegment",
+                    value
+                  )
+                }
+                options={[
+                  "All Customers",
+                  "New Customers",
+                  "Premium Segment",
+                  "Active Traders",
+                  "Investors",
+                ]}
+              />
+            </div>
+
+            <TextAreaField
+              label="Key Features & Benefits"
+              value={
+                details.features ||
+                ""
+              }
+              onChange={(value) =>
+                updateDetail(
+                  "features",
+                  value
+                )
+              }
+              rows={
+                4
+              }
+              placeholder="List the main verified features and benefits."
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextField
+                label="Pricing Information"
+                value={
+                  details.pricing ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "pricing",
+                    value
+                  )
+                }
+                placeholder="e.g., ₹999/month"
+              />
+
+              <TextField
+                label="Offer Validity"
+                value={
+                  details.offerValidity ||
+                  ""
+                }
+                onChange={(value) =>
+                  updateDetail(
+                    "offerValidity",
+                    value
+                  )
+                }
+                placeholder="e.g., Until 31 March"
+              />
+            </div>
+          </>
+        )}
+      </FormSection>
+    );
+  }
+
+
+  if (
+    category ===
+    "service"
+  ) {
+    return (
+      <FormSection
+        number="03"
+        title="Service & Transactional details"
+        helper="Describe the service change, timing and customer impact."
+      >
+        <SelectField
+          label="Update Category"
+          value={
+            details.updateCategory ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "updateCategory",
+              value
+            )
+          }
+          options={[
+            "Scheduled Maintenance",
+            "Service Enhancement",
+            "System Upgrade",
+            "Transaction Alert",
+            "Account Update",
+          ]}
+        />
+
+        <TextField
+          label="Effective Date/Time"
+          type="datetime-local"
+          value={
+            details.effectiveDate ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "effectiveDate",
+              value
+            )
+          }
+        />
+
+        <TextField
+          label="Affected Services"
+          value={
+            details.affectedServices ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "affectedServices",
+              value
+            )
+          }
+          placeholder="e.g., Trading Platform, Mobile App"
+        />
+
+        <TextAreaField
+          label="Customer Impact"
+          value={
+            details.customerImpact ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "customerImpact",
+              value
+            )
+          }
+          rows={
+            3
+          }
+        />
+
+        <TextField
+          label="Duration / Timeline"
+          value={
+            details.duration ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "duration",
+              value
+            )
+          }
+        />
+      </FormSection>
+    );
+  }
+
+
+  if (
+    category ===
+    "regulatory"
+  ) {
+    return (
+      <FormSection
+        number="03"
+        title="Regulatory & Compliance details"
+        helper="Capture the authority, reference, deadline and required action exactly."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <SelectField
+            label="Regulatory Authority"
+            value={
+              details.authority ||
+              ""
+            }
+            onChange={(value) =>
+              updateDetail(
+                "authority",
+                value
+              )
+            }
+            options={[
+              "SEBI",
+              "RBI",
+              "NSE",
+              "BSE",
+              "Internal Policy",
+            ]}
+          />
+
+          <TextField
+            label="Reference Number"
+            value={
+              details.referenceNumber ||
+              ""
+            }
+            onChange={(value) =>
+              updateDetail(
+                "referenceNumber",
+                value
+              )
+            }
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TextField
+            label="Compliance Deadline"
+            type="date"
+            value={
+              details.deadline ||
+              ""
+            }
+            onChange={(value) =>
+              updateDetail(
+                "deadline",
+                value
+              )
+            }
+          />
+
+          <SelectField
+            label="Priority Level"
+            value={
+              details.priority ||
+              ""
+            }
+            onChange={(value) =>
+              updateDetail(
+                "priority",
+                value
+              )
+            }
+            options={[
+              "Critical - Immediate Action",
+              "High - Urgent",
+              "Medium - Important",
+              "Low - Informational",
+            ]}
+          />
+        </div>
+
+        <TextField
+          label="Affected Products/Services"
+          value={
+            details.affectedProducts ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "affectedProducts",
+              value
+            )
+          }
+        />
+
+        <TextAreaField
+          label="Required Actions"
+          value={
+            details.requiredActions ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "requiredActions",
+              value
+            )
+          }
+          rows={
+            4
+          }
+        />
+      </FormSection>
+    );
+  }
+
+
+  return (
+    <FormSection
+      number="03"
+      title="Onboarding & Journey details"
+      helper="Define the journey stage, user segment and expected next action."
+    >
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SelectField
+          label="Journey Stage"
+          value={
+            details.journeyStage ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "journeyStage",
+              value
+            )
+          }
+          options={[
+            "Welcome Email (Day 0)",
+            "Getting Started (Day 1)",
+            "Feature Discovery (Day 3)",
+            "First Action (Day 7)",
+            "Engagement (Day 14)",
+            "Milestone Celebration",
+          ]}
+        />
+
+        <SelectField
+          label="User Segment"
+          value={
+            details.userSegment ||
+            ""
+          }
+          onChange={(value) =>
+            updateDetail(
+              "userSegment",
+              value
+            )
+          }
+          options={[
+            "All New Users",
+            "First-Time Investors",
+            "Experienced Traders",
+            "Corporate Clients",
+            "Mobile App Users",
+          ]}
+        />
+      </div>
+
+      <TextField
+        label="Primary Goal / Action"
+        value={
+          details.primaryGoal ||
+          ""
+        }
+        onChange={(value) =>
+          updateDetail(
+            "primaryGoal",
+            value
+          )
+        }
+      />
+
+      <TextAreaField
+        label="Key Resources / Next Steps"
+        value={
+          details.resources ||
+          ""
+        }
+        onChange={(value) =>
+          updateDetail(
+            "resources",
+            value
+          )
+        }
+        rows={
+          3
+        }
+      />
+
+      <TextField
+        label="Success Metric"
+        value={
+          details.successMetric ||
+          ""
+        }
+        onChange={(value) =>
+          updateDetail(
+            "successMetric",
+            value
+          )
+        }
+      />
+    </FormSection>
+  );
+}
+
+
+function FormSection({
+  number,
+  title,
+  helper,
+  children,
+}: {
+  number:
+    string;
+
+  title:
+    string;
+
+  helper:
+    string;
+
+  children:
+    ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="border-b border-gray-100 px-6 py-5 sm:px-7">
+        <div className="flex items-start gap-4">
+          <span className="mt-0.5 text-xs font-semibold tracking-[0.14em] text-[#07877B]">
+            {number}
+          </span>
+
+          <div>
+            <h2 className="text-lg font-medium text-gray-900">
+              {title}
+            </h2>
+
+            <p className="mt-1 text-sm leading-6 text-gray-500">
+              {helper}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4 px-6 py-6 sm:px-7">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+
+const inputClassName =
+  "w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10";
+
+
+function TextField({
+  label,
+  value,
+  onChange,
+  placeholder =
+    "",
+  type =
+    "text",
+}: {
+  label:
+    string;
+
+  value:
+    string;
+
+  onChange:
+    (
+      value:
+        string
+    ) => void;
+
+  placeholder?:
+    string;
+
+  type?:
+    string;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-gray-700">
+        {label}
+      </label>
+
+      <input
+        type={
+          type
+        }
+        value={
+          value
+        }
+        onChange={(
+          event
+        ) =>
+          onChange(
+            event.target.value
+          )
+        }
+        placeholder={
+          placeholder
+        }
+        className={
+          inputClassName
+        }
+      />
+    </div>
+  );
+}
+
+
+function TextAreaField({
+  label,
+  value,
+  onChange,
+  placeholder =
+    "",
+  rows =
+    3,
+}: {
+  label:
+    string;
+
+  value:
+    string;
+
+  onChange:
+    (
+      value:
+        string
+    ) => void;
+
+  placeholder?:
+    string;
+
+  rows?:
+    number;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-gray-700">
+        {label}
+      </label>
+
+      <textarea
+        rows={
+          rows
+        }
+        value={
+          value
+        }
+        onChange={(
+          event
+        ) =>
+          onChange(
+            event.target.value
+          )
+        }
+        placeholder={
+          placeholder
+        }
+        className={`${inputClassName} resize-y leading-6`}
+      />
+    </div>
+  );
+}
+
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder =
+    "Select",
+}: {
+  label:
+    string;
+
+  value:
+    string;
+
+  onChange:
+    (
+      value:
+        string
+    ) => void;
+
+  options:
+    string[];
+
+  placeholder?:
+    string;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-gray-700">
+        {label}
+      </label>
+
+      <select
+        value={
+          value
+        }
+        onChange={(
+          event
+        ) =>
+          onChange(
+            event.target.value
+          )
+        }
+        className={
+          inputClassName
+        }
+      >
+        <option value="">
+          {placeholder}
+        </option>
+
+        {options.map(
+          (
+            option
+          ) => (
+            <option
+              key={
+                option
+              }
+              value={
+                option
+              }
+            >
+              {option}
+            </option>
+          )
+        )}
+      </select>
+    </div>
+  );
+}
+
+
+function ValueSelectField({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder =
+    "Select",
+}: {
+  label:
+    string;
+
+  value:
+    string;
+
+  onChange:
+    (
+      value:
+        string
+    ) => void;
+
+  options:
+    Array<{
+      value:
+        string;
+
+      label:
+        string;
+    }>;
+
+  placeholder?:
+    string;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-gray-700">
+        {label}
+      </label>
+
+      <select
+        value={
+          value
+        }
+        onChange={(
+          event
+        ) =>
+          onChange(
+            event.target.value
+          )
+        }
+        className={
+          inputClassName
+        }
+      >
+        <option value="">
+          {placeholder}
+        </option>
+
+        {options.map(
+          (
+            option
+          ) => (
+            <option
+              key={
+                option.value
+              }
+              value={
+                option.value
+              }
+            >
+              {
+                option.label
+              }
+            </option>
+          )
+        )}
+      </select>
+    </div>
+  );
+}
+
+
+function SelectionIndicator({
+  selected,
+}: {
+  selected:
+    boolean;
+}) {
+  return (
+    <div
+      className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
+        selected
+          ? "border-[#07877B] bg-[#07877B]"
+          : "border-gray-300 bg-white"
+      }`}
+    >
+      {selected && (
+        <Check className="h-3.5 w-3.5 text-white" />
+      )}
+    </div>
+  );
+}
+
+
+function Metric({
+  label,
+  value,
+}: {
+  label:
+    string;
+
+  value:
+    string;
+}) {
+  return (
+    <div className="rounded-lg bg-white px-4 py-3">
+      <p className="text-xs text-gray-500">
+        {label}
+      </p>
+
+      <p className="mt-1 text-sm font-medium text-gray-900">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+
+function InlineError({
+  children,
+}: {
+  children:
+    ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {children}
+    </div>
+  );
+}
+
+
+function SaveState({
+  saving,
+  hasUnsavedChanges,
+  savedMessage,
+}: {
+  saving:
+    boolean;
+
+  hasUnsavedChanges:
+    boolean;
+
+  savedMessage:
+    string;
+}) {
+  if (
+    saving
+  ) {
+    return (
+      <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1.5 text-xs text-gray-600">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        Saving
+      </span>
+    );
+  }
+
+  if (
+    hasUnsavedChanges
+  ) {
+    return (
+      <span className="rounded-full bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700">
+        Unsaved changes
+      </span>
+    );
+  }
+
+  if (
+    savedMessage
+  ) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700">
+        <Check className="h-3.5 w-3.5" />
+        Saved
+      </span>
+    );
+  }
+
+  return null;
+}
+
+
+function ReadinessItem({
+  ready,
+  label,
+}: {
+  ready:
+    boolean;
+
+  label:
+    string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div
+        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+          ready
+            ? "bg-[#e8f5f4] text-[#07877B]"
+            : "bg-gray-100 text-gray-400"
+        }`}
+      >
+        {ready ? (
+          <Check className="h-3 w-3" />
+        ) : (
+          <span className="h-1.5 w-1.5 rounded-full bg-current" />
+        )}
+      </div>
+
+      <span
+        className={`text-sm ${
+          ready
+            ? "text-gray-700"
+            : "text-gray-500"
+        }`}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+
+function getSourceReady({
+  inputMethod,
+  formData,
+  sourceFile,
+  extractionResult,
+  factExtraction,
+  factsApplied,
+}: {
+  inputMethod:
+    InputMethod;
+
+  formData:
+    FormData;
+
+  sourceFile:
+    SourceFileMetadata | null;
+
+  extractionResult:
+    PdfExtractionResult | null;
+
+  factExtraction:
+    FactExtractionResponse | null;
+
+  factsApplied:
+    boolean;
+}) {
+  switch (
+    inputMethod
+  ) {
+    case "manual":
+      return Boolean(
+        formData.topic.trim() ||
+        formData.keyMessage.trim() ||
+        formData.supportingPoints.trim()
+      );
+
+    case "paste":
+      return Boolean(
+        formData.details.pastedContent?.trim()
+      );
+
+    case "url":
+      return Boolean(
+        formData.details.sourceUrl?.trim()
+      );
+
+    case "upload":
+      return Boolean(
+        sourceFile &&
+        extractionResult?.relevance.relevant &&
+        factExtraction &&
+        factsApplied
+      );
+  }
+}
+
+
 function getFactFields(
-  category: Category
+  category:
+    Category
 ) {
   if (
-    category === "research"
+    category ===
+    "research"
   ) {
     return [
       {
@@ -2890,6 +5315,7 @@ function getFactFields(
   ];
 }
 
+
 function getFeatureExplainerInputIssues({
   inputMethod,
   details,
@@ -2897,14 +5323,30 @@ function getFeatureExplainerInputIssues({
   verifiedFacts,
   factsApplied,
 }: {
-  inputMethod: string;
-  details: Record<string, string>;
-  pastedContent: string;
-  verifiedFacts: Record<string, any>;
-  factsApplied: boolean;
+  inputMethod:
+    string;
+
+  details:
+    Record<
+      string,
+      string
+    >;
+
+  pastedContent:
+    string;
+
+  verifiedFacts:
+    Record<
+      string,
+      any
+    >;
+
+  factsApplied:
+    boolean;
 }) {
   const issues:
-    string[] = [];
+    string[] =
+      [];
 
   const hasStructuredCore =
     Boolean(
@@ -2921,19 +5363,23 @@ function getFeatureExplainerInputIssues({
     );
 
   const hasSubstantialPaste =
-    inputMethod === "paste" &&
+    inputMethod ===
+      "paste" &&
     pastedContent.trim().length >=
       220;
 
   const hasVerifiedUploadFacts =
-    inputMethod === "upload" &&
+    inputMethod ===
+      "upload" &&
     factsApplied &&
     Object.keys(
       verifiedFacts
-    ).length > 0;
+    ).length >
+      0;
 
   if (
-    inputMethod === "url" &&
+    inputMethod ===
+      "url" &&
     !hasStructuredCore
   ) {
     issues.push(
@@ -2958,13 +5404,14 @@ function getFeatureExplainerInputIssues({
 
 
 function normalizeDateForInput(
-  value: string
+  value:
+    string
 ) {
   const trimmed =
     value.trim();
 
   if (
-    /^\\d{4}-\\d{2}-\\d{2}$/.test(
+    /^\d{4}-\d{2}-\d{2}$/.test(
       trimmed
     )
   ) {
@@ -2974,1108 +5421,109 @@ function normalizeDateForInput(
   return "";
 }
 
-/* =========================================================
-   CATEGORY-SPECIFIC FIELDS
-   ========================================================= */
 
-function CategorySpecificFields({
-  category,
-  details,
-  updateDetail,
-}: {
-  category: Category;
-  details: Record<string, string>;
-  updateDetail: (
-    field: string,
-    value: string
-  ) => void;
-}) {
-  if (category === "research") {
-    return (
-      <FormSection title="Research Details">
+function mapCategoryToDatabase(
+  value:
+    Category
+) {
+  switch (
+    value
+  ) {
+    case "research":
+      return "Research & Advisory";
 
-        <div className="grid gap-4 sm:grid-cols-2">
+    case "education":
+      return "Investor Education";
 
-          <SelectField
-            label="Recommendation"
-            value={
-              details.recommendation ||
-              ""
-            }
-            onChange={(value) =>
-              updateDetail(
-                "recommendation",
-                value
-              )
-            }
-            options={[
-              "Buy",
-              "Sell",
-              "Accumulate",
-              "Hold",
-            ]}
-          />
+    case "product":
+      return "Product & Sales";
 
-          <SelectField
-            label="Time Horizon"
-            value={
-              details.timeHorizon ||
-              ""
-            }
-            onChange={(value) =>
-              updateDetail(
-                "timeHorizon",
-                value
-              )
-            }
-            options={[
-              "Short Term (0-3 months)",
-              "Medium Term (3-12 months)",
-              "Long Term (12+ months)",
-            ]}
-          />
+    case "service":
+      return "Service & Transactional";
 
-        </div>
+    case "regulatory":
+      return "Regulatory & Compliance";
 
-        <div className="grid gap-4 sm:grid-cols-2">
-
-          <TextField
-            label="Current Price"
-            value={
-              details.currentPrice ||
-              ""
-            }
-            onChange={(value) =>
-              updateDetail(
-                "currentPrice",
-                value
-              )
-            }
-            placeholder="₹ 2,450"
-          />
-
-          <TextField
-            label="Target Price"
-            value={
-              details.targetPrice ||
-              ""
-            }
-            onChange={(value) =>
-              updateDetail(
-                "targetPrice",
-                value
-              )
-            }
-            placeholder="₹ 2,850"
-          />
-
-        </div>
-
-        <TextAreaField
-          label="Key Rationale"
-          value={
-            details.rationale ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "rationale",
-              value
-            )
-          }
-          rows={3}
-          placeholder="Why this recommendation? Key drivers and catalysts."
-        />
-
-        <TextAreaField
-          label="Risk Factors"
-          value={
-            details.riskFactors ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "riskFactors",
-              value
-            )
-          }
-          rows={3}
-          placeholder="Key risks investors should be aware of."
-        />
-
-      </FormSection>
-    );
+    case "onboarding":
+      return "Onboarding & Journey";
   }
+}
 
-  if (category === "education") {
-    return (
-      <FormSection title="Education Details">
 
-        <div className="grid gap-4 sm:grid-cols-2">
+function mapDatabaseCategoryToUi(
+  value:
+    string | null
+):
+  Category | null {
+  switch (
+    value
+  ) {
+    case "research":
+    case "Research & Advisory":
+    case "Fundamental Research":
+      return "research";
 
-          <SelectField
-            label="Difficulty Level"
-            value={
-              details.difficulty ||
-              ""
-            }
-            onChange={(value) =>
-              updateDetail(
-                "difficulty",
-                value
-              )
-            }
-            options={[
-              "Beginner",
-              "Intermediate",
-              "Advanced",
-              "All Levels",
-            ]}
-          />
+    case "education":
+    case "Investor Education":
+      return "education";
 
-          <SelectField
-            label="Content Format"
-            value={
-              details.contentFormat ||
-              ""
-            }
-            onChange={(value) =>
-              updateDetail(
-                "contentFormat",
-                value
-              )
-            }
-            options={[
-              "Article / Guide",
-              "Video Tutorial",
-              "Infographic",
-              "Step-by-Step Tutorial",
-              "Case Study",
-            ]}
-          />
+    case "product":
+    case "Product & Sales":
+      return "product";
 
-        </div>
+    case "service":
+    case "Service & Transactional":
+      return "service";
 
-        <TextField
-          label="Key Concepts Covered"
-          value={
-            details.keyConcepts ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "keyConcepts",
-              value
-            )
-          }
-          placeholder="e.g., NAV, SIP, Asset Allocation"
-        />
+    case "regulatory":
+    case "Regulatory & Compliance":
+      return "regulatory";
 
-        <TextAreaField
-          label="Learning Outcome"
-          value={
-            details.learningOutcome ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "learningOutcome",
-              value
-            )
-          }
-          rows={3}
-          placeholder="What should readers understand after reading?"
-        />
+    case "onboarding":
+    case "Onboarding & Journey":
+      return "onboarding";
 
-      </FormSection>
-    );
+    default:
+      return null;
   }
+}
 
-  if (category === "product") {
-    const communicationType =
-      details.communicationType ||
-      "";
 
-    const isFeatureExplainer =
-      communicationType ===
-      "feature_explainer";
+function getCategoryLabel(
+  category:
+    Category
+) {
+  switch (
+    category
+  ) {
+    case "research":
+      return "Fundamental Research";
 
-    return (
-      <FormSection title="Product & Sales Details">
+    case "education":
+      return "Investor Education";
 
-        <div className="rounded-xl border border-[#b3d9d5] bg-[#f7fbfa] p-4">
-          <div className="mb-1 flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-[#07877B]" />
+    case "product":
+      return "Product & Sales";
 
-            <p className="text-sm font-medium text-gray-900">
-              Communication intent
-            </p>
-          </div>
+    case "service":
+      return "Service & Transactional";
 
-          <p className="mb-4 text-xs leading-5 text-gray-500">
-            Tell Communication Studio what kind of product email you want to create. This controls the content architecture used by AI.
-          </p>
+    case "regulatory":
+      return "Regulatory & Compliance";
 
-          <ValueSelectField
-            label="Communication Type"
-            value={
-              communicationType
-            }
-            onChange={(value) =>
-              updateDetail(
-                "communicationType",
-                value
-              )
-            }
-            placeholder="Select communication type"
-            options={[
-              {
-                value:
-                  "feature_explainer",
-                label:
-                  "Feature Explainer",
-              },
-              {
-                value:
-                  "product_launch",
-                label:
-                  "Product Launch",
-              },
-              {
-                value:
-                  "product_update",
-                label:
-                  "Product Update",
-              },
-              {
-                value:
-                  "offer_plan",
-                label:
-                  "Offer / Plan",
-              },
-              {
-                value:
-                  "product_benefit",
-                label:
-                  "Product Benefit",
-              },
-              {
-                value:
-                  "cross_sell_adoption",
-                label:
-                  "Cross-sell / Adoption",
-              },
-            ]}
-          />
-        </div>
-
-        {isFeatureExplainer ? (
-          <>
-            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-              <p className="text-sm font-medium text-blue-900">
-                Provide the facts, not the email copy
-              </p>
-
-              <p className="mt-1 text-xs leading-5 text-blue-700">
-                The final email should explain the feature on its own. Add enough verified information for AI to explain what the feature is, why it matters, how it works and how customers can use it.
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                label="Feature Name *"
-                value={
-                  details.featureName ||
-                  ""
-                }
-                onChange={(value) =>
-                  updateDetail(
-                    "featureName",
-                    value
-                  )
-                }
-                placeholder="e.g., One-Cancel-Other (OCO) Orders"
-              />
-
-              <TextField
-                label="Product / Platform *"
-                value={
-                  details.productPlatform ||
-                  ""
-                }
-                onChange={(value) =>
-                  updateDetail(
-                    "productPlatform",
-                    value
-                  )
-                }
-                placeholder="e.g., Flip"
-              />
-            </div>
-
-            <TextAreaField
-              label="What is the feature? *"
-              value={
-                details.featureExplanation ||
-                ""
-              }
-              onChange={(value) =>
-                updateDetail(
-                  "featureExplanation",
-                  value
-                )
-              }
-              rows={4}
-              placeholder="Explain the feature factually in simple terms. What does it enable the customer to do?"
-            />
-
-            <TextAreaField
-              label="Customer need / problem it addresses"
-              value={
-                details.customerProblem ||
-                ""
-              }
-              onChange={(value) =>
-                updateDetail(
-                  "customerProblem",
-                  value
-                )
-              }
-              rows={3}
-              placeholder="What customer situation, task or problem makes this feature useful?"
-            />
-
-            <TextAreaField
-              label="How does it work? *"
-              value={
-                details.howItWorks ||
-                ""
-              }
-              onChange={(value) =>
-                updateDetail(
-                  "howItWorks",
-                  value
-                )
-              }
-              rows={4}
-              placeholder="Describe the verified mechanism or workflow. Do not add steps that are not supported."
-            />
-
-            <TextAreaField
-              label="Key benefits / capabilities *"
-              value={
-                details.keyBenefits ||
-                ""
-              }
-              onChange={(value) =>
-                updateDetail(
-                  "keyBenefits",
-                  value
-                )
-              }
-              rows={4}
-              placeholder={"One benefit per line, for example:\nManage two related orders together\nReduce manual order monitoring"}
-            />
-
-            <TextAreaField
-              label="Practical example / use case"
-              value={
-                details.practicalExample ||
-                ""
-              }
-              onChange={(value) =>
-                updateDetail(
-                  "practicalExample",
-                  value
-                )
-              }
-              rows={4}
-              placeholder="Add a verified example or scenario that helps explain the feature. Leave blank if the source does not support one."
-            />
-
-            <TextAreaField
-              label="How to access / use the feature"
-              value={
-                details.usageGuidance ||
-                ""
-              }
-              onChange={(value) =>
-                updateDetail(
-                  "usageGuidance",
-                  value
-                )
-              }
-              rows={4}
-              placeholder="Where is the feature available and what should the customer do? Add only verified steps."
-            />
-
-            <TextAreaField
-              label="Important conditions / limitations"
-              value={
-                details.conditionsLimitations ||
-                ""
-              }
-              onChange={(value) =>
-                updateDetail(
-                  "conditionsLimitations",
-                  value
-                )
-              }
-              rows={4}
-              placeholder="Eligibility, operational conditions, limitations, risks or other points customers should know."
-            />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                label="Launch Date / Availability"
-                type="date"
-                value={
-                  details.launchDate ||
-                  ""
-                }
-                onChange={(value) =>
-                  updateDetail(
-                    "launchDate",
-                    value
-                  )
-                }
-              />
-
-              <SelectField
-                label="Target Segment"
-                value={
-                  details.targetSegment ||
-                  ""
-                }
-                onChange={(value) =>
-                  updateDetail(
-                    "targetSegment",
-                    value
-                  )
-                }
-                options={[
-                  "All Customers",
-                  "New Customers",
-                  "Premium Segment",
-                  "Active Traders",
-                  "Investors",
-                ]}
-              />
-            </div>
-          </>
-        ) : (
-          <>
-            <TextField
-              label="Launch Date / Availability"
-              type="date"
-              value={
-                details.launchDate ||
-                ""
-              }
-              onChange={(value) =>
-                updateDetail(
-                  "launchDate",
-                  value
-                )
-              }
-            />
-
-            <SelectField
-              label="Target Segment"
-              value={
-                details.targetSegment ||
-                ""
-              }
-              onChange={(value) =>
-                updateDetail(
-                  "targetSegment",
-                  value
-                )
-              }
-              options={[
-                "All Customers",
-                "New Customers",
-                "Premium Segment",
-                "Active Traders",
-                "Investors",
-              ]}
-            />
-
-            <TextAreaField
-              label="Key Features & Benefits"
-              value={
-                details.features ||
-                ""
-              }
-              onChange={(value) =>
-                updateDetail(
-                  "features",
-                  value
-                )
-              }
-              rows={3}
-              placeholder="List the main features and benefits."
-            />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                label="Pricing Information"
-                value={
-                  details.pricing ||
-                  ""
-                }
-                onChange={(value) =>
-                  updateDetail(
-                    "pricing",
-                    value
-                  )
-                }
-                placeholder="e.g., ₹999/month"
-              />
-
-              <TextField
-                label="Offer Validity"
-                value={
-                  details.offerValidity ||
-                  ""
-                }
-                onChange={(value) =>
-                  updateDetail(
-                    "offerValidity",
-                    value
-                  )
-                }
-                placeholder="e.g., Until 31 March"
-              />
-            </div>
-          </>
-        )}
-
-      </FormSection>
-    );
+    case "onboarding":
+      return "Onboarding & Journey";
   }
-
-  if (category === "service") {
-    return (
-      <FormSection title="Service Update Details">
-
-        <SelectField
-          label="Update Category"
-          value={
-            details.updateCategory ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "updateCategory",
-              value
-            )
-          }
-          options={[
-            "Scheduled Maintenance",
-            "Service Enhancement",
-            "System Upgrade",
-            "Transaction Alert",
-            "Account Update",
-          ]}
-        />
-
-        <TextField
-          label="Effective Date/Time"
-          type="datetime-local"
-          value={
-            details.effectiveDate ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "effectiveDate",
-              value
-            )
-          }
-        />
-
-        <TextField
-          label="Affected Services"
-          value={
-            details.affectedServices ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "affectedServices",
-              value
-            )
-          }
-          placeholder="e.g., Trading Platform, Mobile App"
-        />
-
-        <TextAreaField
-          label="Customer Impact"
-          value={
-            details.customerImpact ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "customerImpact",
-              value
-            )
-          }
-          rows={3}
-        />
-
-        <TextField
-          label="Duration / Timeline"
-          value={
-            details.duration ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "duration",
-              value
-            )
-          }
-        />
-
-      </FormSection>
-    );
-  }
-
-  if (category === "regulatory") {
-    return (
-      <FormSection title="Regulatory & Compliance Details">
-
-        <SelectField
-          label="Regulatory Authority"
-          value={
-            details.authority ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "authority",
-              value
-            )
-          }
-          options={[
-            "SEBI",
-            "RBI",
-            "NSE",
-            "BSE",
-            "Internal Policy",
-          ]}
-        />
-
-        <TextField
-          label="Reference Number"
-          value={
-            details.referenceNumber ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "referenceNumber",
-              value
-            )
-          }
-        />
-
-        <TextField
-          label="Compliance Deadline"
-          type="date"
-          value={
-            details.deadline ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "deadline",
-              value
-            )
-          }
-        />
-
-        <SelectField
-          label="Priority Level"
-          value={
-            details.priority ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "priority",
-              value
-            )
-          }
-          options={[
-            "Critical - Immediate Action",
-            "High - Urgent",
-            "Medium - Important",
-            "Low - Informational",
-          ]}
-        />
-
-        <TextField
-          label="Affected Products/Services"
-          value={
-            details.affectedProducts ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "affectedProducts",
-              value
-            )
-          }
-        />
-
-        <TextAreaField
-          label="Required Actions"
-          value={
-            details.requiredActions ||
-            ""
-          }
-          onChange={(value) =>
-            updateDetail(
-              "requiredActions",
-              value
-            )
-          }
-          rows={3}
-        />
-
-      </FormSection>
-    );
-  }
-
-  return (
-    <FormSection title="Onboarding Journey Details">
-
-      <SelectField
-        label="Journey Stage"
-        value={
-          details.journeyStage ||
-          ""
-        }
-        onChange={(value) =>
-          updateDetail(
-            "journeyStage",
-            value
-          )
-        }
-        options={[
-          "Welcome Email (Day 0)",
-          "Getting Started (Day 1)",
-          "Feature Discovery (Day 3)",
-          "First Action (Day 7)",
-          "Engagement (Day 14)",
-          "Milestone Celebration",
-        ]}
-      />
-
-      <SelectField
-        label="User Segment"
-        value={
-          details.userSegment ||
-          ""
-        }
-        onChange={(value) =>
-          updateDetail(
-            "userSegment",
-            value
-          )
-        }
-        options={[
-          "All New Users",
-          "First-Time Investors",
-          "Experienced Traders",
-          "Corporate Clients",
-          "Mobile App Users",
-        ]}
-      />
-
-      <TextField
-        label="Primary Goal / Action"
-        value={
-          details.primaryGoal ||
-          ""
-        }
-        onChange={(value) =>
-          updateDetail(
-            "primaryGoal",
-            value
-          )
-        }
-      />
-
-      <TextAreaField
-        label="Key Resources / Next Steps"
-        value={
-          details.resources ||
-          ""
-        }
-        onChange={(value) =>
-          updateDetail(
-            "resources",
-            value
-          )
-        }
-        rows={3}
-      />
-
-      <TextField
-        label="Success Metric"
-        value={
-          details.successMetric ||
-          ""
-        }
-        onChange={(value) =>
-          updateDetail(
-            "successMetric",
-            value
-          )
-        }
-      />
-
-    </FormSection>
-  );
 }
 
-
-/* =========================================================
-   SIMPLE REUSABLE FORM COMPONENTS
-   ========================================================= */
-
-function FormSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-
-      <h2 className="mb-6">
-        {title}
-      </h2>
-
-      <div className="space-y-4">
-        {children}
-      </div>
-
-    </section>
-  );
-}
-
-
-function TextField({
-  label,
-  value,
-  onChange,
-  placeholder = "",
-  type = "text",
-}: {
-  label: string;
-  value: string;
-  onChange: (
-    value: string
-  ) => void;
-  placeholder?: string;
-  type?: string;
-}) {
-  return (
-    <div>
-
-      <label className="mb-2 block text-sm text-gray-700">
-        {label}
-      </label>
-
-      <input
-        type={type}
-        value={value}
-        onChange={(event) =>
-          onChange(
-            event.target.value
-          )
-        }
-        placeholder={placeholder}
-        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 transition-all focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
-      />
-
-    </div>
-  );
-}
-
-
-function TextAreaField({
-  label,
-  value,
-  onChange,
-  placeholder = "",
-  rows = 3,
-}: {
-  label: string;
-  value: string;
-  onChange: (
-    value: string
-  ) => void;
-  placeholder?: string;
-  rows?: number;
-}) {
-  return (
-    <div>
-
-      <label className="mb-2 block text-sm text-gray-700">
-        {label}
-      </label>
-
-      <textarea
-        rows={rows}
-        value={value}
-        onChange={(event) =>
-          onChange(
-            event.target.value
-          )
-        }
-        placeholder={placeholder}
-        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 transition-all focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
-      />
-
-    </div>
-  );
-}
-
-
-function SelectField({
-  label,
-  value,
-  onChange,
-  options,
-  placeholder = "Select",
-}: {
-  label: string;
-  value: string;
-  onChange: (
-    value: string
-  ) => void;
-  options: string[];
-  placeholder?: string;
-}) {
-  return (
-    <div>
-
-      <label className="mb-2 block text-sm text-gray-700">
-        {label}
-      </label>
-
-      <select
-        value={value}
-        onChange={(event) =>
-          onChange(
-            event.target.value
-          )
-        }
-        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 transition-all focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
-      >
-
-        <option value="">
-          {placeholder}
-        </option>
-
-        {options.map(
-          (option) => (
-
-            <option
-              key={option}
-              value={option}
-            >
-              {option}
-            </option>
-
-          )
-        )}
-
-      </select>
-
-    </div>
-  );
-}
-
-
-function ValueSelectField({
-  label,
-  value,
-  onChange,
-  options,
-  placeholder = "Select",
-}: {
-  label: string;
-  value: string;
-  onChange: (
-    value: string
-  ) => void;
-  options: Array<{
-    value: string;
-    label: string;
-  }>;
-  placeholder?: string;
-}) {
-  return (
-    <div>
-
-      <label className="mb-2 block text-sm text-gray-700">
-        {label}
-      </label>
-
-      <select
-        value={value}
-        onChange={(event) =>
-          onChange(
-            event.target.value
-          )
-        }
-        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 transition-all focus:border-[#07877B] focus:outline-none focus:ring-2 focus:ring-[#07877B]/20"
-      >
-
-        <option value="">
-          {placeholder}
-        </option>
-
-        {options.map(
-          (option) => (
-            <option
-              key={
-                option.value
-              }
-              value={
-                option.value
-              }
-            >
-              {
-                option.label
-              }
-            </option>
-          )
-        )}
-
-      </select>
-
-    </div>
-  );
-}
-
-
-/* =========================================================
-   LABEL / HELP TEXT
-   ========================================================= */
 
 function getTitlePlaceholder(
-  category: Category
+  category:
+    Category
 ) {
-  switch (category) {
+  switch (
+    category
+  ) {
     case "research":
       return "e.g., Q4 Market Outlook Report";
 
@@ -4091,16 +5539,19 @@ function getTitlePlaceholder(
     case "regulatory":
       return "e.g., New SEBI Guidelines Implementation";
 
-    default:
+    case "onboarding":
       return "e.g., Welcome to Geojit";
   }
 }
 
 
 function getTopicLabel(
-  category: Category
+  category:
+    Category
 ) {
-  switch (category) {
+  switch (
+    category
+  ) {
     case "research":
       return "Topic / Security Name";
 
@@ -4116,16 +5567,19 @@ function getTopicLabel(
     case "regulatory":
       return "Regulation / Circular Name";
 
-    default:
+    case "onboarding":
       return "Journey Stage / Email Type";
   }
 }
 
 
 function getTopicPlaceholder(
-  category: Category
+  category:
+    Category
 ) {
-  switch (category) {
+  switch (
+    category
+  ) {
     case "research":
       return "e.g., Reliance Industries";
 
@@ -4141,16 +5595,19 @@ function getTopicPlaceholder(
     case "regulatory":
       return "e.g., SEBI Circular";
 
-    default:
+    case "onboarding":
       return "e.g., Welcome Email";
   }
 }
 
 
 function getKeyMessagePlaceholder(
-  category: Category
+  category:
+    Category
 ) {
-  switch (category) {
+  switch (
+    category
+  ) {
     case "research":
       return "What is the main investment message?";
 
@@ -4166,16 +5623,19 @@ function getKeyMessagePlaceholder(
     case "regulatory":
       return "What is the key compliance requirement?";
 
-    default:
+    case "onboarding":
       return "What is the main onboarding message?";
   }
 }
 
 
 function getSupportingPlaceholder(
-  category: Category
+  category:
+    Category
 ) {
-  switch (category) {
+  switch (
+    category
+  ) {
     case "research":
       return "Supporting data points, rationale and important facts";
 
@@ -4191,16 +5651,19 @@ function getSupportingPlaceholder(
     case "regulatory":
       return "Implementation details, deadlines and requirements";
 
-    default:
+    case "onboarding":
       return "Onboarding steps, benefits and guidance";
   }
 }
 
 
 function getAiTip(
-  category: Category
+  category:
+    Category
 ) {
-  switch (category) {
+  switch (
+    category
+  ) {
     case "research":
       return "Include the recommendation, price information, rationale and risk factors accurately. AI must not invent research facts.";
 
@@ -4208,15 +5671,33 @@ function getAiTip(
       return "Focus on the learning objective and provide enough context for AI to simplify the topic without changing its meaning.";
 
     case "product":
-      return "Choose the communication intent first. For a Feature Explainer, provide enough verified facts for the email to explain the feature on its own — what it is, why it matters, how it works, key benefits, usage guidance and important conditions.";
+      return "Choose the communication intent first. For feature explainers, provide verified facts about what the feature is, how it works, its benefits and any limitations.";
 
     case "service":
-      return "Include exact timelines, affected services and required actions.";
+      return "Be precise about timing, affected services, customer impact and any action required.";
 
     case "regulatory":
-      return "Provide the official requirement, authority, deadlines and required actions exactly as available.";
+      return "Use the exact authority, reference, applicability, deadline and required actions. Mandatory facts should come directly from the source.";
 
-    default:
-      return "Provide the journey stage, desired customer action and resources required to complete that step.";
+    case "onboarding":
+      return "Keep the journey stage and next action clear so the communication can guide the customer without overwhelming them.";
   }
+}
+
+
+function isInputMethod(
+  value:
+    unknown
+):
+  value is InputMethod {
+  return [
+    "manual",
+    "paste",
+    "upload",
+    "url",
+  ].includes(
+    String(
+      value
+    )
+  );
 }
