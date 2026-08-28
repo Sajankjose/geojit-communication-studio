@@ -15,7 +15,6 @@ import {
   LogOut,
   MessageSquareWarning,
   Settings,
-  User,
 } from "lucide-react";
 
 import {
@@ -27,6 +26,10 @@ import {
 } from "../auth/useAuth";
 
 import {
+  clearCommunicationCache,
+} from "../services/communications";
+
+import {
   AppNotification,
   formatNotificationTime,
   getNotificationCentreItems,
@@ -34,6 +37,233 @@ import {
   markNotificationRead,
   subscribeToMyNotifications,
 } from "../services/notifications";
+
+
+/**
+ * PERFORMANCE
+ *
+ * TopNavBar is mounted on almost every route.
+ * Keep notification data and the realtime subscription
+ * at module level so route changes do not trigger the same
+ * Supabase work repeatedly.
+ */
+const NOTIFICATION_CACHE_TTL_MS =
+  60_000;
+
+const NOTIFICATION_LIVE_LIMIT =
+  12;
+
+const NOTIFICATION_HISTORY_LIMIT =
+  18;
+
+type NotificationCache = {
+  userId: string;
+  items: AppNotification[];
+  loadedAt: number;
+};
+
+type NotificationListener = (
+  userId: string,
+  items: AppNotification[]
+) => void;
+
+let notificationCache:
+  NotificationCache | null =
+    null;
+
+let notificationRequest:
+  Promise<AppNotification[]> | null =
+    null;
+
+let notificationRequestUserId:
+  string | null =
+    null;
+
+let notificationSubscriptionUserId:
+  string | null =
+    null;
+
+let stopNotificationSubscription:
+  (() => void) | null =
+    null;
+
+const notificationListeners =
+  new Set<NotificationListener>();
+
+
+function getCachedNotifications(
+  userId: string
+) {
+  if (
+    notificationCache?.userId !==
+    userId
+  ) {
+    return null;
+  }
+
+  return notificationCache;
+}
+
+
+function isNotificationCacheFresh(
+  userId: string
+) {
+  const cached =
+    getCachedNotifications(
+      userId
+    );
+
+  if (!cached) {
+    return false;
+  }
+
+  return (
+    Date.now() -
+      cached.loadedAt <
+    NOTIFICATION_CACHE_TTL_MS
+  );
+}
+
+
+function publishNotificationItems(
+  userId: string,
+  items: AppNotification[]
+) {
+  notificationCache = {
+    userId,
+    items,
+    loadedAt:
+      Date.now(),
+  };
+
+  notificationListeners.forEach(
+    (listener) => {
+      listener(
+        userId,
+        items
+      );
+    }
+  );
+}
+
+
+async function fetchNotificationItems(
+  userId: string,
+  force = false
+) {
+  const cached =
+    getCachedNotifications(
+      userId
+    );
+
+  if (
+    !force &&
+    cached &&
+    isNotificationCacheFresh(
+      userId
+    )
+  ) {
+    return cached.items;
+  }
+
+  if (
+    notificationRequest &&
+    notificationRequestUserId ===
+      userId
+  ) {
+    return notificationRequest;
+  }
+
+  notificationRequestUserId =
+    userId;
+
+  notificationRequest =
+    getNotificationCentreItems({
+      liveLimit:
+        NOTIFICATION_LIVE_LIMIT,
+
+      historyLimit:
+        NOTIFICATION_HISTORY_LIMIT,
+    })
+      .then(
+        (items) => {
+          publishNotificationItems(
+            userId,
+            items
+          );
+
+          return items;
+        }
+      )
+      .finally(
+        () => {
+          notificationRequest =
+            null;
+
+          notificationRequestUserId =
+            null;
+        }
+      );
+
+  return notificationRequest;
+}
+
+
+function ensureNotificationSubscription(
+  userId: string
+) {
+  if (
+    notificationSubscriptionUserId ===
+      userId &&
+    stopNotificationSubscription
+  ) {
+    return;
+  }
+
+  stopNotificationSubscription?.();
+
+  notificationSubscriptionUserId =
+    userId;
+
+  stopNotificationSubscription =
+    subscribeToMyNotifications({
+      userId,
+
+      onChange: () => {
+        void fetchNotificationItems(
+          userId,
+          true
+        ).catch(
+          (error) => {
+            console.error(
+              "Unable to refresh notifications after realtime update:",
+              error
+            );
+          }
+        );
+      },
+    });
+}
+
+
+function resetNotificationRuntime() {
+  notificationCache =
+    null;
+
+  notificationRequest =
+    null;
+
+  notificationRequestUserId =
+    null;
+
+  notificationSubscriptionUserId =
+    null;
+
+  stopNotificationSubscription?.();
+
+  stopNotificationSubscription =
+    null;
+}
 
 
 export function TopNavBar() {
@@ -123,7 +353,10 @@ export function TopNavBar() {
 
   const loadNotifications =
     useCallback(
-      async () => {
+      async (
+        showLoading = true,
+        force = false
+      ) => {
         if (
           !user?.id
         ) {
@@ -134,23 +367,38 @@ export function TopNavBar() {
           return;
         }
 
-        try {
-          setNotificationLoading(
-            true
+        const cached =
+          getCachedNotifications(
+            user.id
           );
+
+        if (
+          cached
+        ) {
+          setNotifications(
+            cached.items
+          );
+        }
+
+        try {
+          if (
+            showLoading &&
+            !cached
+          ) {
+            setNotificationLoading(
+              true
+            );
+          }
 
           setNotificationError(
             ""
           );
 
           const items =
-            await getNotificationCentreItems({
-              liveLimit:
-                20,
-
-              historyLimit:
-                50,
-            });
+            await fetchNotificationItems(
+              user.id,
+              force
+            );
 
           setNotifications(
             items
@@ -182,22 +430,69 @@ export function TopNavBar() {
     if (
       !user?.id
     ) {
+      setNotifications(
+        []
+      );
+
       return;
     }
 
-    void loadNotifications();
+    const userId =
+      user.id;
 
-    const unsubscribe =
-      subscribeToMyNotifications({
-        userId:
-          user.id,
+    const cached =
+      getCachedNotifications(
+        userId
+      );
 
-        onChange: () => {
-          void loadNotifications();
-        },
-      });
+    if (
+      cached
+    ) {
+      setNotifications(
+        cached.items
+      );
+    }
 
-    return unsubscribe;
+    const listener:
+      NotificationListener =
+      (
+        changedUserId,
+        items
+      ) => {
+        if (
+          changedUserId ===
+          userId
+        ) {
+          setNotifications(
+            items
+          );
+        }
+      };
+
+    notificationListeners.add(
+      listener
+    );
+
+    ensureNotificationSubscription(
+      userId
+    );
+
+    if (
+      !isNotificationCacheFresh(
+        userId
+      )
+    ) {
+      void loadNotifications(
+        false,
+        false
+      );
+    }
+
+    return () => {
+      notificationListeners.delete(
+        listener
+      );
+    };
   }, [
     user?.id,
     loadNotifications,
@@ -246,6 +541,9 @@ export function TopNavBar() {
         setIsUserMenuOpen(
           false
         );
+
+        resetNotificationRuntime();
+        clearCommunicationCache();
 
         await signOut();
 
@@ -310,25 +608,34 @@ export function TopNavBar() {
           notification.id
         );
 
-        setNotifications(
-          (
-            current
-          ) =>
-            current.map(
-              (
-                item
-              ) =>
-                item.id ===
-                notification.id
-                  ? {
-                      ...item,
+        const nextItems =
+          notifications.map(
+            (
+              item
+            ) =>
+              item.id ===
+              notification.id
+                ? {
+                    ...item,
 
-                      is_read:
-                        true,
-                    }
-                  : item
-            )
+                    is_read:
+                      true,
+                  }
+                : item
+          );
+
+        setNotifications(
+          nextItems
         );
+
+        if (
+          user?.id
+        ) {
+          publishNotificationItems(
+            user.id,
+            nextItems
+          );
+        }
       }
     } catch (
       error
@@ -359,21 +666,30 @@ export function TopNavBar() {
     try {
       await markAllNotificationsRead();
 
-      setNotifications(
-        (
-          current
-        ) =>
-          current.map(
-            (
-              item
-            ) => ({
-              ...item,
+      const nextItems =
+        notifications.map(
+          (
+            item
+          ) => ({
+            ...item,
 
-              is_read:
-                true,
-            })
-          )
+            is_read:
+              true,
+          })
+        );
+
+      setNotifications(
+        nextItems
       );
+
+      if (
+        user?.id
+      ) {
+        publishNotificationItems(
+          user.id,
+          nextItems
+        );
+      }
     } catch (
       error
     ) {
@@ -436,7 +752,7 @@ export function TopNavBar() {
                   false
                 );
 
-                void loadNotifications();
+                void loadNotifications(true, false);
               }}
               className={`relative flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
                 isNotificationOpen
