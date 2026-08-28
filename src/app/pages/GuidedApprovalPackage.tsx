@@ -1,14 +1,15 @@
 import {
   ArrowLeft,
+  ArrowRight,
   CheckCircle2,
   FileText,
+  Layers3,
+  Loader2,
+  LockKeyhole,
   Mail,
   MessageCircle,
-  ShieldCheck,
-  Sparkles,
-  RotateCcw,
-  XCircle,
   Send,
+  ShieldCheck,
 } from "lucide-react";
 
 import {
@@ -24,13 +25,6 @@ import {
 import {
   TopNavBar,
 } from "../components/TopNavBar";
-
-import {
-  DesignSystemButton,
-  DesignSystemCard,
-  DesignSystemIcon,
-  DesignSystemTextarea,
-} from "../design-system";
 
 import {
   useAuth,
@@ -53,11 +47,12 @@ import {
   submitCommunicationForApproval,
 } from "../services/approvals";
 
-import {
-  getReviewerQueue,
-  submitReviewerDecision,
-  ReviewQueueItem,
-} from "../services/reviews";
+
+type SupportedChannel =
+  | "email"
+  | "whatsapp"
+  | "leaflet";
+
 
 export function GuidedApprovalPackage() {
   const navigate =
@@ -89,29 +84,10 @@ export function GuidedApprovalPackage() {
     profile?.role ===
       "corpcom_reviewer";
 
-  /**
-   * mode=review means the package is frozen/read-only.
-   *
-   * This applies to:
-   * - Creator viewing a submitted/approved package
-   * - Marketing Reviewer
-   * - CorpCom Reviewer
-   * - Admin oversight
-   *
-   * Reviewer identity is handled separately through isReviewer.
-   */
-  const isReadOnlyMode =
+  const isReviewMode =
     mode ===
-      "review";
-
-  const isReviewerReadOnly =
-    isReadOnlyMode &&
+      "review" &&
     isReviewer;
-
-  const isCreatorReadOnly =
-    isReadOnlyMode &&
-    profile?.role ===
-      "creator";
 
   const [
     loading,
@@ -151,88 +127,39 @@ export function GuidedApprovalPackage() {
   ] =
     useState(false);
 
-  const [
-    activeChannel,
-    setActiveChannel,
-  ] =
-    useState<
-      "email"
-      | "whatsapp"
-      | "leaflet"
-      | null
-    >(null);
-
-  const [
-    reviewerItem,
-    setReviewerItem,
-  ] =
-    useState<
-      ReviewQueueItem | null
-    >(null);
-
-  const [
-    reviewerComment,
-    setReviewerComment,
-  ] =
-    useState("");
-
-  const [
-    reviewerSubmitting,
-    setReviewerSubmitting,
-  ] =
-    useState(false);
-
-  const [
-    reviewerError,
-    setReviewerError,
-  ] =
-    useState("");
 
   useEffect(() => {
-    if (
-      authLoading
-    ) {
+    if (authLoading) {
       return;
     }
 
     async function prepare() {
-      if (
-        !communicationId
-      ) {
+      if (!communicationId) {
         setError(
           "Communication ID is missing."
         );
 
-        setLoading(
-          false
-        );
-
+        setLoading(false);
         return;
       }
 
       try {
-        setLoading(
-          true
-        );
-
-        setError(
-          ""
-        );
+        setLoading(true);
+        setError("");
 
         /**
-         * READ-ONLY MODE
+         * REVIEWER MODE
          *
-         * Any mode=review access must never rebuild or modify the
-         * Creator's approval package. It only reads the
-         * package that was already frozen/saved.
+         * Reviewers only read the package that was
+         * already frozen and saved by the Creator.
          *
          * CREATOR / ADMIN MODE
          *
-         * Creator-side access may build/refresh the
+         * Creator-side access may build or refresh the
          * package from the selected channel variants.
          */
         const result =
-          isReadOnlyMode
+          isReviewMode
             ? await getGuidedApprovalPackage(
                 communicationId
               )
@@ -243,43 +170,9 @@ export function GuidedApprovalPackage() {
         setApprovalPackage(
           result
         );
-
-        const firstChannel =
-          result.selectedOutputs?.[0]
-            ?.channel || null;
-
-        setActiveChannel(
-          firstChannel
-        );
-
-        if (
-          isReviewerReadOnly &&
-          (
-            profile?.role ===
-              "marketing_reviewer" ||
-            profile?.role ===
-              "corpcom_reviewer"
-          )
-        ) {
-          const queue =
-            await getReviewerQueue(
-              profile.role
-            );
-
-          const matched =
-            queue.find(
-              (item) =>
-                item.communication_id ===
-                communicationId
-            ) || null;
-
-          setReviewerItem(
-            matched
-          );
-        }
       } catch (err) {
         console.error(
-          isReadOnlyMode
+          isReviewMode
             ? "Unable to load Guided approval package:"
             : "Unable to build Guided approval package:",
           err
@@ -288,14 +181,12 @@ export function GuidedApprovalPackage() {
         setError(
           err instanceof Error
             ? err.message
-            : isReadOnlyMode
+            : isReviewMode
               ? "Unable to load the approval package."
               : "Unable to prepare the approval package."
         );
       } finally {
-        setLoading(
-          false
-        );
+        setLoading(false);
       }
     }
 
@@ -303,34 +194,27 @@ export function GuidedApprovalPackage() {
   }, [
     authLoading,
     communicationId,
-    isReadOnlyMode,
-    isReviewerReadOnly,
-    profile?.role,
+    isReviewMode,
   ]);
+
 
   async function handleSubmitForMarketingReview() {
     if (
       !communicationId ||
-      isReadOnlyMode ||
+      isReviewMode ||
       submitting
     ) {
       return;
     }
 
     try {
-      setSubmitting(
-        true
-      );
-
-      setSubmitError(
-        ""
-      );
+      setSubmitting(true);
+      setSubmitError("");
 
       /**
        * Guard against accidental double submission.
-       *
-       * The database RPC also protects this, but checking
-       * here gives the Creator a cleaner UX.
+       * The database RPC also protects this, while this
+       * check gives the Creator a cleaner experience.
        */
       const existing =
         await getExistingPendingApproval(
@@ -338,9 +222,7 @@ export function GuidedApprovalPackage() {
         );
 
       if (existing) {
-        setAlreadySubmitted(
-          true
-        );
+        setAlreadySubmitted(true);
 
         navigate(
           `/approval/status?communicationId=${encodeURIComponent(
@@ -355,9 +237,7 @@ export function GuidedApprovalPackage() {
         communicationId,
       });
 
-      setAlreadySubmitted(
-        true
-      );
+      setAlreadySubmitted(true);
 
       navigate(
         `/approval/status?communicationId=${encodeURIComponent(
@@ -376,129 +256,20 @@ export function GuidedApprovalPackage() {
           : "Unable to submit this communication for Marketing review."
       );
     } finally {
-      setSubmitting(
-        false
-      );
-    }
-  }
-
-  async function handleReviewerDecision(
-    decision:
-      | "approved"
-      | "changes_requested"
-      | "rejected"
-  ) {
-    if (
-      !reviewerItem ||
-      !communicationId ||
-      reviewerSubmitting ||
-      (
-        profile?.role !==
-          "marketing_reviewer" &&
-        profile?.role !==
-          "corpcom_reviewer"
-      )
-    ) {
-      return;
-    }
-
-    const cleanComment =
-      reviewerComment.trim();
-
-    if (
-      (
-        decision ===
-          "changes_requested" ||
-        decision ===
-          "rejected"
-      ) &&
-      !cleanComment
-    ) {
-      setReviewerError(
-        "Please add a comment before requesting changes or rejecting."
-      );
-
-      return;
-    }
-
-    try {
-      setReviewerSubmitting(
-        true
-      );
-
-      setReviewerError(
-        ""
-      );
-
-      await submitReviewerDecision({
-        approvalActionId:
-          reviewerItem.approval_action_id,
-
-        communicationId,
-
-        decision,
-
-        comments:
-          cleanComment,
-
-        reviewerRole:
-          profile.role,
-      });
-
-      navigate(
-        "/reviews"
-      );
-    } catch (err) {
-      console.error(
-        "Unable to submit reviewer decision:",
-        err
-      );
-
-      setReviewerError(
-        err instanceof Error
-          ? err.message
-          : "Unable to submit the review decision."
-      );
-    } finally {
-      setReviewerSubmitting(
-        false
-      );
+      setSubmitting(false);
     }
   }
 
 
   function handleBack() {
-    if (
-      isReviewerReadOnly
-    ) {
+    if (isReviewMode) {
       navigate(
         "/reviews"
       );
-
       return;
     }
 
-    if (
-      isCreatorReadOnly
-    ) {
-      if (
-        communicationId
-      ) {
-        navigate(
-          `/approval/status?communicationId=${encodeURIComponent(
-            communicationId
-          )}`
-        );
-      } else {
-        navigate("/");
-      }
-
-      return;
-    }
-
-    if (
-      !communicationId
-    ) {
+    if (!communicationId) {
       navigate("/");
       return;
     }
@@ -510,688 +281,319 @@ export function GuidedApprovalPackage() {
     );
   }
 
+
   if (
     authLoading ||
     loading
   ) {
     return (
-      <div className="ds-page">
+      <div className="min-h-screen bg-background">
         <TopNavBar />
 
-        <main className="mx-auto flex min-h-[70vh] max-w-4xl items-center justify-center px-6">
-          <p className="ds-body-sm">
+        <main className="mx-auto flex min-h-[70vh] max-w-6xl items-center justify-center px-6">
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            <Loader2 className="h-4 w-4 animate-spin text-[#07877B]" />
             Preparing approval package...
-          </p>
+          </div>
         </main>
       </div>
     );
   }
 
+
   return (
-    <div className="ds-page">
+    <div className="min-h-screen bg-background">
       <TopNavBar />
 
-      <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
-
-        <DesignSystemButton
-          variant="tertiary"
-          size="medium"
+      <main className="mx-auto max-w-6xl px-6 py-10 sm:py-14">
+        <button
+          type="button"
           onClick={
             handleBack
           }
-          leadingIcon={
-            <DesignSystemIcon
-              size="sm"
-              tone="action"
-            >
-              <ArrowLeft />
-            </DesignSystemIcon>
-          }
-          className="mb-6 px-0"
+          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B]"
         >
-          {isReviewerReadOnly
+          <ArrowLeft className="h-4 w-4" />
+          {isReviewMode
             ? "Back to Review Queue"
-            : isCreatorReadOnly
-              ? "Back to Approval Status"
-              : "Back to Channel Selection"}
-        </DesignSystemButton>
+            : "Back to Channel Selection"}
+        </button>
 
         {error && (
-          <div className="ds-alert ds-alert-error mb-6 text-sm">
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             {error}
           </div>
         )}
 
         {approvalPackage && (
           <>
-            {isReviewerReadOnly ? (
-              <ReviewerWorkspace
-                approvalPackage={
-                  approvalPackage
-                }
-                activeChannel={
-                  activeChannel
-                }
-                onChannelChange={
-                  setActiveChannel
-                }
-                reviewerRole={
-                  profile?.role ===
-                    "corpcom_reviewer"
-                    ? "corpcom_reviewer"
-                    : "marketing_reviewer"
-                }
-                reviewerItem={
-                  reviewerItem
-                }
-                reviewerComment={
-                  reviewerComment
-                }
-                onReviewerCommentChange={
-                  setReviewerComment
-                }
-                reviewerError={
-                  reviewerError
-                }
-                reviewerSubmitting={
-                  reviewerSubmitting
-                }
-                onDecision={
-                  handleReviewerDecision
-                }
-              />
-            ) : (
-              <>
-                <div className="mb-8">
-                  <div className="mb-3 flex items-center gap-2">
-                    <DesignSystemIcon
-                      size="md"
-                      tone="action"
-                    >
-                      <ShieldCheck />
-                    </DesignSystemIcon>
+            <header className="mb-8">
+              <div className="mb-3 flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-[#07877B]" />
 
-                    <p className="ds-label-3 text-[var(--ds-text-brand)]">
-                      Approval Package
-                    </p>
-                  </div>
+                <p className="text-sm font-medium text-[#07877B]">
+                  Approval Package
+                </p>
+              </div>
 
-                  <h1 className="ds-title-2">
-                    {isCreatorReadOnly
-                      ? "Communication package"
-                      : "Ready for review"}
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <div className="max-w-3xl">
+                  <h1 className="text-3xl font-medium tracking-tight text-gray-900 sm:text-4xl">
+                    {isReviewMode
+                      ? "Review the final communication package"
+                      : "Your communication is ready for review"}
                   </h1>
 
-                  <p className="ds-body-sm mt-3 max-w-3xl leading-7">
-                    {isCreatorReadOnly
-                      ? "These are the selected Email, WhatsApp and Leaflet outputs submitted through the approval workflow. This view is read-only."
-                      : "These are the versions you selected. They will move together as one communication package through the approval workflow."}
+                  <p className="mt-3 text-base leading-7 text-gray-600">
+                    {isReviewMode
+                      ? "Review the Creator's final selected channel outputs together. The package is read-only and remains unchanged during review."
+                      : "Review the final versions below before sending them into the Marketing → CorpCom approval workflow."}
                   </p>
                 </div>
 
-                <DesignSystemCard
-                  surface="accent"
-                  className="mb-6 px-5 py-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <DesignSystemIcon
-                      size="md"
-                      tone="action"
-                      className="mt-0.5"
-                    >
-                      <Sparkles />
-                    </DesignSystemIcon>
+                <div className="flex flex-wrap gap-2 lg:justify-end">
+                  <StatusPill
+                    icon={Layers3}
+                    label={`${approvalPackage.selectedOutputs.length} ${
+                      approvalPackage.selectedOutputs.length === 1
+                        ? "channel"
+                        : "channels"
+                    }`}
+                  />
 
-                    <div>
-                      <p className="ds-body-sm font-medium">
-                        One idea, multiple approved outputs
-                      </p>
+                  <StatusPill
+                    icon={
+                      isReviewMode
+                        ? LockKeyhole
+                        : CheckCircle2
+                    }
+                    label={
+                      isReviewMode
+                        ? "Read-only"
+                        : "Ready to submit"
+                    }
+                  />
+                </div>
+              </div>
+            </header>
 
-                      <p className="ds-body-sm mt-1 leading-6">
-                        Marketing and CorpCom should review the selected outputs as one package, while each channel keeps its own format and expression.
-                      </p>
-                    </div>
-                  </div>
-                </DesignSystemCard>
 
-                <div className="space-y-5">
-                  {approvalPackage.selectedOutputs.map(
-                    (output) => (
-                      <DesignSystemCard
-                        key={
-                          output.outputId
-                        }
-                        className="overflow-hidden"
-                      >
-                        <div className="flex items-center justify-between border-b border-[var(--ds-border-subtle)] px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="ds-icon-container ds-icon-container-brand flex h-10 w-10 items-center justify-center">
-                              <ChannelIcon
-                                channel={
-                                  output.channel
-                                }
-                              />
-                            </div>
+            <section className="mb-8 rounded-2xl bg-[#f3fbfa] px-5 py-5 sm:px-6">
+              <div className="flex items-start gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                  <ShieldCheck className="h-5 w-5 text-[#07877B]" />
+                </div>
 
-                            <div>
-                              <p className="ds-body-sm font-medium">
-                                {
-                                  formatChannel(
-                                    output.channel
-                                  )
-                                }
-                              </p>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    One idea. One governed package.
+                  </p>
 
-                              <p className="ds-body-xs mt-0.5">
-                                Selected Variant{" "}
-                                {
-                                  output.variant
-                                }
-                              </p>
-                            </div>
-                          </div>
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
+                    Email, WhatsApp and Leaflet can express the idea differently, but they move through approval together as one communication package.
+                  </p>
+                </div>
+              </div>
+            </section>
 
-                          <span className="ds-status ds-status-success ds-status-sm">
-                            <span className="ds-status-dot" aria-hidden="true" />
-                            Selected
-                          </span>
-                        </div>
 
-                        <div className="p-5">
-                          <CompactOutputPreview
+            <div className="space-y-7">
+              {approvalPackage.selectedOutputs.map(
+                (output) => (
+                  <section
+                    key={
+                      output.outputId
+                    }
+                    className="overflow-hidden rounded-2xl border border-gray-200 bg-white"
+                  >
+                    <div className="flex flex-col gap-4 border-b border-gray-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e8f5f4]">
+                          <ChannelIcon
                             channel={
                               output.channel
                             }
-                            content={
-                              output.content
-                            }
                           />
                         </div>
-                      </DesignSystemCard>
-                    )
-                  )}
+
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="text-base font-medium text-gray-900">
+                              {formatChannel(
+                                output.channel
+                              )}
+                            </h2>
+
+                            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+                              Variant {output.variant}
+                            </span>
+                          </div>
+
+                          <p className="mt-1 text-xs text-gray-500">
+                            Final selected version
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Included in package
+                      </span>
+                    </div>
+
+                    <div className="px-5 py-6 sm:px-6 sm:py-7">
+                      <CompactOutputPreview
+                        channel={
+                          output.channel
+                        }
+                        content={
+                          output.content
+                        }
+                      />
+                    </div>
+                  </section>
+                )
+              )}
+            </div>
+
+
+            <section className="mt-8 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+              {isReviewMode ? (
+                <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100">
+                      <LockKeyhole className="h-5 w-5 text-gray-600" />
+                    </div>
+
+                    <div className="max-w-2xl">
+                      <p className="text-sm font-medium text-gray-900">
+                        Review mode
+                      </p>
+
+                      <p className="mt-1 text-sm leading-6 text-gray-600">
+                        This package is read-only. Return to the Review Queue to approve, request changes or reject the communication.
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        "/reviews"
+                      )
+                    }
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-[#06766a]"
+                  >
+                    Return to Review Queue
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
                 </div>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#e8f5f4]">
+                        <Send className="h-5 w-5 text-[#07877B]" />
+                      </div>
 
-                <DesignSystemCard className="mt-8 p-6">
-                  {isCreatorReadOnly ? (
-                    <>
-                      <p className="text-sm font-medium text-[var(--ds-text-primary)]">
-                        Submitted communication
-                      </p>
+                      <div className="max-w-2xl">
+                        <p className="text-sm font-medium text-gray-900">
+                          Ready for the approval workflow
+                        </p>
 
-                      <p className="mt-2 text-sm leading-6 text-[var(--ds-text-secondary)]">
-                        This is the frozen communication package that moved through the approval workflow. Viewing it will not modify the communication or its approval status.
-                      </p>
+                        <p className="mt-1 text-sm leading-6 text-gray-600">
+                          Submit this governed package to Marketing. Once submitted, you can follow its progress from the approval status page.
+                        </p>
 
-                      <DesignSystemButton
-                        variant="secondary"
-                        size="medium"
-                        onClick={() => {
-                          if (
-                            communicationId
-                          ) {
-                            navigate(
-                              `/approval/status?communicationId=${encodeURIComponent(
-                                communicationId
-                              )}`
-                            );
-                          } else {
-                            navigate("/");
-                          }
-                        }}
-                        className="mt-5"
-                      >
-                        Back to Approval Status
-                      </DesignSystemButton>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-sm font-medium text-[var(--ds-text-primary)]">
-                        Submit for approval
-                      </p>
+                        {profile?.role === "admin" && (
+                          <p className="mt-2 text-xs leading-5 text-gray-500">
+                            Admin can inspect this package, but only the Creator can submit it for approval.
+                          </p>
+                        )}
+                      </div>
+                    </div>
 
-                      <p className="mt-2 text-sm leading-6 text-[var(--ds-text-secondary)]">
-                        Your selected channel outputs are saved as one governed package. Submit it to Marketing to begin the existing Marketing → CorpCom approval workflow.
-                      </p>
+                    <button
+                      type="button"
+                      onClick={
+                        handleSubmitForMarketingReview
+                      }
+                      disabled={
+                        submitting ||
+                        alreadySubmitted ||
+                        profile?.role !== "creator"
+                      }
+                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#07877B] px-7 py-3 text-sm font-medium text-white shadow-sm transition-all hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      {submitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
 
+                      {submitting
+                        ? "Submitting..."
+                        : alreadySubmitted
+                          ? "Submitted for Marketing Review"
+                          : "Submit for Marketing Review"}
+                    </button>
+                  </div>
+
+                  {(submitError || alreadySubmitted) && (
+                    <div className="border-t border-gray-100 px-6 py-4 sm:px-7">
                       {submitError && (
-                        <div className="ds-alert ds-alert-error mt-4 text-sm">
+                        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                           {submitError}
                         </div>
                       )}
 
-                      {alreadySubmitted && (
-                        <div className="ds-alert ds-alert-success mt-4 text-sm">
+                      {alreadySubmitted && !submitError && (
+                        <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
                           This communication has already been submitted for review.
                         </div>
                       )}
-
-                      <DesignSystemButton
-                        variant="primary"
-                        size="large"
-                        onClick={
-                          handleSubmitForMarketingReview
-                        }
-                        disabled={
-                          submitting ||
-                          alreadySubmitted ||
-                          profile?.role !== "creator"
-                        }
-                        loading={
-                          submitting
-                        }
-                        loadingLabel="Submitting..."
-                        className="mt-5"
-                      >
-                        {alreadySubmitted
-                          ? "Submitted for Marketing Review"
-                          : "Submit for Marketing Review"}
-                      </DesignSystemButton>
-
-                      {profile?.role === "admin" && (
-                        <p className="mt-3 text-xs leading-5 text-[var(--ds-text-tertiary)]">
-                          Admin can inspect this package, but only the Creator can submit it for approval.
-                        </p>
-                      )}
-                    </>
+                    </div>
                   )}
-                </DesignSystemCard>
-              </>
-            )}
+                </>
+              )}
+            </section>
+
+
+            <div className="mt-8 border-t border-gray-200 pt-6">
+              <button
+                type="button"
+                onClick={
+                  handleBack
+                }
+                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {isReviewMode
+                  ? "Back to Review Queue"
+                  : "Back to Channel Selection"}
+              </button>
+            </div>
           </>
         )}
-
       </main>
     </div>
   );
 }
 
 
-function ReviewerWorkspace({
-  approvalPackage,
-  activeChannel,
-  onChannelChange,
-  reviewerRole,
-  reviewerItem,
-  reviewerComment,
-  onReviewerCommentChange,
-  reviewerError,
-  reviewerSubmitting,
-  onDecision,
-}: {
-  approvalPackage:
-    GuidedApprovalPackageData;
-
-  activeChannel:
-    "email"
-    | "whatsapp"
-    | "leaflet"
-    | null;
-
-  onChannelChange:
-    (
-      channel:
-        "email"
-        | "whatsapp"
-        | "leaflet"
-    ) => void;
-
-  reviewerRole:
-    "marketing_reviewer"
-    | "corpcom_reviewer";
-
-  reviewerItem:
-    ReviewQueueItem | null;
-
-  reviewerComment:
-    string;
-
-  onReviewerCommentChange:
-    (
-      value:
-        string
-    ) => void;
-
-  reviewerError:
-    string;
-
-  reviewerSubmitting:
-    boolean;
-
-  onDecision:
-    (
-      decision:
-        | "approved"
-        | "changes_requested"
-        | "rejected"
-    ) => void;
-}) {
-  const activeOutput =
-    approvalPackage.selectedOutputs.find(
-      (item) =>
-        item.channel ===
-        activeChannel
-    ) ||
-    approvalPackage.selectedOutputs[0];
-
-  const master =
-    reviewerItem
-      ?.communication
-      ?.input_data
-      ?.communicationMaster;
-
-  return (
-    <>
-      <div className="mb-6">
-        <div className="mb-2 flex items-center gap-2">
-          <DesignSystemIcon
-            size="md"
-            tone="action"
-          >
-            <ShieldCheck />
-          </DesignSystemIcon>
-
-          <p className="ds-label-3 text-[var(--ds-text-brand)]">
-            {reviewerRole ===
-              "marketing_reviewer"
-              ? "Marketing Review"
-              : "CorpCom Review"}
-          </p>
-        </div>
-
-        <h1 className="ds-title-2">
-          Review communication
-        </h1>
-
-        <p className="ds-body-sm mt-2">
-          Review the selected channel output and record your decision without leaving this screen.
-        </p>
-      </div>
-
-      {master && (
-        <DesignSystemCard surface="accent" className="mb-5 grid gap-3 p-4 sm:grid-cols-4">
-          <ReviewSummaryItem
-            label="Core idea"
-            value={
-              master.coreIdea ||
-              "—"
-            }
-            wide
-          />
-
-          <ReviewSummaryItem
-            label="Audience"
-            value={
-              master.audience ||
-              "—"
-            }
-          />
-
-          <ReviewSummaryItem
-            label="Purpose"
-            value={
-              master.purpose ||
-              "—"
-            }
-          />
-
-          <ReviewSummaryItem
-            label="Personalisation"
-            value={
-              master.personalisation
-                ?.mode ||
-              "—"
-            }
-          />
-        </DesignSystemCard>
-      )}
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-
-        <DesignSystemCard className="min-w-0 overflow-hidden">
-          <div className="border-b border-[var(--ds-border-subtle)] px-4 pt-4">
-            <div className="flex flex-wrap gap-2">
-              {approvalPackage.selectedOutputs.map(
-                (output) => (
-                  <button
-                    key={
-                      output.outputId
-                    }
-                    type="button"
-                    onClick={() =>
-                      onChannelChange(
-                        output.channel
-                      )
-                    }
-                    className={`inline-flex items-center gap-2 rounded-t-lg border-b-2 px-4 py-3 text-sm font-medium transition ${
-                      activeOutput?.channel ===
-                        output.channel
-                        ? "border-[var(--ds-brand-primary)] bg-[var(--ds-surface-subtle)] text-[var(--ds-text-brand)]"
-                        : "border-transparent text-[var(--ds-text-tertiary)] hover:text-[var(--ds-text-primary)]"
-                    }`}
-                  >
-                    <ChannelIcon
-                      channel={
-                        output.channel
-                      }
-                    />
-
-                    {
-                      formatChannel(
-                        output.channel
-                      )
-                    }
-
-                    <span className="rounded-full bg-[var(--ds-surface-muted)] px-2 py-0.5 text-[11px] text-[var(--ds-text-tertiary)]">
-                      {output.variant}
-                    </span>
-                  </button>
-                )
-              )}
-            </div>
-          </div>
-
-          {activeOutput && (
-            <div className="max-h-[68vh] overflow-y-auto p-5">
-              <CompactOutputPreview
-                channel={
-                  activeOutput.channel
-                }
-                content={
-                  activeOutput.content
-                }
-              />
-            </div>
-          )}
-        </DesignSystemCard>
-
-        <aside className="self-start xl:sticky xl:top-24">
-          <DesignSystemCard className="p-5">
-
-            <div className="mb-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-tertiary)]">
-                Decision
-              </p>
-
-              <h2 className="ds-title-4 mt-1">
-                {reviewerRole ===
-                  "marketing_reviewer"
-                  ? "Marketing Review"
-                  : "Final CorpCom Review"}
-              </h2>
-            </div>
-
-            <DesignSystemTextarea
-              label="Reviewer comment"
-              value={
-                reviewerComment
-              }
-              onChange={
-                (event) =>
-                  onReviewerCommentChange(
-                    event.target.value
-                  )
-              }
-              rows={5}
-              placeholder={
-                reviewerRole ===
-                  "marketing_reviewer"
-                  ? "Add a comment if needed..."
-                  : "Add final review comments if needed..."
-              }
-              helperText="A comment is required when requesting changes or rejecting."
-            />
-
-            {reviewerError && (
-              <div className="ds-alert ds-alert-error mt-4 text-xs leading-5">
-                {
-                  reviewerError
-                }
-              </div>
-            )}
-
-            <div className="mt-5 grid grid-cols-2 gap-2">
-              <DesignSystemButton
-                variant="secondary"
-                size="medium"
-                onClick={() =>
-                  onDecision(
-                    "changes_requested"
-                  )
-                }
-                disabled={
-                  reviewerSubmitting ||
-                  !reviewerItem
-                }
-                leadingIcon={
-                  <DesignSystemIcon
-                    size="sm"
-                    tone="warning"
-                  >
-                    <RotateCcw />
-                  </DesignSystemIcon>
-                }
-                className="w-full"
-              >
-                Request Changes
-              </DesignSystemButton>
-
-              <DesignSystemButton
-                variant="destructive"
-                size="medium"
-                onClick={() =>
-                  onDecision(
-                    "rejected"
-                  )
-                }
-                disabled={
-                  reviewerSubmitting ||
-                  !reviewerItem
-                }
-                leadingIcon={
-                  <DesignSystemIcon
-                    size="sm"
-                    tone="error"
-                  >
-                    <XCircle />
-                  </DesignSystemIcon>
-                }
-                className="w-full"
-              >
-                Reject
-              </DesignSystemButton>
-            </div>
-
-            <DesignSystemButton
-              variant="primary"
-              size="large"
-              fullWidth
-              onClick={() =>
-                onDecision(
-                  "approved"
-                )
-              }
-              disabled={
-                reviewerSubmitting ||
-                !reviewerItem
-              }
-              loading={
-                reviewerSubmitting
-              }
-              loadingLabel="Submitting..."
-              trailingIcon={
-                reviewerRole ===
-                  "marketing_reviewer"
-                  ? (
-                    <DesignSystemIcon
-                      size="sm"
-                      tone="onDark"
-                    >
-                      <Send />
-                    </DesignSystemIcon>
-                  )
-                  : (
-                    <DesignSystemIcon
-                      size="sm"
-                      tone="onDark"
-                    >
-                      <CheckCircle2 />
-                    </DesignSystemIcon>
-                  )
-              }
-              className="mt-3"
-            >
-              {reviewerRole ===
-                "marketing_reviewer"
-                ? "Approve & Send to CorpCom"
-                : "Final Approve"}
-            </DesignSystemButton>
-
-            {!reviewerItem && (
-              <p className="mt-3 text-xs leading-5 text-[var(--ds-warning)]">
-                No pending review action was found for this communication. Return to the Review Queue and reopen it.
-              </p>
-            )}
-
-          </DesignSystemCard>
-        </aside>
-
-      </div>
-    </>
-  );
-}
-
-
-function ReviewSummaryItem({
+function StatusPill({
+  icon: Icon,
   label,
-  value,
-  wide = false,
 }: {
-  label:
-    string;
-
-  value:
-    string;
-
-  wide?:
-    boolean;
+  icon: typeof ShieldCheck;
+  label: string;
 }) {
   return (
-    <div
-      className={
-        wide
-          ? "sm:col-span-4"
-          : ""
-      }
-    >
-      <p className="ds-label-3">
-        {label}
-      </p>
-
-      <p className="ds-body-sm mt-1">
-        {value}
-      </p>
-    </div>
+    <span className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-xs font-medium text-gray-600 shadow-sm">
+      <Icon className="h-3.5 w-3.5 text-[#07877B]" />
+      {label}
+    </span>
   );
 }
 
@@ -1201,10 +603,7 @@ function CompactOutputPreview({
   content,
 }: {
   channel:
-    "email"
-    | "whatsapp"
-    | "leaflet";
-
+    SupportedChannel;
   content:
     any;
 }) {
@@ -1217,45 +616,33 @@ function CompactOutputPreview({
         EmailChannelContent;
 
     return (
-      <div className="space-y-5">
-
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-tertiary)]">
-            Subject
-          </p>
-
-          <p className="mt-1 text-sm font-medium leading-6 text-[var(--ds-text-primary)]">
-            {
+      <div className="mx-auto max-w-4xl">
+        <div className="grid gap-4 border-b border-gray-100 pb-5 sm:grid-cols-2">
+          <PreviewMeta
+            label="Subject"
+            value={
               email.subject
             }
-          </p>
-        </div>
+            emphasis
+          />
 
-        {email.preheader && (
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-tertiary)]">
-              Preheader
-            </p>
-
-            <p className="mt-1 text-sm leading-6 text-[var(--ds-text-secondary)]">
-              {
+          {email.preheader && (
+            <PreviewMeta
+              label="Preheader"
+              value={
                 email.preheader
               }
-            </p>
-          </div>
-        )}
+            />
+          )}
+        </div>
 
-        <div className="rounded-xl border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-muted)] p-5">
-          <h3 className="text-xl font-semibold leading-8 text-[var(--ds-text-primary)]">
-            {
-              email.headline
-            }
+        <div className="pt-6">
+          <h3 className="max-w-3xl text-2xl font-semibold leading-8 tracking-tight text-gray-900">
+            {email.headline}
           </h3>
 
-          <p className="mt-4 text-sm leading-7 text-[var(--ds-text-secondary)]">
-            {
-              email.opening
-            }
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-gray-700">
+            {email.opening}
           </p>
 
           {Array.isArray(
@@ -1267,100 +654,46 @@ function CompactOutputPreview({
                 index
               ) => (
                 <div
-                  key={
-                    `${section.heading || "section"}-${index}`
-                  }
-                  className="mt-5"
+                  key={`${section.heading || "section"}-${index}`}
+                  className="mt-5 max-w-3xl"
                 >
                   {section.heading && (
-                    <h4 className="text-sm font-semibold text-[var(--ds-text-primary)]">
-                      {
-                        section.heading
-                      }
+                    <h4 className="text-sm font-semibold text-gray-900">
+                      {section.heading}
                     </h4>
                   )}
 
-                  <p className="mt-1 text-sm leading-7 text-[var(--ds-text-secondary)]">
-                    {
-                      section.content
-                    }
+                  <p className="mt-1 text-sm leading-7 text-gray-700">
+                    {section.content}
                   </p>
                 </div>
               )
             )}
 
-          {Array.isArray(
-            email.keyPoints
-          ) &&
-            email.keyPoints.length >
-              0 && (
-              <ul className="mt-5 space-y-2">
-                {email.keyPoints.map(
-                  (
-                    point,
-                    index
-                  ) => (
-                    <li
-                      key={
-                        `${point}-${index}`
-                      }
-                      className="flex gap-2 text-sm leading-6 text-[var(--ds-text-secondary)]"
-                    >
-                      <span className="text-[var(--ds-text-brand)]">
-                        •
-                      </span>
-
-                      <span>
-                        {
-                          point
-                        }
-                      </span>
-                    </li>
-                  )
-                )}
-              </ul>
-            )}
+          <SimpleTextPoints
+            points={
+              email.keyPoints
+            }
+          />
 
           {email.cta && (
-            <div className="mt-5">
-              <span className="inline-flex rounded-lg bg-[var(--ds-brand-primary)] px-4 py-2 text-sm font-medium text-white">
-                {
-                  email.cta.label
-                }
+            <div className="mt-6">
+              <span className="inline-flex rounded-lg bg-[#07877B] px-4 py-2.5 text-sm font-medium text-white">
+                {email.cta.label}
               </span>
             </div>
           )}
+
+          <MandatoryNotes
+            notes={
+              email.mandatoryNotes
+            }
+          />
         </div>
-
-        {Array.isArray(
-          email.mandatoryNotes
-        ) &&
-          email.mandatoryNotes.length >
-            0 && (
-            <div className="border-t border-[var(--ds-border-subtle)] pt-4">
-              {email.mandatoryNotes.map(
-                (
-                  note,
-                  index
-                ) => (
-                  <p
-                    key={
-                      `${note}-${index}`
-                    }
-                    className="mt-1 text-xs leading-5 text-[var(--ds-text-tertiary)]"
-                  >
-                    {
-                      note
-                    }
-                  </p>
-                )
-              )}
-            </div>
-          )}
-
       </div>
     );
   }
+
 
   if (
     channel ===
@@ -1371,225 +704,263 @@ function CompactOutputPreview({
         WhatsAppChannelContent;
 
     return (
-      <div className="space-y-5">
-
-        <div className="mx-auto max-w-2xl rounded-2xl border border-green-100 bg-[#eaf7e8] p-5">
-
-          {whatsapp.headline && (
-            <p className="text-base font-semibold text-[var(--ds-text-primary)]">
-              {
-                whatsapp.headline
-              }
-            </p>
-          )}
-
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--ds-text-primary)]">
-            {
-              whatsapp.message
-            }
-          </p>
-
-          {Array.isArray(
-            whatsapp.keyPoints
-          ) &&
-            whatsapp.keyPoints.length >
-              0 && (
-              <ul className="mt-4 space-y-2">
-                {whatsapp.keyPoints.map(
-                  (
-                    point,
-                    index
-                  ) => (
-                    <li
-                      key={
-                        `${point}-${index}`
-                      }
-                      className="flex gap-2 text-sm leading-6 text-[var(--ds-text-secondary)]"
-                    >
-                      <span className="text-[var(--ds-text-brand)]">
-                        •
-                      </span>
-
-                      <span>
-                        {
-                          point
-                        }
-                      </span>
-                    </li>
-                  )
-                )}
-              </ul>
-            )}
-
-          {whatsapp.cta && (
-            <div className="mt-5">
-              <span className="inline-flex rounded-lg bg-[var(--ds-surface-card)] px-4 py-2 text-sm font-medium text-[var(--ds-text-brand)] shadow-sm">
-                {
-                  whatsapp.cta.label
-                }
-              </span>
+      <div className="rounded-2xl bg-gray-50 px-4 py-7 sm:px-6">
+        <div className="mx-auto max-w-md overflow-hidden rounded-[24px] border border-gray-200 bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#e8f5f4]">
+              <MessageCircle className="h-4 w-4 text-[#07877B]" />
             </div>
-          )}
 
-        </div>
+            <div>
+              <p className="text-xs font-medium text-gray-900">
+                WhatsApp preview
+              </p>
+              <p className="text-[11px] text-gray-400">
+                Customer message
+              </p>
+            </div>
+          </div>
 
-        {Array.isArray(
-          whatsapp.mandatoryNotes
-        ) &&
-          whatsapp.mandatoryNotes.length >
-            0 && (
-            <div className="border-t border-[var(--ds-border-subtle)] pt-4">
-              {whatsapp.mandatoryNotes.map(
-                (
-                  note,
-                  index
-                ) => (
-                  <p
-                    key={
-                      `${note}-${index}`
-                    }
-                    className="mt-1 text-xs leading-5 text-[var(--ds-text-tertiary)]"
-                  >
-                    {
-                      note
-                    }
+          <div className="bg-[#f7f4ef] p-4 sm:p-5">
+            <div className="ml-auto max-w-[92%] rounded-2xl rounded-tr-sm bg-[#e7f7e5] px-4 py-3.5 shadow-sm">
+              {whatsapp.headline && (
+                <p className="text-sm font-semibold leading-6 text-gray-900">
+                  {whatsapp.headline}
+                </p>
+              )}
+
+              <p className={`${
+                whatsapp.headline
+                  ? "mt-2"
+                  : ""
+              } whitespace-pre-wrap text-sm leading-6 text-gray-800`}>
+                {whatsapp.message}
+              </p>
+
+              <SimpleTextPoints
+                points={
+                  whatsapp.keyPoints
+                }
+                compact
+              />
+
+              {whatsapp.cta && (
+                <div className="mt-4 border-t border-[#cde7ca] pt-3">
+                  <p className="text-center text-sm font-medium text-[#075f58]">
+                    {whatsapp.cta.label}
                   </p>
-                )
+                </div>
               )}
             </div>
-          )}
+          </div>
+        </div>
 
+        <div className="mx-auto max-w-3xl">
+          <MandatoryNotes
+            notes={
+              whatsapp.mandatoryNotes
+            }
+          />
+        </div>
       </div>
     );
   }
+
 
   const leaflet =
     content as
       LeafletChannelContent;
 
   return (
-    <div className="space-y-5">
-
-      <div className="rounded-xl border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-muted)] p-5">
-
-        <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-brand)]">
-          Leaflet content
-        </p>
-
-        <h3 className="mt-3 text-2xl font-semibold leading-8 text-[var(--ds-text-primary)]">
-          {
-            leaflet.headline
-          }
-        </h3>
-
-        {leaflet.subheadline && (
-          <p className="mt-2 text-base leading-6 text-[var(--ds-text-secondary)]">
-            {
-              leaflet.subheadline
-            }
+    <div className="mx-auto max-w-4xl">
+      <div className="rounded-2xl bg-gray-50 p-5 sm:p-7">
+        <div className="mx-auto max-w-3xl bg-white px-6 py-7 shadow-sm sm:px-8 sm:py-9">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#07877B]">
+            Leaflet content
           </p>
-        )}
 
-        <p className="mt-5 text-sm leading-7 text-[var(--ds-text-secondary)]">
-          {
-            leaflet.intro
-          }
-        </p>
+          <h3 className="mt-3 text-3xl font-semibold leading-9 tracking-tight text-gray-900">
+            {leaflet.headline}
+          </h3>
 
-        {Array.isArray(
-          leaflet.keyPoints
-        ) &&
-          leaflet.keyPoints.length >
-            0 && (
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {leaflet.keyPoints.map(
-                (
-                  point,
-                  index
-                ) => (
-                  <div
-                    key={
-                      `${point.title}-${index}`
-                    }
-                    className="rounded-lg border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-card)] p-4"
-                  >
-                    <p className="text-sm font-semibold text-[var(--ds-text-primary)]">
-                      {
-                        point.title
-                      }
-                    </p>
+          {leaflet.subheadline && (
+            <p className="mt-3 text-base leading-7 text-gray-600">
+              {leaflet.subheadline}
+            </p>
+          )}
 
-                    <p className="mt-1 text-sm leading-6 text-[var(--ds-text-secondary)]">
-                      {
-                        point.description
-                      }
-                    </p>
-                  </div>
-                )
+          <p className="mt-6 text-sm leading-7 text-gray-700">
+            {leaflet.intro}
+          </p>
+
+          {Array.isArray(
+            leaflet.keyPoints
+          ) &&
+            leaflet.keyPoints.length >
+              0 && (
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {leaflet.keyPoints.map(
+                  (
+                    point,
+                    index
+                  ) => (
+                    <div
+                      key={`${point.title}-${index}`}
+                      className="rounded-xl bg-gray-50 p-4"
+                    >
+                      <p className="text-sm font-semibold text-gray-900">
+                        {point.title}
+                      </p>
+
+                      <p className="mt-1 text-sm leading-6 text-gray-600">
+                        {point.description}
+                      </p>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+          {leaflet.cta && (
+            <div className="mt-6 rounded-xl bg-[#07877B] px-5 py-4 text-white">
+              <p className="text-sm font-medium">
+                {leaflet.cta.label}
+              </p>
+
+              {leaflet.cta.supportingText && (
+                <p className="mt-1 text-xs leading-5 text-white/80">
+                  {leaflet.cta.supportingText}
+                </p>
               )}
             </div>
           )}
-
-        {leaflet.cta && (
-          <div className="mt-5 rounded-lg bg-[var(--ds-brand-primary)] px-4 py-3 text-white">
-            <p className="text-sm font-medium">
-              {
-                leaflet.cta.label
-              }
-            </p>
-
-            {leaflet.cta.supportingText && (
-              <p className="mt-1 text-xs leading-5 text-white/80">
-                {
-                  leaflet.cta.supportingText
-                }
-              </p>
-            )}
-          </div>
-        )}
-
+        </div>
       </div>
 
       {leaflet.visualDirection && (
-        <div className="rounded-lg border border-dashed border-[var(--ds-border-default)] bg-[var(--ds-surface-card)] px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-tertiary)]">
-            Visual direction
-          </p>
+        <div className="mt-5 flex gap-3 rounded-xl border border-dashed border-gray-300 bg-white px-4 py-4">
+          <FileText className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
 
-          <p className="mt-1 text-sm leading-6 text-[var(--ds-text-secondary)]">
-            {
-              leaflet.visualDirection
-            }
-          </p>
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              Visual direction
+            </p>
+
+            <p className="mt-1 text-sm leading-6 text-gray-600">
+              {leaflet.visualDirection}
+            </p>
+          </div>
         </div>
       )}
 
-      {Array.isArray(
-        leaflet.mandatoryNotes
-      ) &&
-        leaflet.mandatoryNotes.length >
-          0 && (
-          <div className="border-t border-[var(--ds-border-subtle)] pt-4">
-            {leaflet.mandatoryNotes.map(
-              (
-                note,
-                index
-              ) => (
-                <p
-                  key={
-                    `${note}-${index}`
-                  }
-                  className="mt-1 text-xs leading-5 text-[var(--ds-text-tertiary)]"
-                >
-                  {
-                    note
-                  }
-                </p>
-              )
-            )}
-          </div>
-        )}
+      <MandatoryNotes
+        notes={
+          leaflet.mandatoryNotes
+        }
+      />
+    </div>
+  );
+}
 
+
+function PreviewMeta({
+  label,
+  value,
+  emphasis = false,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div>
+      <p className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+        {label}
+      </p>
+
+      <p
+        className={`mt-1 leading-6 ${
+          emphasis
+            ? "text-sm font-medium text-gray-900"
+            : "text-sm text-gray-600"
+        }`}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+
+function SimpleTextPoints({
+  points,
+  compact = false,
+}: {
+  points:
+    string[];
+  compact?: boolean;
+}) {
+  if (
+    !Array.isArray(points) ||
+    points.length === 0
+  ) {
+    return null;
+  }
+
+  return (
+    <ul className={`${compact ? "mt-3" : "mt-5"} space-y-2`}>
+      {points.map(
+        (
+          point,
+          index
+        ) => (
+          <li
+            key={`${point}-${index}`}
+            className="flex gap-2 text-sm leading-6 text-gray-700"
+          >
+            <span className="text-[#07877B]">
+              •
+            </span>
+
+            <span>
+              {point}
+            </span>
+          </li>
+        )
+      )}
+    </ul>
+  );
+}
+
+
+function MandatoryNotes({
+  notes,
+}: {
+  notes:
+    string[];
+}) {
+  if (
+    !Array.isArray(notes) ||
+    notes.length === 0
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="mt-6 border-t border-gray-200 pt-4">
+      {notes.map(
+        (
+          note,
+          index
+        ) => (
+          <p
+            key={`${note}-${index}`}
+            className="mt-1 text-xs leading-5 text-gray-500"
+          >
+            {note}
+          </p>
+        )
+      )}
     </div>
   );
 }
@@ -1599,9 +970,7 @@ function ChannelIcon({
   channel,
 }: {
   channel:
-    "email"
-    | "whatsapp"
-    | "leaflet";
+    SupportedChannel;
 }) {
   const Icon =
     channel ===
@@ -1613,16 +982,14 @@ function ChannelIcon({
         : FileText;
 
   return (
-    <Icon className="h-5 w-5 text-[var(--ds-text-brand)]" />
+    <Icon className="h-5 w-5 text-[#07877B]" />
   );
 }
 
 
 function formatChannel(
   channel:
-    "email"
-    | "whatsapp"
-    | "leaflet"
+    SupportedChannel
 ) {
   switch (channel) {
     case "email":
