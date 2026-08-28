@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   ArrowRight,
+  Check,
   CheckCircle2,
   Lightbulb,
   Loader2,
@@ -22,12 +23,6 @@ import {
 import {
   TopNavBar,
 } from "../components/TopNavBar";
-
-import {
-  DesignSystemButton,
-  DesignSystemCard,
-  DesignSystemIcon,
-} from "../design-system";
 
 import {
   GuidedUnderstanding,
@@ -71,7 +66,7 @@ const STARTER_PROMPTS:
         "Customers keep asking me about...",
 
       helper:
-        "Start with a question or concern you regularly hear from customers.",
+        "A question or concern you regularly hear.",
 
       starterText:
         "Customers keep asking me about ",
@@ -88,7 +83,7 @@ const STARTER_PROMPTS:
         "Something I usually explain...",
 
       helper:
-        "Share something from your experience that customers find useful.",
+        "A useful point from your own experience.",
 
       starterText:
         "From my experience, I usually explain to customers that ",
@@ -102,10 +97,10 @@ const STARTER_PROMPTS:
         "customer_misunderstanding",
 
       title:
-        "A common misunderstanding I notice...",
+        "A common misunderstanding...",
 
       helper:
-        "Tell us about something customers often misunderstand.",
+        "Something customers often misunderstand.",
 
       starterText:
         "A common misunderstanding I notice among customers is ",
@@ -119,10 +114,10 @@ const STARTER_PROMPTS:
         "important_update",
 
       title:
-        "I want to share an important update...",
+        "An important update...",
 
       helper:
-        "Explain what has changed or what customers should know.",
+        "Something that has changed or customers should know.",
 
       starterText:
         "I want customers to know that ",
@@ -136,10 +131,10 @@ const STARTER_PROMPTS:
         "promote_something",
 
       title:
-        "I want customers to know about something useful...",
+        "Something useful to share...",
 
       helper:
-        "Tell us about a product, feature or opportunity without worrying about the final wording.",
+        "A product, feature or opportunity worth knowing about.",
 
       starterText:
         "I want customers to know about ",
@@ -156,7 +151,7 @@ const STARTER_PROMPTS:
         "I just have an idea...",
 
       helper:
-        "Start anywhere. Rough thoughts are completely fine.",
+        "Start anywhere. Rough thoughts are fine.",
 
       starterText:
         "",
@@ -232,6 +227,10 @@ export function GuidedCreation() {
         ) || null,
       [selectedStarter]
     );
+
+  const SelectedStarterIcon =
+    selectedPrompt?.icon ||
+    null;
 
   function buildRawInput():
     GuidedRawInput {
@@ -329,10 +328,8 @@ export function GuidedCreation() {
       );
 
       /**
-       * Save the employee's original words first.
-       *
-       * This is intentionally separate from AI understanding
-       * so the original human input is always preserved.
+       * Preserve the Creator's original words before
+       * the AI understanding layer interprets them.
        */
       await saveGuidedRawInput({
         communicationId,
@@ -415,98 +412,195 @@ export function GuidedCreation() {
   }
 
   return (
-    <div className="ds-page">
+    <div className="min-h-screen bg-background">
       <TopNavBar />
 
-      <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
+      <main className="mx-auto max-w-5xl px-6 py-10 sm:py-12">
+        <button
+          type="button"
+          onClick={
+            handleBack
+          }
+          disabled={
+            processing
+          }
+          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B] disabled:opacity-50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
 
-        <div className="mb-10">
-          <button
-            type="button"
-            onClick={
-              handleBack
-            }
-            className="ds-button-md mb-6 inline-flex items-center gap-2 text-[var(--ds-text-secondary)] hover:text-[var(--ds-brand-primary)]"
-          >
-            <DesignSystemIcon
-              size="sm"
-              tone="secondary"
-            >
-              <ArrowLeft />
-            </DesignSystemIcon>
-            Back
-          </button>
+        <header className="mb-8 max-w-3xl">
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-[#07877B]" />
 
-          <div className="max-w-3xl">
-            <div className="mb-3 flex items-center gap-2">
-              <DesignSystemIcon
-                size="md"
-                tone="action"
+            <p className="text-sm font-medium text-[#07877B]">
+              Guided Creation
+            </p>
+          </div>
+
+          <h1 className="text-3xl leading-tight text-gray-900 sm:text-4xl">
+            What's on your mind?
+          </h1>
+
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-600">
+            Explain the idea in your own words.
+            It does not need to sound like a communication yet —
+            Communication Studio will first understand what you mean.
+          </p>
+        </header>
+
+        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          <div className="border-b border-gray-200 px-6 py-5 sm:px-7">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  Tell us the idea
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-gray-500">
+                  Write it as you would explain it to a colleague sitting next to you.
+                </p>
+              </div>
+
+              <p
+                className={`text-xs ${
+                  characterCount >=
+                  20
+                    ? "text-[#07877B]"
+                    : "text-gray-400"
+                }`}
               >
-                <Sparkles />
-              </DesignSystemIcon>
-
-              <p className="ds-label-3 text-[var(--ds-brand-primary)]">
-                Guided Creation
-              </p>
-            </div>
-
-            <h1 className="text-4xl font-semibold leading-tight text-[#022F2D]">
-              What's on your mind?
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[#4A6361]">
-              Tell us the idea in your own
-              words. Don't worry about
-              grammar, spelling or how to
-              structure the communication.
-              We will help you shape it.
-            </p>
-          </div>
-        </div>
-
-        <div className="mb-8 rounded-2xl border border-[#c9e1dd] bg-[#eef8f6] px-5 py-4 shadow-sm">
-          <div className="flex items-start gap-3">
-            <DesignSystemIcon
-              size="md"
-              tone="action"
-              className="mt-0.5"
-            >
-              <Sparkles />
-            </DesignSystemIcon>
-
-            <div>
-              <p className="text-sm font-semibold text-[#022F2D]">
-                Just explain it naturally
-              </p>
-
-              <p className="mt-1 text-sm leading-6 text-[#4A6361]">
-                Short notes, incomplete
-                sentences, simple English or
-                mixed-language thoughts are
-                fine. AI first tries to
-                understand what you mean —
-                it does not judge how you
-                write.
+                {characterCount} characters
               </p>
             </div>
           </div>
-        </div>
 
-        <section className="mb-8">
+          <div className="px-6 py-6 sm:px-7">
+            {selectedPrompt && (
+              <div className="mb-4 flex items-center justify-between gap-3 rounded-xl bg-[#f3fbfa] px-4 py-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#dff2ef] text-[#07877B]">
+                    {SelectedStarterIcon && (
+                      <SelectedStarterIcon className="h-4 w-4" />
+                    )}
+                  </div>
 
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#07877B]">
+                      Starting point
+                    </p>
+
+                    <p className="mt-0.5 truncate text-sm text-gray-700">
+                      {
+                        selectedPrompt.title
+                      }
+                    </p>
+                  </div>
+                </div>
+
+                <Check className="h-4 w-4 shrink-0 text-[#07877B]" />
+              </div>
+            )}
+
+            <textarea
+              value={
+                rawInputContent
+              }
+              onChange={(
+                event
+              ) => {
+                setRawInputContent(
+                  event.target.value
+                );
+
+                setError(
+                  ""
+                );
+
+                setUnderstanding(
+                  null
+                );
+              }}
+              rows={10}
+              autoFocus
+              placeholder="For example: Customers are asking whether they should wait because the market is falling. I usually explain that nobody can know the exact bottom and they can consider investing gradually instead of trying to time one perfect entry..."
+              className="w-full resize-none rounded-xl border border-gray-300 bg-white px-5 py-4 text-base leading-7 text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10"
+            />
+
+            <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-gray-500">
+                Grammar, spelling and structure do not matter here.
+              </p>
+
+              {characterCount >
+                0 &&
+                characterCount <
+                  20 && (
+                  <p className="text-xs text-gray-400">
+                    Add a little more detail to continue.
+                  </p>
+                )}
+            </div>
+          </div>
+
+          <div className="border-t border-gray-200 bg-gray-50/60 px-6 py-5 sm:px-7">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-[#07877B] shadow-sm">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-800">
+                    AI understands first
+                  </p>
+
+                  <p className="mt-1 max-w-xl text-xs leading-5 text-gray-500">
+                    Your original words are preserved. AI interprets the idea
+                    and shows you what it understood before anything is created.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  void handleUnderstandIdea()
+                }
+                disabled={
+                  !canContinue
+                }
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#07877B] px-7 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {processing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Understanding your idea...
+                  </>
+                ) : (
+                  <>
+                    Understand My Idea
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-7">
           <div className="mb-4">
-            <h2 className="text-2xl font-semibold text-[#022F2D]">
-              Need help getting started?
-            </h2>
+            <p className="text-sm font-medium text-gray-900">
+              Need a starting point?
+            </p>
 
-            <p className="mt-1 text-sm text-[#4A6361]">
-              Choose a starting point, or
-              simply type your idea below.
+            <p className="mt-1 text-xs leading-5 text-gray-500">
+              Pick one only if it helps. You can also write freely without choosing anything.
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {STARTER_PROMPTS.map(
               (prompt) => {
                 const Icon =
@@ -527,405 +621,245 @@ export function GuidedCreation() {
                         prompt
                       )
                     }
-                    className={`rounded-2xl border p-5 text-left transition-all ${
+                    disabled={
+                      processing
+                    }
+                    className={`group flex min-h-[100px] items-start gap-3 rounded-xl border p-4 text-left transition-all disabled:opacity-50 ${
                       selected
-                        ? "border-[#07877B] bg-[#eef8f6] shadow-md ring-1 ring-[#07877B]/10"
-                        : "border-[#d9e3e1] bg-white shadow-sm hover:-translate-y-0.5 hover:border-[#8fc8c1] hover:shadow-md"
+                        ? "border-[#07877B] bg-[#f3fbfa]"
+                        : "border-gray-200 bg-white hover:border-[#9bcfc9] hover:bg-gray-50/60"
                     }`}
                   >
                     <div
-                      className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
                         selected
-                          ? "bg-[#dff2ef]"
-                          : "bg-[#f1f4f4]"
+                          ? "bg-[#dff2ef] text-[#07877B]"
+                          : "bg-gray-100 text-gray-600 group-hover:bg-white"
                       }`}
                     >
-                      <DesignSystemIcon
-                        size="sm"
-                        tone={
-                          selected
-                            ? "action"
-                            : "secondary"
-                        }
-                      >
-                        <Icon />
-                      </DesignSystemIcon>
+                      <Icon className="h-4 w-4" />
                     </div>
 
-                    <p className="text-base font-semibold leading-6 text-[#022F2D]">
-                      {
-                        prompt.title
-                      }
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium leading-5 text-gray-900">
+                          {
+                            prompt.title
+                          }
+                        </p>
 
-                    <p className="mt-2 text-sm leading-6 text-[#4A6361]">
-                      {
-                        prompt.helper
-                      }
-                    </p>
+                        {selected && (
+                          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#07877B]">
+                            <Check className="h-3 w-3 text-white" />
+                          </div>
+                        )}
+                      </div>
+
+                      <p className="mt-1 text-xs leading-5 text-gray-500">
+                        {
+                          prompt.helper
+                        }
+                      </p>
+                    </div>
                   </button>
                 );
               }
             )}
           </div>
-
         </section>
-
-        <section className="rounded-2xl border border-[#cfdcda] bg-white p-6 shadow-md sm:p-8">
-
-          <div className="mb-5">
-            <h2 className="text-2xl font-semibold text-[#022F2D]">
-              Tell us your idea
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-[#4A6361]">
-              Imagine you're explaining it
-              to a colleague sitting next to
-              you. That's enough.
-            </p>
-          </div>
-
-          {selectedPrompt && (
-            <div className="mb-4 rounded-xl border border-[#d9e3e1] bg-[#f7f9f9] px-4 py-3">
-              <p className="ds-label-3">
-                Starting point
-              </p>
-
-              <p className="ds-body-sm mt-1">
-                {
-                  selectedPrompt.title
-                }
-              </p>
-            </div>
-          )}
-
-          <textarea
-            value={
-              rawInputContent
-            }
-            onChange={(
-              event
-            ) => {
-              setRawInputContent(
-                event.target.value
-              );
-
-              setError(
-                ""
-              );
-
-              setUnderstanding(
-                null
-              );
-            }}
-            rows={9}
-            autoFocus
-            placeholder="For example: customer asking market down again or now invest. many waiting correction. i normally tell cannot know exact bottom and can think about investing small amount at different times..."
-            className="min-h-[240px] w-full resize-none rounded-2xl border border-[#c7d4d2] bg-white px-5 py-4 text-base leading-7 text-[#022F2D] outline-none transition placeholder:text-[#8da09d] focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10"
-          />
-
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs font-medium text-[#4A6361]">
-              Grammar doesn't matter. Meaning does.
-            </p>
-
-            <p
-              className={`ds-body-xs ${
-                characterCount >=
-                20
-                  ? "text-green-600"
-                  : "text-gray-400"
-              }`}
-            >
-              {characterCount} characters
-            </p>
-          </div>
-
-        </section>
-
-        <div className="mt-6 rounded-xl border border-[#d9e3e1] bg-[#f7f9f9] px-5 py-4">
-          <p className="ds-body-sm font-medium">
-            What happens next?
-          </p>
-
-          <p className="ds-body-xs mt-1">
-            AI will understand your idea,
-            identify what is already clear,
-            and ask only the questions needed
-            to fill important gaps. You will
-            confirm what AI understood before
-            any communication is created.
-          </p>
-        </div>
 
         {error && (
-          <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        <div className="mt-8 flex flex-col-reverse gap-3 border-t border-[#d9e3e1] pt-6 sm:flex-row sm:items-center sm:justify-between">
-
-          <DesignSystemButton
-            variant="secondary"
-            size="medium"
-            className="min-h-11 rounded-xl border border-[#c7d4d2] bg-white px-5 py-3 text-[#022F2D] hover:bg-[#f7f9f9]"
-            onClick={
-              handleBack
-            }
-            disabled={
-              processing
-            }
-            leadingIcon={
-              <DesignSystemIcon
-                size="sm"
-                tone="secondary"
-              >
-                <ArrowLeft />
-              </DesignSystemIcon>
-            }
-          >
-            Back
-          </DesignSystemButton>
-
-          <DesignSystemButton
-            variant="primary"
-            size="large"
-            className="min-h-12 rounded-xl bg-[#07877B] px-7 py-3 font-semibold text-white shadow-sm hover:bg-[#06766a]"
-            onClick={() =>
-              void handleUnderstandIdea()
-            }
-            disabled={
-              !canContinue
-            }
-            leadingIcon={
-              processing
-                ? (
-                  <DesignSystemIcon
-                    size="sm"
-                    tone="onDark"
-                    className="animate-spin"
-                  >
-                    <Loader2 />
-                  </DesignSystemIcon>
-                )
-                : null
-            }
-            trailingIcon={
-              processing
-                ? null
-                : (
-                  <DesignSystemIcon
-                    size="sm"
-                    tone="onDark"
-                  >
-                    <ArrowRight />
-                  </DesignSystemIcon>
-                )
-            }
-          >
-            {processing
-              ? "Understanding your idea..."
-              : "Help me shape this idea"}
-          </DesignSystemButton>
-
-        </div>
-
-
         {understanding && (
           <section
             id="guided-understanding"
-            className="mt-12 scroll-mt-6 rounded-2xl border border-[#9bcfc9] bg-white p-6 shadow-md sm:p-8"
+            className="mt-10 scroll-mt-6 overflow-hidden rounded-2xl border border-[#bfe4df] bg-white"
           >
-            <div className="mb-6 flex items-start gap-3">
-              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[var(--ds-surface-subtle)]">
-                <DesignSystemIcon
-                  size="md"
-                  tone="success"
-                >
-                  <CheckCircle2 />
-                </DesignSystemIcon>
-              </div>
+            <div className="border-b border-gray-200 bg-[#f7fcfb] px-6 py-5 sm:px-7">
+              <div className="flex items-start gap-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e2f3f0]">
+                  <CheckCircle2 className="h-5 w-5 text-[#07877B]" />
+                </div>
 
-              <div>
-                <p className="ds-label-3 text-[var(--ds-brand-primary)]">
-                  Here's what I understood
+                <div>
+                  <p className="text-sm font-medium text-[#07877B]">
+                    Here's what I understood
+                  </p>
+
+                  <h2 className="mt-1 text-2xl text-gray-900">
+                    Is this what you mean?
+                  </h2>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-6 sm:px-7">
+              <div className="max-w-3xl">
+                <p className="text-xs font-medium uppercase tracking-[0.14em] text-gray-400">
+                  Summary
                 </p>
 
-                <h2 className="mt-1 text-2xl font-semibold text-[#022F2D]">
-                  Is this what you mean?
-                </h2>
+                <p className="mt-2 text-base leading-7 text-gray-800">
+                  {
+                    understanding.summary
+                  }
+                </p>
               </div>
-            </div>
 
-            <div className="rounded-[var(--ds-radius-md)] border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-muted)] p-5">
-              <p className="ds-body-sm">
-                {
-                  understanding.summary
-                }
-              </p>
-            </div>
+              <div className="mt-7 divide-y divide-gray-100 border-y border-gray-100">
+                <UnderstandingRow
+                  label="What you're seeing"
+                  value={
+                    understanding.customerSituation
+                  }
+                />
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <UnderstandingRow
+                  label="Customer concern"
+                  value={
+                    understanding.customerConcern
+                  }
+                />
 
-              <UnderstandingItem
-                label="What you're seeing"
-                value={
-                  understanding.customerSituation
-                }
-              />
+                <UnderstandingRow
+                  label="Your insight"
+                  value={
+                    understanding.creatorInsight
+                  }
+                />
 
-              <UnderstandingItem
-                label="Customer concern"
-                value={
-                  understanding.customerConcern
-                }
-              />
+                <UnderstandingRow
+                  label="Who this may help"
+                  value={
+                    understanding.intendedAudience
+                  }
+                />
 
-              <UnderstandingItem
-                label="What you know / explain"
-                value={
-                  understanding.creatorInsight
-                }
-              />
+                <UnderstandingRow
+                  label="Core idea"
+                  value={
+                    understanding.coreIdea
+                  }
+                />
 
-              <UnderstandingItem
-                label="Who this may help"
-                value={
-                  understanding.intendedAudience
-                }
-              />
-
-              <UnderstandingItem
-                label="Core idea"
-                value={
-                  understanding.coreIdea
-                }
-              />
-
-              <UnderstandingItem
-                label="Desired outcome"
-                value={
-                  understanding.desiredOutcome
-                }
-              />
-
-            </div>
-
-            {understanding.suggestedCategory && (
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                <span className="ds-body-xs">
-                  Suggested communication area:
-                </span>
-
-                <span className="ds-chip ds-chip-sm">
-                  {formatCategory(
-                    understanding.suggestedCategory
-                  )}
-                </span>
+                <UnderstandingRow
+                  label="Desired outcome"
+                  value={
+                    understanding.desiredOutcome
+                  }
+                />
               </div>
-            )}
 
-            {understanding.needsFollowUp &&
-              understanding.nextQuestion && (
-                <div className="mt-7 rounded-[var(--ds-radius-md)] border border-blue-200 bg-blue-50 p-5">
-                  <p className="ds-label-3 text-blue-600">
-                    One thing would help
-                  </p>
+              {understanding.suggestedCategory && (
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-gray-500">
+                    Suggested communication area
+                  </span>
 
-                  <p className="ds-body-sm mt-2 font-medium text-blue-950">
-                    {
-                      understanding.nextQuestion
-                    }
-                  </p>
-
-                  {understanding.suggestedAnswers.length >
-                    0 && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {understanding.suggestedAnswers.map(
-                        (
-                          answer
-                        ) => (
-                          <span
-                            key={
-                              answer
-                            }
-                            className="ds-chip ds-chip-sm border-blue-200 bg-white text-blue-800"
-                          >
-                            {
-                              answer
-                            }
-                          </span>
-                        )
-                      )}
-                    </div>
-                  )}
+                  <span className="rounded-full bg-[#e8f5f4] px-3 py-1 text-xs font-medium text-[#075f58]">
+                    {formatCategory(
+                      understanding.suggestedCategory
+                    )}
+                  </span>
                 </div>
               )}
 
-            {!understanding.needsFollowUp && (
-              <div className="mt-7 rounded-[var(--ds-radius-md)] border border-green-200 bg-green-50 px-5 py-4">
-                <div className="flex items-start gap-3">
-                  <DesignSystemIcon
-                    size="md"
-                    tone="success"
-                    className="mt-0.5"
-                  >
-                    <CheckCircle2 />
-                  </DesignSystemIcon>
+              {understanding.needsFollowUp &&
+                understanding.nextQuestion && (
+                  <div className="mt-6 rounded-xl border border-[#cfe3f8] bg-[#f6faff] px-5 py-4">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#356b9d]">
+                      One thing would help
+                    </p>
+
+                    <p className="mt-2 text-sm font-medium leading-6 text-gray-900">
+                      {
+                        understanding.nextQuestion
+                      }
+                    </p>
+
+                    {Array.isArray(
+                      understanding.suggestedAnswers
+                    ) &&
+                      understanding.suggestedAnswers.length >
+                        0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {understanding.suggestedAnswers.map(
+                            (
+                              answer
+                            ) => (
+                              <span
+                                key={
+                                  answer
+                                }
+                                className="rounded-full border border-[#cfe3f8] bg-white px-3 py-1.5 text-xs text-[#356b9d]"
+                              >
+                                {
+                                  answer
+                                }
+                              </span>
+                            )
+                          )}
+                        </div>
+                      )}
+                  </div>
+                )}
+
+              {!understanding.needsFollowUp && (
+                <div className="mt-6 flex items-start gap-3 rounded-xl bg-[#f3fbfa] px-5 py-4">
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#07877B]">
+                    <Check className="h-3.5 w-3.5 text-white" />
+                  </div>
 
                   <div>
-                    <p className="ds-body-sm font-medium text-green-800">
+                    <p className="text-sm font-medium text-gray-900">
                       Your idea is clear enough to continue.
                     </p>
 
-                    <p className="ds-body-xs mt-1 text-green-700">
-                      Confirm it below, and we'll help you choose the audience, personalisation and channels.
+                    <p className="mt-1 text-xs leading-5 text-gray-600">
+                      Next, confirm the audience, purpose, personalisation and channels.
                     </p>
                   </div>
                 </div>
-              </div>
-            )}
-
-            <div className="mt-7 flex flex-col-reverse gap-3 border-t border-[var(--ds-border-subtle)] pt-6 sm:flex-row sm:items-center sm:justify-between">
-              <DesignSystemButton
-                variant="secondary"
-                size="medium"
-                onClick={
-                  handleEditIdea
-                }
-              >
-                Not quite — edit my idea
-              </DesignSystemButton>
-
-              <DesignSystemButton
-                variant="primary"
-                size="large"
-                onClick={
-                  handleConfirmIdea
-                }
-                trailingIcon={
-                  <DesignSystemIcon
-                    size="sm"
-                    tone="onDark"
-                  >
-                    <ArrowRight />
-                  </DesignSystemIcon>
-                }
-              >
-                Yes, that's my idea
-              </DesignSystemButton>
+              )}
             </div>
 
+            <div className="border-t border-gray-200 bg-gray-50/60 px-6 py-5 sm:px-7">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <button
+                  type="button"
+                  onClick={
+                    handleEditIdea
+                  }
+                  className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  Edit my idea
+                </button>
+
+                <button
+                  type="button"
+                  onClick={
+                    handleConfirmIdea
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#06766a]"
+                >
+                  Yes, that's my idea
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           </section>
         )}
-
       </main>
     </div>
   );
 }
 
-function UnderstandingItem({
+
+function UnderstandingRow({
   label,
   value,
 }: {
@@ -940,17 +874,18 @@ function UnderstandingItem({
   }
 
   return (
-    <div className="rounded-xl border border-[#d9e3e1] bg-white p-4 shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-wide text-[#7a8e8b]">
+    <div className="grid gap-2 py-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-6">
+      <p className="text-xs font-medium text-gray-500">
         {label}
       </p>
 
-      <p className="mt-2 text-sm leading-6 text-[#344b49]">
+      <p className="text-sm leading-6 text-gray-700">
         {value}
       </p>
     </div>
   );
 }
+
 
 function formatCategory(
   category:
