@@ -2,6 +2,7 @@ import {
   createContext,
   ReactNode,
   useEffect,
+  useRef,
   useState,
 } from "react";
 
@@ -50,17 +51,33 @@ interface AuthProviderProps {
 export function AuthProvider({
   children,
 }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] =
+    useState<User | null>(null);
+
   const [session, setSession] =
     useState<Session | null>(null);
 
   const [profile, setProfile] =
     useState<UserProfile | null>(null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-  async function loadProfile(userId: string) {
-    const { data, error } = await supabase
+  // Prevent an older profile request from overwriting
+  // the state after the active user has changed.
+  const profileRequestId =
+    useRef(0);
+
+  async function loadProfile(
+    userId: string
+  ) {
+    const requestId =
+      ++profileRequestId.current;
+
+    const {
+      data,
+      error,
+    } = await supabase
       .from("profiles")
       .select(
         "id, full_name, department, designation, role"
@@ -68,51 +85,160 @@ export function AuthProvider({
       .eq("id", userId)
       .single();
 
+    // Ignore stale responses.
+    if (
+      requestId !==
+      profileRequestId.current
+    ) {
+      return;
+    }
+
     if (error) {
-      console.error("Profile load error:", error);
+      console.error(
+        "Profile load error:",
+        error
+      );
+
       setProfile(null);
       return;
     }
 
-    setProfile(data as UserProfile);
+    setProfile(
+      data as UserProfile
+    );
   }
 
   useEffect(() => {
+    let mounted = true;
+
     async function initialiseAuth() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: {
+            session:
+              initialSession,
+          },
+        } =
+          await supabase.auth.getSession();
 
-      setSession(session);
-      setUser(session?.user ?? null);
+        if (!mounted) {
+          return;
+        }
 
-      if (session?.user) {
-        await loadProfile(session.user.id);
-      }
+        setSession(
+          initialSession
+        );
 
-      setLoading(false);
-    }
+        setUser(
+          initialSession?.user ??
+            null
+        );
 
-    initialiseAuth();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-
-        if (newSession?.user) {
-          await loadProfile(newSession.user.id);
+        if (
+          initialSession?.user
+        ) {
+          await loadProfile(
+            initialSession.user.id
+          );
         } else {
           setProfile(null);
         }
+      } catch (error) {
+        console.error(
+          "Auth initialisation error:",
+          error
+        );
 
-        setLoading(false);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-    );
+    }
+
+    void initialiseAuth();
+
+    const {
+      data: {
+        subscription,
+      },
+    } =
+      supabase.auth.onAuthStateChange(
+        (
+          event,
+          newSession
+        ) => {
+          if (!mounted) {
+            return;
+          }
+
+          setSession(
+            newSession
+          );
+
+          setUser(
+            newSession?.user ??
+              null
+          );
+
+          if (!newSession?.user) {
+            // Invalidate any in-flight profile request.
+            profileRequestId.current +=
+              1;
+
+            setProfile(null);
+            setLoading(false);
+            return;
+          }
+
+          /*
+           * IMPORTANT:
+           * Do not await Supabase database calls directly
+           * inside onAuthStateChange.
+           *
+           * Auth events are emitted while Supabase is handling
+           * its internal auth state. Awaiting another Supabase
+           * request here can delay / block signInWithPassword().
+           *
+           * Defer the profile query to the next task instead.
+           */
+          setLoading(true);
+
+          window.setTimeout(
+            () => {
+              if (!mounted) {
+                return;
+              }
+
+              void loadProfile(
+                newSession.user.id
+              ).finally(() => {
+                if (mounted) {
+                  setLoading(false);
+                }
+              });
+            },
+            0
+          );
+
+          // Avoid unused-variable lint warnings while retaining
+          // the event parameter for easier debugging later.
+          void event;
+        }
+      );
 
     return () => {
+      mounted = false;
+
+      // Invalidate any pending profile response.
+      profileRequestId.current +=
+        1;
+
       subscription.unsubscribe();
     };
   }, []);
@@ -121,23 +247,40 @@ export function AuthProvider({
     email: string,
     password: string
   ) {
-    const { error } =
-      await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const {
+      error,
+    } =
+      await supabase.auth.signInWithPassword(
+        {
+          email,
+          password,
+        }
+      );
 
     return {
-      error: error?.message ?? null,
+      error:
+        error?.message ??
+        null,
     };
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
+    /*
+     * The auth-state listener will clear user/session/profile.
+     * Keeping the state changes there avoids maintaining two
+     * separate sources of truth.
+     */
+    const {
+      error,
+    } =
+      await supabase.auth.signOut();
 
-    setUser(null);
-    setSession(null);
-    setProfile(null);
+    if (error) {
+      console.error(
+        "Sign out error:",
+        error
+      );
+    }
   }
 
   return (
