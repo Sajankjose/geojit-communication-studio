@@ -1,25 +1,36 @@
-import { useState } from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Check,
+  FileText,
+  GraduationCap,
+  Loader2,
+  Megaphone,
+  Package,
+  ShieldCheck,
+  Sparkles,
+  UserPlus,
+} from "lucide-react";
+
+import {
+  useEffect,
+  useState,
+} from "react";
+
 import {
   useNavigate,
   useSearchParams,
 } from "react-router";
 
 import {
-  TrendingUp,
-  GraduationCap,
-  ShoppingBag,
-  Headphones,
-  Shield,
-  UserPlus,
-  ArrowLeft,
-} from "lucide-react";
+  TopNavBar,
+} from "../components/TopNavBar";
 
-import { TopNavBar } from "../components/TopNavBar";
-import { CategoryCard } from "../components/CategoryCard";
-import { CommunicationStateBar } from "../components/CommunicationStateBar";
-import { ProgressStepper } from "../components/ProgressStepper";
-
-import { updateCommunication } from "../services/communications";
+import {
+  getCommunicationById,
+  updateCommunication,
+} from "../services/communications";
 
 type Category =
   | "research"
@@ -29,108 +40,268 @@ type Category =
   | "regulatory"
   | "onboarding";
 
-export function CategorySelection() {
-  const navigate = useNavigate();
+interface CategoryOption {
+  id:
+    Category;
 
-  const [searchParams] = useSearchParams();
+  label:
+    string;
+
+  description:
+    string;
+
+  helper:
+    string;
+
+  icon:
+    typeof BookOpen;
+}
+
+const CATEGORY_OPTIONS:
+  CategoryOption[] = [
+    {
+      id:
+        "research",
+
+      label:
+        "Fundamental Research",
+
+      description:
+        "Research-led communication based on verified market or investment insights.",
+
+      helper:
+        "Equity research, reports, recommendations and market views",
+
+      icon:
+        BookOpen,
+    },
+
+    {
+      id:
+        "education",
+
+      label:
+        "Investor Education",
+
+      description:
+        "Help customers understand investing, markets, risk and financial concepts.",
+
+      helper:
+        "Educational explainers, awareness and learning content",
+
+      icon:
+        GraduationCap,
+    },
+
+    {
+      id:
+        "product",
+
+      label:
+        "Product & Sales",
+
+      description:
+        "Communicate a product, feature, plan, offer or customer opportunity.",
+
+      helper:
+        "Products, platform features, pricing and campaigns",
+
+      icon:
+        Package,
+    },
+
+    {
+      id:
+        "service",
+
+      label:
+        "Service & Transactional",
+
+      description:
+        "Share service information or customer-specific operational updates.",
+
+      helper:
+        "Service updates, transactions, maintenance and notifications",
+
+      icon:
+        FileText,
+    },
+
+    {
+      id:
+        "regulatory",
+
+      label:
+        "Regulatory & Compliance",
+
+      description:
+        "Communicate mandatory, policy or compliance-related information clearly.",
+
+      helper:
+        "Circulars, disclosures, policy changes and required actions",
+
+      icon:
+        ShieldCheck,
+    },
+
+    {
+      id:
+        "onboarding",
+
+      label:
+        "Onboarding & Journey",
+
+      description:
+        "Guide customers through account setup, activation and early-stage journeys.",
+
+      helper:
+        "Welcome, setup, activation and getting-started communication",
+
+      icon:
+        UserPlus,
+    },
+  ];
+
+export function CategorySelection() {
+  const navigate =
+    useNavigate();
+
+  const [searchParams] =
+    useSearchParams();
 
   const communicationId =
-    searchParams.get("communicationId");
+    searchParams.get(
+      "communicationId"
+    );
 
   const [
     selectedCategory,
     setSelectedCategory,
-  ] = useState<Category | null>(null);
+  ] =
+    useState<
+      Category | null
+    >(null);
 
-  const [saving, setSaving] =
+  const [
+    loading,
+    setLoading,
+  ] =
+    useState(
+      Boolean(
+        communicationId
+      )
+    );
+
+  const [
+    saving,
+    setSaving,
+  ] =
     useState(false);
 
-  const [error, setError] =
+  const [
+    error,
+    setError,
+  ] =
     useState("");
 
-  const categories = [
-    {
-      id: "research" as Category,
-      icon: TrendingUp,
-      title: "Research & Advisory",
-      description:
-        "Market insights, stock recommendations, and research reports",
-      color: "green" as const,
-    },
-    {
-      id: "education" as Category,
-      icon: GraduationCap,
-      title: "Investor Education",
-      description:
-        "Educational content and learning materials for investors",
-      color: "teal" as const,
-    },
-    {
-      id: "product" as Category,
-      icon: ShoppingBag,
-      title: "Product & Sales",
-      description:
-        "Product launches, offers, and promotional communications",
-      color: "orange" as const,
-    },
-    {
-      id: "service" as Category,
-      icon: Headphones,
-      title: "Service & Transactional",
-      description:
-        "Service updates, transaction alerts, and account notifications",
-      color: "gray" as const,
-    },
-    {
-      id: "regulatory" as Category,
-      icon: Shield,
-      title: "Regulatory & Compliance",
-      description:
-        "Regulatory circulars, compliance updates, and policy changes",
-      color: "red" as const,
-    },
-    {
-      id: "onboarding" as Category,
-      icon: UserPlus,
-      title: "Onboarding & Journey",
-      description:
-        "Welcome emails, onboarding sequences, and user journeys",
-      color: "blue" as const,
-    },
-  ];
-
-  function mapCategoryToDatabase(
-    category: Category
-  ) {
-    switch (category) {
-      case "research":
-        return "Research & Advisory";
-
-      case "education":
-        return "Investor Education";
-
-      case "product":
-        return "Product & Sales";
-
-      case "service":
-        return "Service & Transactional";
-
-      case "regulatory":
-        return "Regulatory & Compliance";
-
-      case "onboarding":
-        return "Onboarding & Journey";
-    }
-  }
-
-  const handleContinue = async () => {
-    if (!selectedCategory) {
+  useEffect(() => {
+    if (
+      !communicationId
+    ) {
+      setLoading(false);
       return;
     }
 
-    if (!communicationId) {
+    let cancelled =
+      false;
+
+    async function loadExistingCategory() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const communication =
+          await getCommunicationById(
+            communicationId
+          );
+
+        if (
+          cancelled
+        ) {
+          return;
+        }
+
+        setSelectedCategory(
+          mapDatabaseCategoryToUi(
+            communication.category
+          )
+        );
+      } catch (err) {
+        if (
+          cancelled
+        ) {
+          return;
+        }
+
+        console.error(
+          "Unable to load communication category:",
+          err
+        );
+
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load the communication category."
+        );
+      } finally {
+        if (
+          !cancelled
+        ) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadExistingCategory();
+
+    return () => {
+      cancelled =
+        true;
+    };
+  }, [communicationId]);
+
+  function handleBack() {
+    if (
+      communicationId
+    ) {
+      navigate(
+        `/create/mode?communicationId=${encodeURIComponent(
+          communicationId
+        )}`
+      );
+
+      return;
+    }
+
+    navigate("/");
+  }
+
+  async function handleContinue() {
+    if (
+      !communicationId
+    ) {
       setError(
-        "Communication ID is missing. Please return to the dashboard and start again."
+        "Communication ID is missing. Please return to the Dashboard and start again."
+      );
+
+      return;
+    }
+
+    if (
+      !selectedCategory
+    ) {
+      setError(
+        "Please choose a communication category."
       );
 
       return;
@@ -140,147 +311,413 @@ export function CategorySelection() {
       setSaving(true);
       setError("");
 
-      const databaseCategory =
-        mapCategoryToDatabase(
-          selectedCategory
-        );
-
+      /**
+       * Keep the existing database category values so
+       * saved drafts and the current Expert flow remain
+       * backwards compatible.
+       *
+       * The visible label can still use the clearer
+       * "Fundamental Research" wording.
+       */
       await updateCommunication(
         communicationId,
         {
           category:
-            databaseCategory,
-
-          subcategory: null,
-
-          classification_data: {
-            category:
-              databaseCategory,
-            subcategory: "",
-          },
-
-          status: "draft",
+            mapCategoryToDatabase(
+              selectedCategory
+            ),
         }
       );
 
       navigate(
-        `/create/form?communicationId=${communicationId}&category=${selectedCategory}`
+        `/create/form?communicationId=${encodeURIComponent(
+          communicationId
+        )}&category=${encodeURIComponent(
+          selectedCategory
+        )}`
       );
-    } catch (error) {
+    } catch (err) {
       console.error(
-        "Unable to save category:",
-        error
+        "Unable to save communication category:",
+        err
       );
 
       setError(
-        "Unable to save the category. Please try again."
+        err instanceof Error
+          ? err.message
+          : "Unable to save the communication category."
       );
     } finally {
       setSaving(false);
     }
-  };
+  }
+
+  if (
+    loading
+  ) {
+    return (
+      <div className="min-h-screen bg-background">
+        <TopNavBar />
+
+        <main className="mx-auto flex min-h-[72vh] max-w-3xl items-center justify-center px-6">
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            <Loader2 className="h-4 w-4 animate-spin text-[#07877B]" />
+            Preparing category selection...
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <TopNavBar />
 
-      <CommunicationStateBar
-        title="New Communication"
-        category={
-          selectedCategory ||
-          "research"
-        }
-        status="draft"
-        currentStep={1}
-        totalSteps={5}
-      />
+      <main className="mx-auto max-w-5xl px-6 py-10 sm:py-12">
+        <button
+          type="button"
+          onClick={
+            handleBack
+          }
+          disabled={
+            saving
+          }
+          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B] disabled:opacity-50"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Creation Mode
+        </button>
 
-      <ProgressStepper
-        currentStep={1}
-      />
+        <header className="mb-8 max-w-3xl">
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-[#07877B]" />
 
-      <main className="mx-auto max-w-6xl px-8 py-12">
+            <p className="text-sm font-medium text-[#07877B]">
+              Expert Creation
+            </p>
+          </div>
 
-        <div className="mb-12 text-center">
-
-          <h1 className="mb-3 text-3xl text-gray-900">
-            What type of communication would you like to create?
+          <h1 className="text-3xl leading-tight text-gray-900 sm:text-4xl">
+            What kind of communication are you creating?
           </h1>
 
-          <p className="text-lg text-gray-600">
-            Select a communication category
-            to apply the right structure,
-            tone, and compliance rules.
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-600">
+            Choose the category that best matches the communication.
+            This determines the structured inputs, AI rules and
+            governance checks used in the next steps.
           </p>
+        </header>
 
-        </div>
+        {!communicationId && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+            Communication ID is missing. Please return to the Dashboard and start a new communication.
+          </div>
+        )}
 
-        <div className="mb-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-
-          {categories.map(
-            (category) => (
-              <CategoryCard
-                key={category.id}
-                icon={category.icon}
-                title={category.title}
-                description={
-                  category.description
-                }
-                color={category.color}
-                selected={
-                  selectedCategory ===
-                  category.id
-                }
-                onClick={() => {
-                  setSelectedCategory(
-                    category.id
-                  );
-
-                  setError("");
-                }}
-              />
-            )
-          )}
-
-        </div>
-
-        {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {error && communicationId && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             {error}
           </div>
         )}
 
-        <div className="flex items-center justify-between">
+        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+          <div className="border-b border-gray-200 px-6 py-5 sm:px-7">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900">
+                  Communication category
+                </p>
 
-          <button
-            onClick={() =>
-              navigate("/")
-            }
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-gray-700 transition-all hover:bg-gray-50"
-          >
-            <ArrowLeft className="h-4 w-4" />
+                <p className="mt-1 text-xs leading-5 text-gray-500">
+                  Select one category to continue.
+                </p>
+              </div>
 
-            Back
-          </button>
+              {selectedCategory && (
+                <div className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5f4] px-3 py-1.5 text-xs font-medium text-[#075f58] sm:mt-0">
+                  <Check className="h-3.5 w-3.5" />
+                  {getCategoryLabel(
+                    selectedCategory
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
 
-          <button
-            onClick={
-              handleContinue
-            }
-            disabled={
-              !selectedCategory ||
-              saving
-            }
-            className="rounded-lg bg-[#07877B] px-8 py-3 text-white shadow-md transition-all hover:bg-[#06766a] hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {saving
-              ? "Saving..."
-              : "Continue"}
-          </button>
+          <div className="grid md:grid-cols-2">
+            {CATEGORY_OPTIONS.map(
+              (
+                option,
+                index
+              ) => {
+                const Icon =
+                  option.icon;
 
+                const selected =
+                  selectedCategory ===
+                  option.id;
+
+                const isRightColumn =
+                  index %
+                    2 ===
+                  1;
+
+                const isAfterFirstRow =
+                  index >=
+                  2;
+
+                return (
+                  <button
+                    key={
+                      option.id
+                    }
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory(
+                        option.id
+                      );
+
+                      setError("");
+                    }}
+                    disabled={
+                      saving ||
+                      !communicationId
+                    }
+                    className={`group min-h-[190px] px-6 py-6 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:px-7 ${
+                      isRightColumn
+                        ? "border-t border-gray-200 md:border-l"
+                        : isAfterFirstRow
+                          ? "border-t border-gray-200"
+                          : ""
+                    } ${
+                      selected
+                        ? "bg-[#f3fbfa]"
+                        : "bg-white hover:bg-gray-50/70"
+                    }`}
+                  >
+                    <div className="flex h-full items-start gap-4">
+                      <div
+                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors ${
+                          selected
+                            ? "bg-[#dff2ef] text-[#07877B]"
+                            : "bg-gray-100 text-gray-600 group-hover:bg-white"
+                        }`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <h2
+                              className={`text-lg font-medium ${
+                                selected
+                                  ? "text-[#075f58]"
+                                  : "text-gray-900"
+                              }`}
+                            >
+                              {
+                                option.label
+                              }
+                            </h2>
+
+                            <p className="mt-2 text-sm leading-6 text-gray-600">
+                              {
+                                option.description
+                              }
+                            </p>
+                          </div>
+
+                          <div
+                            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
+                              selected
+                                ? "border-[#07877B] bg-[#07877B]"
+                                : "border-gray-300 bg-white"
+                            }`}
+                          >
+                            {selected && (
+                              <Check className="h-3.5 w-3.5 text-white" />
+                            )}
+                          </div>
+                        </div>
+
+                        <p className="mt-4 text-xs leading-5 text-gray-400">
+                          {
+                            option.helper
+                          }
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              }
+            )}
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-2xl border border-[#bfe4df] bg-[#f7fcfb] px-6 py-5 sm:px-7">
+          <div className="flex items-start gap-4">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e2f3f0] text-[#07877B]">
+              <Megaphone className="h-4 w-4" />
+            </div>
+
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                The category guides the workflow
+              </p>
+
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
+                The next screen will ask only for the source information
+                relevant to this category. AI generation and approval controls
+                continue to use the same governed Expert workflow.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <div className="mt-8 border-t border-gray-200 pt-6">
+          <div className="flex flex-col-reverse gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              onClick={
+                handleBack
+              }
+              disabled={
+                saving
+              }
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+
+            <div className="flex flex-col items-stretch gap-2 sm:items-end">
+              <p className="text-xs text-gray-500 sm:text-right">
+                Next: add the source information
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  void handleContinue()
+                }
+                disabled={
+                  !communicationId ||
+                  !selectedCategory ||
+                  saving
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-7 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving category...
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-
       </main>
     </div>
   );
+}
+
+
+function mapCategoryToDatabase(
+  value:
+    Category
+) {
+  switch (
+    value
+  ) {
+    case "research":
+      return "Research & Advisory";
+
+    case "education":
+      return "Investor Education";
+
+    case "product":
+      return "Product & Sales";
+
+    case "service":
+      return "Service & Transactional";
+
+    case "regulatory":
+      return "Regulatory & Compliance";
+
+    case "onboarding":
+      return "Onboarding & Journey";
+  }
+}
+
+
+function mapDatabaseCategoryToUi(
+  value:
+    string | null
+): Category | null {
+  switch (
+    value
+  ) {
+    case "research":
+    case "Research & Advisory":
+    case "Fundamental Research":
+      return "research";
+
+    case "education":
+    case "Investor Education":
+      return "education";
+
+    case "product":
+    case "Product & Sales":
+      return "product";
+
+    case "service":
+    case "Service & Transactional":
+      return "service";
+
+    case "regulatory":
+    case "Regulatory & Compliance":
+      return "regulatory";
+
+    case "onboarding":
+    case "Onboarding & Journey":
+      return "onboarding";
+
+    default:
+      return null;
+  }
+}
+
+
+function getCategoryLabel(
+  category:
+    Category
+) {
+  switch (
+    category
+  ) {
+    case "research":
+      return "Fundamental Research";
+
+    case "education":
+      return "Investor Education";
+
+    case "product":
+      return "Product & Sales";
+
+    case "service":
+      return "Service & Transactional";
+
+    case "regulatory":
+      return "Regulatory & Compliance";
+
+    case "onboarding":
+      return "Onboarding & Journey";
+  }
 }
