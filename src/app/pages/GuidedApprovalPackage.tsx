@@ -29,6 +29,7 @@ import {
   DesignSystemButton,
   DesignSystemCard,
   DesignSystemIcon,
+  DesignSystemTextarea,
 } from "../design-system";
 
 import {
@@ -514,11 +515,11 @@ export function GuidedApprovalPackage() {
     loading
   ) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="ds-page">
         <TopNavBar />
 
         <main className="mx-auto flex min-h-[70vh] max-w-4xl items-center justify-center px-6">
-          <p className="text-sm text-gray-500">
+          <p className="ds-body-sm">
             Preparing approval package...
           </p>
         </main>
@@ -527,28 +528,36 @@ export function GuidedApprovalPackage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="ds-page">
       <TopNavBar />
 
       <main className="mx-auto max-w-5xl px-6 py-10 sm:py-14">
 
-        <button
-          type="button"
+        <DesignSystemButton
+          variant="tertiary"
+          size="medium"
           onClick={
             handleBack
           }
-          className="mb-6 inline-flex items-center gap-2 text-sm text-gray-600 hover:text-[#07877B]"
+          leadingIcon={
+            <DesignSystemIcon
+              size="sm"
+              tone="action"
+            >
+              <ArrowLeft />
+            </DesignSystemIcon>
+          }
+          className="mb-6 px-0"
         >
-          <ArrowLeft className="h-4 w-4" />
           {isReviewerReadOnly
             ? "Back to Review Queue"
             : isCreatorReadOnly
               ? "Back to Approval Status"
               : "Back to Channel Selection"}
-        </button>
+        </DesignSystemButton>
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div className="ds-alert ds-alert-error mb-6 text-sm">
             {error}
           </div>
         )}
@@ -595,54 +604,68 @@ export function GuidedApprovalPackage() {
               <>
                 <div className="mb-8">
                   <div className="mb-3 flex items-center gap-2">
-                    <ShieldCheck className="h-5 w-5 text-[#07877B]" />
+                    <DesignSystemIcon
+                      size="md"
+                      tone="action"
+                    >
+                      <ShieldCheck />
+                    </DesignSystemIcon>
 
-                    <p className="text-sm font-medium text-[#07877B]">
+                    <p className="ds-label-3 text-[var(--ds-text-brand)]">
                       Approval Package
                     </p>
                   </div>
 
-                  <h1 className="text-3xl text-gray-900">
+                  <h1 className="ds-title-2">
                     {isCreatorReadOnly
                       ? "Communication package"
                       : "Ready for review"}
                   </h1>
 
-                  <p className="mt-3 max-w-3xl text-sm leading-7 text-gray-600">
+                  <p className="ds-body-sm mt-3 max-w-3xl leading-7">
                     {isCreatorReadOnly
                       ? "These are the selected Email, WhatsApp and Leaflet outputs submitted through the approval workflow. This view is read-only."
                       : "These are the versions you selected. They will move together as one communication package through the approval workflow."}
                   </p>
                 </div>
 
-                <div className="mb-6 rounded-xl border border-[#bfe4df] bg-[#f3fbfa] px-5 py-4">
+                <DesignSystemCard
+                  surface="accent"
+                  className="mb-6 px-5 py-4"
+                >
                   <div className="flex items-start gap-3">
-                    <Sparkles className="mt-0.5 h-5 w-5 text-[#07877B]" />
+                    <DesignSystemIcon
+                      size="md"
+                      tone="action"
+                      className="mt-0.5"
+                    >
+                      <Sparkles />
+                    </DesignSystemIcon>
 
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="ds-body-sm font-medium">
                         One idea, multiple approved outputs
                       </p>
 
-                      <p className="mt-1 text-sm leading-6 text-gray-600">
+                      <p className="ds-body-sm mt-1 leading-6">
                         Marketing and CorpCom should review the selected outputs as one package, while each channel keeps its own format and expression.
                       </p>
                     </div>
                   </div>
-                </div>
+                </DesignSystemCard>
 
                 <div className="space-y-5">
                   {approvalPackage.selectedOutputs.map(
                     (output) => (
-                      <section
+                      <DesignSystemCard
                         key={
                           output.outputId
                         }
-                        className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+                        className="overflow-hidden"
                       >
-                        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                        <div className="flex items-center justify-between border-b border-[var(--ds-border-subtle)] px-5 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e8f5f4]">
+                            <div className="ds-icon-container ds-icon-container-brand flex h-10 w-10 items-center justify-center">
                               <ChannelIcon
                                 channel={
                                   output.channel
@@ -651,7 +674,7 @@ export function GuidedApprovalPackage() {
                             </div>
 
                             <div>
-                              <p className="text-sm font-medium text-gray-900">
+                              <p className="ds-body-sm font-medium">
                                 {
                                   formatChannel(
                                     output.channel
@@ -659,7 +682,7 @@ export function GuidedApprovalPackage() {
                                 }
                               </p>
 
-                              <p className="mt-0.5 text-xs text-gray-500">
+                              <p className="ds-body-xs mt-0.5">
                                 Selected Variant{" "}
                                 {
                                   output.variant
@@ -668,8 +691,8 @@ export function GuidedApprovalPackage() {
                             </div>
                           </div>
 
-                          <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
+                          <span className="ds-status ds-status-success ds-status-sm">
+                            <span className="ds-status-dot" aria-hidden="true" />
                             Selected
                           </span>
                         </div>
@@ -684,24 +707,25 @@ export function GuidedApprovalPackage() {
                             }
                           />
                         </div>
-                      </section>
+                      </DesignSystemCard>
                     )
                   )}
                 </div>
 
-                <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                <DesignSystemCard className="mt-8 p-6">
                   {isCreatorReadOnly ? (
                     <>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-[var(--ds-text-primary)]">
                         Submitted communication
                       </p>
 
-                      <p className="mt-2 text-sm leading-6 text-gray-600">
+                      <p className="mt-2 text-sm leading-6 text-[var(--ds-text-secondary)]">
                         This is the frozen communication package that moved through the approval workflow. Viewing it will not modify the communication or its approval status.
                       </p>
 
-                      <button
-                        type="button"
+                      <DesignSystemButton
+                        variant="secondary"
+                        size="medium"
                         onClick={() => {
                           if (
                             communicationId
@@ -715,35 +739,36 @@ export function GuidedApprovalPackage() {
                             navigate("/");
                           }
                         }}
-                        className="mt-5 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:border-[#07877B] hover:text-[#07877B]"
+                        className="mt-5"
                       >
                         Back to Approval Status
-                      </button>
+                      </DesignSystemButton>
                     </>
                   ) : (
                     <>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-[var(--ds-text-primary)]">
                         Submit for approval
                       </p>
 
-                      <p className="mt-2 text-sm leading-6 text-gray-600">
+                      <p className="mt-2 text-sm leading-6 text-[var(--ds-text-secondary)]">
                         Your selected channel outputs are saved as one governed package. Submit it to Marketing to begin the existing Marketing → CorpCom approval workflow.
                       </p>
 
                       {submitError && (
-                        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        <div className="ds-alert ds-alert-error mt-4 text-sm">
                           {submitError}
                         </div>
                       )}
 
                       {alreadySubmitted && (
-                        <div className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                        <div className="ds-alert ds-alert-success mt-4 text-sm">
                           This communication has already been submitted for review.
                         </div>
                       )}
 
-                      <button
-                        type="button"
+                      <DesignSystemButton
+                        variant="primary"
+                        size="large"
                         onClick={
                           handleSubmitForMarketingReview
                         }
@@ -752,23 +777,25 @@ export function GuidedApprovalPackage() {
                           alreadySubmitted ||
                           profile?.role !== "creator"
                         }
-                        className="mt-5 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-40"
+                        loading={
+                          submitting
+                        }
+                        loadingLabel="Submitting..."
+                        className="mt-5"
                       >
-                        {submitting
-                          ? "Submitting..."
-                          : alreadySubmitted
-                            ? "Submitted for Marketing Review"
-                            : "Submit for Marketing Review"}
-                      </button>
+                        {alreadySubmitted
+                          ? "Submitted for Marketing Review"
+                          : "Submit for Marketing Review"}
+                      </DesignSystemButton>
 
                       {profile?.role === "admin" && (
-                        <p className="mt-3 text-xs leading-5 text-gray-500">
+                        <p className="mt-3 text-xs leading-5 text-[var(--ds-text-tertiary)]">
                           Admin can inspect this package, but only the Creator can submit it for approval.
                         </p>
                       )}
                     </>
                   )}
-                </div>
+                </DesignSystemCard>
               </>
             )}
           </>
@@ -857,9 +884,14 @@ function ReviewerWorkspace({
     <>
       <div className="mb-6">
         <div className="mb-2 flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-[#07877B]" />
+          <DesignSystemIcon
+            size="md"
+            tone="action"
+          >
+            <ShieldCheck />
+          </DesignSystemIcon>
 
-          <p className="text-sm font-medium text-[#07877B]">
+          <p className="ds-label-3 text-[var(--ds-text-brand)]">
             {reviewerRole ===
               "marketing_reviewer"
               ? "Marketing Review"
@@ -877,7 +909,7 @@ function ReviewerWorkspace({
       </div>
 
       {master && (
-        <DesignSystemCard className="mb-5 grid gap-3 p-4 sm:grid-cols-4">
+        <DesignSystemCard surface="accent" className="mb-5 grid gap-3 p-4 sm:grid-cols-4">
           <ReviewSummaryItem
             label="Core idea"
             value={
@@ -917,7 +949,7 @@ function ReviewerWorkspace({
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
 
         <DesignSystemCard className="min-w-0 overflow-hidden">
-          <div className="border-b border-gray-200 px-4 pt-4">
+          <div className="border-b border-[var(--ds-border-subtle)] px-4 pt-4">
             <div className="flex flex-wrap gap-2">
               {approvalPackage.selectedOutputs.map(
                 (output) => (
@@ -934,8 +966,8 @@ function ReviewerWorkspace({
                     className={`inline-flex items-center gap-2 rounded-t-lg border-b-2 px-4 py-3 text-sm font-medium transition ${
                       activeOutput?.channel ===
                         output.channel
-                        ? "border-[#07877B] bg-[#f7fbfa] text-[#06766a]"
-                        : "border-transparent text-gray-500 hover:text-gray-800"
+                        ? "border-[var(--ds-brand-primary)] bg-[var(--ds-surface-subtle)] text-[var(--ds-text-brand)]"
+                        : "border-transparent text-[var(--ds-text-tertiary)] hover:text-[var(--ds-text-primary)]"
                     }`}
                   >
                     <ChannelIcon
@@ -950,7 +982,7 @@ function ReviewerWorkspace({
                       )
                     }
 
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-500">
+                    <span className="rounded-full bg-[var(--ds-surface-muted)] px-2 py-0.5 text-[11px] text-[var(--ds-text-tertiary)]">
                       {output.variant}
                     </span>
                   </button>
@@ -977,7 +1009,7 @@ function ReviewerWorkspace({
           <DesignSystemCard className="p-5">
 
             <div className="mb-5">
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-tertiary)]">
                 Decision
               </p>
 
@@ -989,11 +1021,8 @@ function ReviewerWorkspace({
               </h2>
             </div>
 
-            <label className="text-sm font-medium text-gray-800">
-              Reviewer comment
-            </label>
-
-            <textarea
+            <DesignSystemTextarea
+              label="Reviewer comment"
               value={
                 reviewerComment
               }
@@ -1010,15 +1039,11 @@ function ReviewerWorkspace({
                   ? "Add a comment if needed..."
                   : "Add final review comments if needed..."
               }
-              className="ds-textarea mt-2"
+              helperText="A comment is required when requesting changes or rejecting."
             />
 
-            <p className="mt-2 text-xs leading-5 text-gray-500">
-              A comment is required when requesting changes or rejecting.
-            </p>
-
             {reviewerError && (
-              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
+              <div className="ds-alert ds-alert-error mt-4 text-xs leading-5">
                 {
                   reviewerError
                 }
@@ -1052,7 +1077,7 @@ function ReviewerWorkspace({
               </DesignSystemButton>
 
               <DesignSystemButton
-                variant="secondary"
+                variant="destructive"
                 size="medium"
                 onClick={() =>
                   onDecision(
@@ -1080,6 +1105,7 @@ function ReviewerWorkspace({
             <DesignSystemButton
               variant="primary"
               size="large"
+              fullWidth
               onClick={() =>
                 onDecision(
                   "approved"
@@ -1089,40 +1115,40 @@ function ReviewerWorkspace({
                 reviewerSubmitting ||
                 !reviewerItem
               }
-              trailingIcon={
+              loading={
                 reviewerSubmitting
-                  ? null
-                  : reviewerRole ===
-                      "marketing_reviewer"
-                    ? (
-                      <DesignSystemIcon
-                        size="sm"
-                        tone="onDark"
-                      >
-                        <Send />
-                      </DesignSystemIcon>
-                    )
-                    : (
-                      <DesignSystemIcon
-                        size="sm"
-                        tone="onDark"
-                      >
-                        <CheckCircle2 />
-                      </DesignSystemIcon>
-                    )
               }
-              className="mt-3 w-full"
+              loadingLabel="Submitting..."
+              trailingIcon={
+                reviewerRole ===
+                  "marketing_reviewer"
+                  ? (
+                    <DesignSystemIcon
+                      size="sm"
+                      tone="onDark"
+                    >
+                      <Send />
+                    </DesignSystemIcon>
+                  )
+                  : (
+                    <DesignSystemIcon
+                      size="sm"
+                      tone="onDark"
+                    >
+                      <CheckCircle2 />
+                    </DesignSystemIcon>
+                  )
+              }
+              className="mt-3"
             >
-              {reviewerSubmitting
-                ? "Submitting..."
-                : reviewerRole ===
-                    "marketing_reviewer"
-                  ? "Approve & Send to CorpCom"
-                  : "Final Approve"}
+              {reviewerRole ===
+                "marketing_reviewer"
+                ? "Approve & Send to CorpCom"
+                : "Final Approve"}
             </DesignSystemButton>
 
             {!reviewerItem && (
-              <p className="mt-3 text-xs leading-5 text-amber-700">
+              <p className="mt-3 text-xs leading-5 text-[var(--ds-warning)]">
                 No pending review action was found for this communication. Return to the Review Queue and reopen it.
               </p>
             )}
@@ -1194,11 +1220,11 @@ function CompactOutputPreview({
       <div className="space-y-5">
 
         <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+          <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-tertiary)]">
             Subject
           </p>
 
-          <p className="mt-1 text-sm font-medium leading-6 text-gray-900">
+          <p className="mt-1 text-sm font-medium leading-6 text-[var(--ds-text-primary)]">
             {
               email.subject
             }
@@ -1207,11 +1233,11 @@ function CompactOutputPreview({
 
         {email.preheader && (
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+            <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-tertiary)]">
               Preheader
             </p>
 
-            <p className="mt-1 text-sm leading-6 text-gray-600">
+            <p className="mt-1 text-sm leading-6 text-[var(--ds-text-secondary)]">
               {
                 email.preheader
               }
@@ -1219,14 +1245,14 @@ function CompactOutputPreview({
           </div>
         )}
 
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
-          <h3 className="text-xl font-semibold leading-8 text-gray-900">
+        <div className="rounded-xl border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-muted)] p-5">
+          <h3 className="text-xl font-semibold leading-8 text-[var(--ds-text-primary)]">
             {
               email.headline
             }
           </h3>
 
-          <p className="mt-4 text-sm leading-7 text-gray-700">
+          <p className="mt-4 text-sm leading-7 text-[var(--ds-text-secondary)]">
             {
               email.opening
             }
@@ -1247,14 +1273,14 @@ function CompactOutputPreview({
                   className="mt-5"
                 >
                   {section.heading && (
-                    <h4 className="text-sm font-semibold text-gray-900">
+                    <h4 className="text-sm font-semibold text-[var(--ds-text-primary)]">
                       {
                         section.heading
                       }
                     </h4>
                   )}
 
-                  <p className="mt-1 text-sm leading-7 text-gray-700">
+                  <p className="mt-1 text-sm leading-7 text-[var(--ds-text-secondary)]">
                     {
                       section.content
                     }
@@ -1278,9 +1304,9 @@ function CompactOutputPreview({
                       key={
                         `${point}-${index}`
                       }
-                      className="flex gap-2 text-sm leading-6 text-gray-700"
+                      className="flex gap-2 text-sm leading-6 text-[var(--ds-text-secondary)]"
                     >
-                      <span className="text-[#07877B]">
+                      <span className="text-[var(--ds-text-brand)]">
                         •
                       </span>
 
@@ -1297,7 +1323,7 @@ function CompactOutputPreview({
 
           {email.cta && (
             <div className="mt-5">
-              <span className="inline-flex rounded-lg bg-[#07877B] px-4 py-2 text-sm font-medium text-white">
+              <span className="inline-flex rounded-lg bg-[var(--ds-brand-primary)] px-4 py-2 text-sm font-medium text-white">
                 {
                   email.cta.label
                 }
@@ -1311,7 +1337,7 @@ function CompactOutputPreview({
         ) &&
           email.mandatoryNotes.length >
             0 && (
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-[var(--ds-border-subtle)] pt-4">
               {email.mandatoryNotes.map(
                 (
                   note,
@@ -1321,7 +1347,7 @@ function CompactOutputPreview({
                     key={
                       `${note}-${index}`
                     }
-                    className="mt-1 text-xs leading-5 text-gray-500"
+                    className="mt-1 text-xs leading-5 text-[var(--ds-text-tertiary)]"
                   >
                     {
                       note
@@ -1350,14 +1376,14 @@ function CompactOutputPreview({
         <div className="mx-auto max-w-2xl rounded-2xl border border-green-100 bg-[#eaf7e8] p-5">
 
           {whatsapp.headline && (
-            <p className="text-base font-semibold text-gray-900">
+            <p className="text-base font-semibold text-[var(--ds-text-primary)]">
               {
                 whatsapp.headline
               }
             </p>
           )}
 
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-gray-800">
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--ds-text-primary)]">
             {
               whatsapp.message
             }
@@ -1378,9 +1404,9 @@ function CompactOutputPreview({
                       key={
                         `${point}-${index}`
                       }
-                      className="flex gap-2 text-sm leading-6 text-gray-700"
+                      className="flex gap-2 text-sm leading-6 text-[var(--ds-text-secondary)]"
                     >
-                      <span className="text-[#07877B]">
+                      <span className="text-[var(--ds-text-brand)]">
                         •
                       </span>
 
@@ -1397,7 +1423,7 @@ function CompactOutputPreview({
 
           {whatsapp.cta && (
             <div className="mt-5">
-              <span className="inline-flex rounded-lg bg-white px-4 py-2 text-sm font-medium text-[#075f58] shadow-sm">
+              <span className="inline-flex rounded-lg bg-[var(--ds-surface-card)] px-4 py-2 text-sm font-medium text-[var(--ds-text-brand)] shadow-sm">
                 {
                   whatsapp.cta.label
                 }
@@ -1412,7 +1438,7 @@ function CompactOutputPreview({
         ) &&
           whatsapp.mandatoryNotes.length >
             0 && (
-            <div className="border-t border-gray-200 pt-4">
+            <div className="border-t border-[var(--ds-border-subtle)] pt-4">
               {whatsapp.mandatoryNotes.map(
                 (
                   note,
@@ -1422,7 +1448,7 @@ function CompactOutputPreview({
                     key={
                       `${note}-${index}`
                     }
-                    className="mt-1 text-xs leading-5 text-gray-500"
+                    className="mt-1 text-xs leading-5 text-[var(--ds-text-tertiary)]"
                   >
                     {
                       note
@@ -1444,27 +1470,27 @@ function CompactOutputPreview({
   return (
     <div className="space-y-5">
 
-      <div className="rounded-xl border border-gray-200 bg-gray-50 p-5">
+      <div className="rounded-xl border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-muted)] p-5">
 
-        <p className="text-xs font-medium uppercase tracking-wide text-[#07877B]">
+        <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-brand)]">
           Leaflet content
         </p>
 
-        <h3 className="mt-3 text-2xl font-semibold leading-8 text-gray-900">
+        <h3 className="mt-3 text-2xl font-semibold leading-8 text-[var(--ds-text-primary)]">
           {
             leaflet.headline
           }
         </h3>
 
         {leaflet.subheadline && (
-          <p className="mt-2 text-base leading-6 text-gray-600">
+          <p className="mt-2 text-base leading-6 text-[var(--ds-text-secondary)]">
             {
               leaflet.subheadline
             }
           </p>
         )}
 
-        <p className="mt-5 text-sm leading-7 text-gray-700">
+        <p className="mt-5 text-sm leading-7 text-[var(--ds-text-secondary)]">
           {
             leaflet.intro
           }
@@ -1485,15 +1511,15 @@ function CompactOutputPreview({
                     key={
                       `${point.title}-${index}`
                     }
-                    className="rounded-lg border border-gray-200 bg-white p-4"
+                    className="rounded-lg border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-card)] p-4"
                   >
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-sm font-semibold text-[var(--ds-text-primary)]">
                       {
                         point.title
                       }
                     </p>
 
-                    <p className="mt-1 text-sm leading-6 text-gray-600">
+                    <p className="mt-1 text-sm leading-6 text-[var(--ds-text-secondary)]">
                       {
                         point.description
                       }
@@ -1505,7 +1531,7 @@ function CompactOutputPreview({
           )}
 
         {leaflet.cta && (
-          <div className="mt-5 rounded-lg bg-[#07877B] px-4 py-3 text-white">
+          <div className="mt-5 rounded-lg bg-[var(--ds-brand-primary)] px-4 py-3 text-white">
             <p className="text-sm font-medium">
               {
                 leaflet.cta.label
@@ -1525,12 +1551,12 @@ function CompactOutputPreview({
       </div>
 
       {leaflet.visualDirection && (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white px-4 py-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+        <div className="rounded-lg border border-dashed border-[var(--ds-border-default)] bg-[var(--ds-surface-card)] px-4 py-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-[var(--ds-text-tertiary)]">
             Visual direction
           </p>
 
-          <p className="mt-1 text-sm leading-6 text-gray-600">
+          <p className="mt-1 text-sm leading-6 text-[var(--ds-text-secondary)]">
             {
               leaflet.visualDirection
             }
@@ -1543,7 +1569,7 @@ function CompactOutputPreview({
       ) &&
         leaflet.mandatoryNotes.length >
           0 && (
-          <div className="border-t border-gray-200 pt-4">
+          <div className="border-t border-[var(--ds-border-subtle)] pt-4">
             {leaflet.mandatoryNotes.map(
               (
                 note,
@@ -1553,7 +1579,7 @@ function CompactOutputPreview({
                   key={
                     `${note}-${index}`
                   }
-                  className="mt-1 text-xs leading-5 text-gray-500"
+                  className="mt-1 text-xs leading-5 text-[var(--ds-text-tertiary)]"
                 >
                   {
                     note
@@ -1587,7 +1613,7 @@ function ChannelIcon({
         : FileText;
 
   return (
-    <Icon className="h-5 w-5 text-[#07877B]" />
+    <Icon className="h-5 w-5 text-[var(--ds-text-brand)]" />
   );
 }
 
