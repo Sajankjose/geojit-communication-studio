@@ -125,7 +125,11 @@ export function ApprovalStatus() {
           items,
         ] = await Promise.all([
           getCommunicationById(
-            communicationId!
+            communicationId!,
+            {
+              forceRefresh:
+                true,
+            }
           ),
           getApprovalHistory(
             communicationId!
