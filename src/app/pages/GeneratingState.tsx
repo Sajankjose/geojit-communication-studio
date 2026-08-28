@@ -207,7 +207,11 @@ export function GeneratingState() {
       try {
         const communication =
           await getCommunicationById(
-            communicationId!
+            communicationId!,
+            {
+              forceRefresh:
+                true,
+            }
           );
 
         if (
