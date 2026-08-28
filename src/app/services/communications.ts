@@ -1,4 +1,7 @@
-import { supabase } from "../../lib/supabase";
+import {
+  supabase,
+} from "../../lib/supabase";
+
 
 export interface CommunicationRecord {
   id: string;
@@ -11,32 +14,153 @@ export interface CommunicationRecord {
 
   created_by: string;
 
-  input_data: Record<string, unknown>;
-  classification_data: Record<string, unknown>;
+  input_data: Record<
+    string,
+    unknown
+  >;
 
-  selected_variant_id: string | null;
+  classification_data: Record<
+    string,
+    unknown
+  >;
+
+  selected_variant_id:
+    string | null;
 
   created_at: string;
   updated_at: string;
 }
 
+
+type CommunicationCacheEntry = {
+  record:
+    CommunicationRecord;
+
+  cachedAt:
+    number;
+};
+
+
+type GetCommunicationOptions = {
+  forceRefresh?:
+    boolean;
+};
+
+
+const COMMUNICATION_CACHE_TTL_MS =
+  15_000;
+
+
+const communicationCache =
+  new Map<
+    string,
+    CommunicationCacheEntry
+  >();
+
+
+const communicationRequests =
+  new Map<
+    string,
+    Promise<CommunicationRecord>
+  >();
+
+
+function cacheCommunication(
+  record:
+    CommunicationRecord
+) {
+  communicationCache.set(
+    record.id,
+    {
+      record,
+      cachedAt:
+        Date.now(),
+    }
+  );
+}
+
+
+function getCachedCommunication(
+  communicationId:
+    string
+) {
+  const cached =
+    communicationCache.get(
+      communicationId
+    );
+
+  if (!cached) {
+    return null;
+  }
+
+  if (
+    Date.now() -
+      cached.cachedAt >
+    COMMUNICATION_CACHE_TTL_MS
+  ) {
+    communicationCache.delete(
+      communicationId
+    );
+
+    return null;
+  }
+
+  return cached.record;
+}
+
+
+export function clearCommunicationCache(
+  communicationId?:
+    string
+) {
+  if (
+    communicationId
+  ) {
+    communicationCache.delete(
+      communicationId
+    );
+
+    communicationRequests.delete(
+      communicationId
+    );
+
+    return;
+  }
+
+  communicationCache.clear();
+  communicationRequests.clear();
+}
+
+
 /**
  * Create a brand-new draft communication.
  */
 export async function createCommunication(
-  userId: string
-): Promise<CommunicationRecord> {
+  userId:
+    string
+):
+  Promise<CommunicationRecord> {
   const {
     data,
     error,
-  } = await supabase
-    .from("communications")
-    .insert({
-      created_by: userId,
-      title: "New Communication",
-      status: "draft",
-    })
-    .select("*");
+  } =
+    await supabase
+      .from(
+        "communications"
+      )
+      .insert({
+        created_by:
+          userId,
+
+        title:
+          "New Communication",
+
+        status:
+          "draft",
+      })
+      .select(
+        "*"
+      );
 
   if (error) {
     console.error(
@@ -51,7 +175,8 @@ export async function createCommunication(
 
   if (
     !data ||
-    data.length === 0
+    data.length ===
+      0
   ) {
     throw new Error(
       "Communication could not be created."
@@ -59,7 +184,8 @@ export async function createCommunication(
   }
 
   if (
-    data.length > 1
+    data.length >
+    1
   ) {
     console.error(
       "Unexpected multiple communication rows created:",
@@ -71,25 +197,45 @@ export async function createCommunication(
     );
   }
 
-  return data[0] as CommunicationRecord;
+  const record =
+    data[
+      0
+    ] as CommunicationRecord;
+
+  cacheCommunication(
+    record
+  );
+
+  return record;
 }
 
+
 /**
- * Get communications available to the
- * currently authenticated user.
+ * List stays server-fresh, but each row warms
+ * the per-record cache used by subsequent pages.
  */
-export async function getMyCommunications(): Promise<
-  CommunicationRecord[]
-> {
+export async function getMyCommunications():
+  Promise<
+    CommunicationRecord[]
+  > {
   const {
     data,
     error,
-  } = await supabase
-    .from("communications")
-    .select("*")
-    .order("updated_at", {
-      ascending: false,
-    });
+  } =
+    await supabase
+      .from(
+        "communications"
+      )
+      .select(
+        "*"
+      )
+      .order(
+        "updated_at",
+        {
+          ascending:
+            false,
+        }
+      );
 
   if (error) {
     console.error(
@@ -102,29 +248,50 @@ export async function getMyCommunications(): Promise<
     );
   }
 
-  return (
-    data ?? []
-  ) as CommunicationRecord[];
+  const records =
+    (
+      data ??
+      []
+    ) as
+      CommunicationRecord[];
+
+  records.forEach(
+    cacheCommunication
+  );
+
+  return records;
 }
 
+
 /**
- * Update an existing communication.
+ * Update server record and immediately refresh
+ * the cached copy for the next route.
  */
 export async function updateCommunication(
-  communicationId: string,
-  updates: Partial<CommunicationRecord>
-): Promise<CommunicationRecord> {
+  communicationId:
+    string,
+  updates:
+    Partial<CommunicationRecord>
+):
+  Promise<CommunicationRecord> {
   const {
     data,
     error,
-  } = await supabase
-    .from("communications")
-    .update(updates)
-    .eq(
-      "id",
-      communicationId
-    )
-    .select("*");
+  } =
+    await supabase
+      .from(
+        "communications"
+      )
+      .update(
+        updates
+      )
+      .eq(
+        "id",
+        communicationId
+      )
+      .select(
+        "*"
+      );
 
   if (error) {
     console.error(
@@ -139,91 +306,183 @@ export async function updateCommunication(
 
   if (
     !data ||
-    data.length === 0
+    data.length ===
+      0
   ) {
+    clearCommunicationCache(
+      communicationId
+    );
+
     throw new Error(
       "Communication could not be updated. You may not have permission to edit this communication, or it may no longer be editable in its current workflow stage."
     );
   }
 
   if (
-    data.length > 1
+    data.length >
+    1
   ) {
+    clearCommunicationCache(
+      communicationId
+    );
+
     throw new Error(
       "Unexpected duplicate communication records were returned."
     );
   }
 
-  return data[0] as CommunicationRecord;
+  const record =
+    data[
+      0
+    ] as CommunicationRecord;
+
+  cacheCommunication(
+    record
+  );
+
+  return record;
 }
+
 
 /**
  * Get one communication by ID.
  *
- * Uses the restricted audit-access RPC so a user can still
- * open a communication they legitimately own/reviewed after
- * it moves beyond their active queue.
+ * Short cache removes duplicate audit RPCs during
+ * immediate page-to-page transitions.
+ *
+ * `forceRefresh: true` is used by screens that need
+ * truly live server state.
  */
 export async function getCommunicationById(
-  communicationId: string
-): Promise<CommunicationRecord> {
-  const {
-    data,
-    error,
-  } = await supabase.rpc(
-    "get_communication_for_audit",
-    {
-      p_communication_id:
-        communicationId,
+  communicationId:
+    string,
+  options:
+    GetCommunicationOptions =
+      {}
+):
+  Promise<CommunicationRecord> {
+  if (
+    !options.forceRefresh
+  ) {
+    const cached =
+      getCachedCommunication(
+        communicationId
+      );
+
+    if (cached) {
+      return cached;
     }
+  }
+
+  const existingRequest =
+    communicationRequests.get(
+      communicationId
+    );
+
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const request =
+    (async () => {
+      const {
+        data,
+        error,
+      } =
+        await supabase.rpc(
+          "get_communication_for_audit",
+          {
+            p_communication_id:
+              communicationId,
+          }
+        );
+
+      if (error) {
+        console.error(
+          "Load communication for audit error:",
+          error
+        );
+
+        throw new Error(
+          error.message
+        );
+      }
+
+      const rows =
+        (
+          data ||
+          []
+        ) as
+          CommunicationRecord[];
+
+      if (
+        rows.length ===
+        0
+      ) {
+        clearCommunicationCache(
+          communicationId
+        );
+
+        throw new Error(
+          "Communication not found or you do not have permission to view it."
+        );
+      }
+
+      if (
+        rows.length >
+        1
+      ) {
+        clearCommunicationCache(
+          communicationId
+        );
+
+        throw new Error(
+          "Unexpected duplicate communication records were returned."
+        );
+      }
+
+      const record =
+        rows[
+          0
+        ];
+
+      cacheCommunication(
+        record
+      );
+
+      return record;
+    })();
+
+  communicationRequests.set(
+    communicationId,
+    request
   );
 
-  if (error) {
-    console.error(
-      "Load communication for audit error:",
-      error
-    );
-
-    throw new Error(
-      error.message
-    );
+  try {
+    return await request;
+  } finally {
+    if (
+      communicationRequests.get(
+        communicationId
+      ) ===
+      request
+    ) {
+      communicationRequests.delete(
+        communicationId
+      );
+    }
   }
-
-  const rows =
-    (data || []) as CommunicationRecord[];
-
-  if (
-    rows.length === 0
-  ) {
-    throw new Error(
-      "Communication not found or you do not have permission to view it."
-    );
-  }
-
-  if (
-    rows.length > 1
-  ) {
-    throw new Error(
-      "Unexpected duplicate communication records were returned."
-    );
-  }
-
-  return rows[0];
 }
+
 
 /**
  * Delete a draft communication.
- *
- * IMPORTANT:
- * The RPC enforces the rule server-side:
- * - status must still be "draft"
- * - creator may delete own draft
- * - admin may delete any draft
- * - any communication with approval history is protected
  */
 export async function deleteDraftCommunication(
-  communicationId: string
-): Promise<void> {
+  communicationId:
+    string
+):
+  Promise<void> {
   const {
     data,
     error,
@@ -247,9 +506,16 @@ export async function deleteDraftCommunication(
     );
   }
 
-  if (data !== true) {
+  if (
+    data !==
+    true
+  ) {
     throw new Error(
       "The draft could not be deleted."
     );
   }
+
+  clearCommunicationCache(
+    communicationId
+  );
 }
