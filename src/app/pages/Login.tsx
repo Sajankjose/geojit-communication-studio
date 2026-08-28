@@ -1,12 +1,10 @@
 import {
   FormEvent,
-  useEffect,
   useState,
 } from "react";
 
 import {
   Navigate,
-  useNavigate,
 } from "react-router";
 
 import {
@@ -14,11 +12,14 @@ import {
   Mail,
 } from "lucide-react";
 
+import {
+  DesignSystemButton,
+  DesignSystemInput,
+} from "../design-system";
+
 import { useAuth } from "../auth/useAuth";
 
 export function Login() {
-  const navigate = useNavigate();
-
   const {
     user,
     loading,
@@ -37,16 +38,18 @@ export function Login() {
   const [submitting, setSubmitting] =
     useState(false);
 
-  useEffect(() => {
-    if (user) {
-      navigate("/", {
-        replace: true,
-      });
-    }
-  }, [user, navigate]);
-
+  /*
+   * Keep one redirect path only.
+   * Once AuthProvider updates `user`, React Router
+   * moves to the dashboard.
+   */
   if (!loading && user) {
-    return <Navigate to="/" replace />;
+    return (
+      <Navigate
+        to="/"
+        replace
+      />
+    );
   }
 
   async function handleLogin(
@@ -54,122 +57,124 @@ export function Login() {
   ) {
     event.preventDefault();
 
-    setError("");
-    setSubmitting(true);
-
-    const result =
-      await signIn(
-        email.trim(),
-        password
-      );
-
-    setSubmitting(false);
-
-    if (result.error) {
-      setError(
-        "Invalid email or password."
-      );
+    if (submitting) {
       return;
     }
 
-    navigate("/", {
-      replace: true,
-    });
+    setError("");
+    setSubmitting(true);
+
+    try {
+      const result =
+        await signIn(
+          email.trim(),
+          password
+        );
+
+      if (result.error) {
+        setError(
+          "Invalid email or password."
+        );
+      }
+
+      /*
+       * Do not call navigate() here.
+       * Successful authentication updates `user`
+       * in AuthProvider, and the Navigate above
+       * handles the transition once.
+       */
+    } catch (err) {
+      console.error(
+        "Login error:",
+        err
+      );
+
+      setError(
+        "Unable to sign in. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f5f7f7] px-4">
-      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+    <div className="ds-page flex min-h-screen items-center justify-center px-4">
+      <div className="w-full max-w-md rounded-2xl border border-[var(--ds-border-subtle)] bg-[var(--ds-surface-card)] p-8 shadow-sm">
 
         <div className="mb-8 text-center">
-
-          <div className="mb-2 text-2xl font-semibold text-[#07877B]">
+          <div className="mb-2 text-2xl font-semibold text-[var(--ds-text-brand)]">
             GEOJIT
           </div>
 
-          <h1 className="text-2xl font-semibold text-gray-900">
+          <h1 className="ds-title-2">
             Communication Studio
           </h1>
 
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="ds-body-sm mt-2">
             Sign in with your authorised account.
           </p>
-
         </div>
 
         <form
           onSubmit={handleLogin}
           className="space-y-5"
         >
+          <DesignSystemInput
+            type="email"
+            label="Email"
+            value={email}
+            onChange={(event) =>
+              setEmail(
+                event.target.value
+              )
+            }
+            required
+            autoComplete="email"
+            placeholder="yourname@geojit.com"
+            leadingIcon={
+              <Mail />
+            }
+          />
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Email
-            </label>
-
-            <div className="relative">
-
-              <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-
-              <input
-                type="email"
-                value={email}
-                onChange={(event) =>
-                  setEmail(
-                    event.target.value
-                  )
-                }
-                required
-                placeholder="yourname@geojit.com"
-                className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 outline-none transition focus:border-[#07877B] focus:ring-2 focus:ring-[#07877B]/20"
-              />
-
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              Password
-            </label>
-
-            <div className="relative">
-
-              <LockKeyhole className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-
-              <input
-                type="password"
-                value={password}
-                onChange={(event) =>
-                  setPassword(
-                    event.target.value
-                  )
-                }
-                required
-                placeholder="Enter password"
-                className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 outline-none transition focus:border-[#07877B] focus:ring-2 focus:ring-[#07877B]/20"
-              />
-
-            </div>
-          </div>
+          <DesignSystemInput
+            type="password"
+            label="Password"
+            value={password}
+            onChange={(event) =>
+              setPassword(
+                event.target.value
+              )
+            }
+            required
+            autoComplete="current-password"
+            placeholder="Enter password"
+            leadingIcon={
+              <LockKeyhole />
+            }
+          />
 
           {error && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div className="ds-alert ds-alert-error text-sm">
               {error}
             </div>
           )}
 
-          <button
+          <DesignSystemButton
             type="submit"
-            disabled={submitting}
-            className="w-full rounded-lg bg-[#07877B] px-5 py-3 font-medium text-white transition hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-60"
+            variant="primary"
+            size="large"
+            fullWidth
+            disabled={
+              submitting
+            }
+            loading={
+              submitting
+            }
+            loadingLabel="Signing in..."
           >
-            {submitting
-              ? "Signing in..."
-              : "Sign In"}
-          </button>
-
+            Sign In
+          </DesignSystemButton>
         </form>
-
       </div>
     </div>
   );
