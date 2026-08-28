@@ -316,20 +316,26 @@ export const router =
      * ------------------------------------------------------
      *
      * Combines the selected channel outputs into
-     * one review package.
+     * one governed review package.
+     *
+     * Creator:
+     * - prepares / inspects the frozen package
+     * - submits the package into approval
+     *
+     * Marketing / CorpCom:
+     * - open the same package in read-only review mode
+     * - never rebuild or modify the Creator's package
+     *
+     * Admin:
+     * - may inspect the package for oversight/testing
      *
      * Example:
      *
      * /create/guided/approval-package?communicationId=<UUID>
      *
-     * Current checkpoint:
+     * Reviewer example:
      *
-     * - package is prepared
-     * - selected outputs are shown together
-     * - package is saved in Supabase
-     *
-     * Submission into Marketing → CorpCom
-     * will be connected in the next stage.
+     * /create/guided/approval-package?communicationId=<UUID>&mode=review
      */
 
     {
