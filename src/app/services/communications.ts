@@ -89,7 +89,9 @@ function getCachedCommunication(
       communicationId
     );
 
-  if (!cached) {
+  if (
+    !cached
+  ) {
     return null;
   }
 
@@ -128,18 +130,52 @@ export function clearCommunicationCache(
   }
 
   communicationCache.clear();
+
   communicationRequests.clear();
 }
 
 
 /**
- * Create a brand-new draft communication.
+ * Create a draft only after the user supplies
+ * a valid Communication Name.
+ *
+ * Communication Name is required at service level,
+ * so a generic blank draft cannot be created by the
+ * normal application flow.
  */
 export async function createCommunication(
   userId:
+    string,
+  communicationName:
     string
 ):
   Promise<CommunicationRecord> {
+  const normalizedName =
+    communicationName
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim();
+
+  if (
+    normalizedName.length <
+    3
+  ) {
+    throw new Error(
+      "Communication Name must contain at least 3 characters."
+    );
+  }
+
+  if (
+    normalizedName.length >
+    100
+  ) {
+    throw new Error(
+      "Communication Name cannot exceed 100 characters."
+    );
+  }
+
   const {
     data,
     error,
@@ -153,7 +189,7 @@ export async function createCommunication(
           userId,
 
         title:
-          "New Communication",
+          normalizedName,
 
         status:
           "draft",
@@ -162,7 +198,9 @@ export async function createCommunication(
         "*"
       );
 
-  if (error) {
+  if (
+    error
+  ) {
     console.error(
       "Create communication error:",
       error
@@ -200,7 +238,8 @@ export async function createCommunication(
   const record =
     data[
       0
-    ] as CommunicationRecord;
+    ] as
+      CommunicationRecord;
 
   cacheCommunication(
     record
@@ -211,8 +250,8 @@ export async function createCommunication(
 
 
 /**
- * List stays server-fresh, but each row warms
- * the per-record cache used by subsequent pages.
+ * List stays server-fresh, while each returned row
+ * warms the short per-record cache used during navigation.
  */
 export async function getMyCommunications():
   Promise<
@@ -237,7 +276,9 @@ export async function getMyCommunications():
         }
       );
 
-  if (error) {
+  if (
+    error
+  ) {
     console.error(
       "Load communications error:",
       error
@@ -293,7 +334,9 @@ export async function updateCommunication(
         "*"
       );
 
-  if (error) {
+  if (
+    error
+  ) {
     console.error(
       "Supabase update communication error:",
       error
@@ -334,7 +377,8 @@ export async function updateCommunication(
   const record =
     data[
       0
-    ] as CommunicationRecord;
+    ] as
+      CommunicationRecord;
 
   cacheCommunication(
     record
@@ -351,7 +395,8 @@ export async function updateCommunication(
  * immediate page-to-page transitions.
  *
  * `forceRefresh: true` is used by screens that need
- * truly live server state.
+ * current server state, such as generation polling
+ * and Approval Status.
  */
 export async function getCommunicationById(
   communicationId:
@@ -369,7 +414,9 @@ export async function getCommunicationById(
         communicationId
       );
 
-    if (cached) {
+    if (
+      cached
+    ) {
       return cached;
     }
   }
@@ -379,7 +426,9 @@ export async function getCommunicationById(
       communicationId
     );
 
-  if (existingRequest) {
+  if (
+    existingRequest
+  ) {
     return existingRequest;
   }
 
@@ -397,7 +446,9 @@ export async function getCommunicationById(
           }
         );
 
-      if (error) {
+      if (
+        error
+      ) {
         console.error(
           "Load communication for audit error:",
           error
@@ -495,7 +546,9 @@ export async function deleteDraftCommunication(
       }
     );
 
-  if (error) {
+  if (
+    error
+  ) {
     console.error(
       "Delete draft communication error:",
       error
