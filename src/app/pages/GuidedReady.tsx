@@ -1,7 +1,7 @@
 import {
   ArrowLeft,
   ArrowRight,
-  CheckCircle2,
+  Check,
   FileText,
   Loader2,
   Mail,
@@ -22,12 +22,6 @@ import {
 import {
   TopNavBar,
 } from "../components/TopNavBar";
-
-import {
-  DesignSystemButton,
-  DesignSystemCard,
-  DesignSystemIcon,
-} from "../design-system";
 
 import {
   buildCommunicationMaster,
@@ -203,16 +197,13 @@ export function GuidedReady() {
 
   if (loading) {
     return (
-      <div className="ds-page">
+      <div className="min-h-screen bg-background">
         <TopNavBar />
 
-        <main className="mx-auto flex min-h-[75vh] max-w-3xl items-center justify-center px-6">
-          <div className="text-center">
-            <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-[var(--ds-brand-primary)]" />
-
-            <p className="ds-body-sm">
-              Preparing the Communication Master...
-            </p>
+        <main className="mx-auto flex min-h-[72vh] max-w-3xl items-center justify-center px-6">
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            <Loader2 className="h-4 w-4 animate-spin text-[#07877B]" />
+            Preparing Communication Master...
           </div>
         </main>
       </div>
@@ -220,79 +211,72 @@ export function GuidedReady() {
   }
 
   return (
-    <div className="ds-page">
+    <div className="min-h-screen bg-background">
       <TopNavBar />
 
-      <main className="mx-auto max-w-4xl px-6 py-10 sm:py-14">
-
-        <DesignSystemButton
-          variant="tertiary"
-          size="medium"
+      <main className="mx-auto max-w-5xl px-6 py-10 sm:py-12">
+        <button
+          type="button"
           onClick={
             handleBack
           }
-          leadingIcon={
-            <DesignSystemIcon
-              size="sm"
-              tone="action"
-            >
-              <ArrowLeft />
-            </DesignSystemIcon>
-          }
-          className="mb-6 px-0"
+          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B]"
         >
+          <ArrowLeft className="h-4 w-4" />
           Back to Guided Brief
-        </DesignSystemButton>
+        </button>
 
         {error && (
-          <div className="ds-alert ds-alert-error mb-6 text-sm">
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
             {error}
           </div>
         )}
 
         {master ? (
           <>
-            <div className="mb-8 text-center">
-              <div className="ds-icon-container ds-icon-container-success mx-auto mb-5 h-14 w-14 rounded-full">
-                <DesignSystemIcon
-                  size="lg"
-                  tone="success"
-                >
-                  <CheckCircle2 />
-                </DesignSystemIcon>
+            <header className="mb-8 max-w-3xl">
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-[#07877B]" />
+
+                <p className="text-sm font-medium text-[#07877B]">
+                  Communication Master
+                </p>
               </div>
 
-              <p className="ds-label-3 text-[var(--ds-text-brand)]">
-                Guided Creation
-              </p>
-
-              <h1 className="ds-title-2 mt-2">
-                Communication Master is ready
+              <h1 className="text-3xl text-gray-900">
+                Your communication is ready to adapt
               </h1>
 
-              <p className="ds-body-sm mx-auto mt-4 max-w-2xl leading-7">
-                Your confirmed idea is now
-                ready to be adapted into the
-                selected communication
-                channels.
+              <p className="mt-3 text-sm leading-7 text-gray-600">
+                Review the core meaning below before Communication Studio
+                adapts it into the selected channels. The message stays
+                governed, while the expression changes for each channel.
               </p>
-            </div>
+            </header>
 
-            <DesignSystemCard className="p-6 sm:p-8">
+            <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+              <div className="border-b border-gray-200 px-6 py-5 sm:px-7">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-[0.14em] text-gray-400">
+                      Core idea
+                    </p>
 
-              <div className="mb-6">
-                <p className="ds-label-3 text-[var(--ds-text-brand)]">
-                  Core idea
-                </p>
+                    <p className="mt-2 max-w-3xl text-lg leading-8 text-gray-900">
+                      {
+                        master.coreIdea
+                      }
+                    </p>
+                  </div>
 
-                <p className="mt-2 text-lg font-medium leading-8 text-[var(--ds-text-primary)]">
-                  {
-                    master.coreIdea
-                  }
-                </p>
+                  <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5f4] px-3 py-1.5 text-xs font-medium text-[#075f58]">
+                    <Check className="h-3.5 w-3.5" />
+                    Master ready
+                  </div>
+                </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4">
                 <MasterItem
                   label="Audience"
                   value={
@@ -307,6 +291,7 @@ export function GuidedReady() {
                       master.purpose
                     )
                   }
+                  bordered
                 />
 
                 <MasterItem
@@ -316,6 +301,7 @@ export function GuidedReady() {
                       master.personalisation.mode
                     )
                   }
+                  bordered
                 />
 
                 <MasterItem
@@ -327,101 +313,114 @@ export function GuidedReady() {
                         )
                       : "To be confirmed"
                   }
+                  bordered
                 />
               </div>
 
-              <div className="mt-7 border-t border-[var(--ds-border-subtle)] pt-6">
-                <p className="ds-body-sm font-medium">
-                  Selected channels
-                </p>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {master.channels.map(
-                    (channel) => (
-                      <ChannelPill
-                        key={
-                          channel
-                        }
-                        channel={
-                          channel
-                        }
-                      />
-                    )
-                  )}
-                </div>
-              </div>
-
-              <DesignSystemCard
-                surface="accent"
-                className="mt-7 px-5 py-4"
-              >
-                <div className="flex items-start gap-3">
-                  <DesignSystemIcon
-                    size="md"
-                    tone="action"
-                    className="mt-0.5"
-                  >
-                    <Sparkles />
-                  </DesignSystemIcon>
-
+              <div className="border-t border-gray-200 px-6 py-5 sm:px-7">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="ds-body-sm font-medium">
-                      Same governed meaning. Different channel expression.
+                    <p className="text-sm font-medium text-gray-900">
+                      Selected channels
                     </p>
 
-                    <p className="ds-body-xs mt-1 leading-6">
-                      Each selected channel
-                      will receive three
-                      variants. Email can be
-                      more explanatory,
-                      WhatsApp will be
-                      mobile-first, and
-                      Leaflet content will be
-                      more scannable.
+                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                      Communication Studio will create three variants for each selected channel.
                     </p>
                   </div>
-                </div>
-              </DesignSystemCard>
 
-              <DesignSystemButton
-                variant="primary"
-                size="large"
-                fullWidth
-                onClick={() =>
-                  void handleGenerateChannels()
-                }
-                disabled={
-                  generating
-                }
-                loading={
-                  generating
-                }
-                loadingLabel="Generating channel options..."
-                trailingIcon={
-                  <DesignSystemIcon
-                    size="sm"
-                    tone="onDark"
-                  >
-                    <ArrowRight />
-                  </DesignSystemIcon>
-                }
-                className="mt-7"
-              >
-                Generate Channel Options
-              </DesignSystemButton>
+                  <div className="flex flex-wrap gap-2">
+                    {master.channels.map(
+                      (channel) => (
+                        <ChannelPill
+                          key={
+                            channel
+                          }
+                          channel={
+                            channel
+                          }
+                        />
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="mt-6 rounded-2xl border border-[#bfe4df] bg-[#f7fcfb] px-6 py-5 sm:px-7">
+              <div className="flex items-start gap-4">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e2f3f0] text-[#07877B]">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    One governed meaning. Channel-specific expression.
+                  </p>
+
+                  <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
+                    Email can carry more context, WhatsApp stays concise and
+                    mobile-first, and Leaflet content becomes more scannable.
+                    The underlying meaning remains consistent across all outputs.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <div className="mt-8 border-t border-gray-200 pt-6">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">
+                    Next: generate channel options
+                  </p>
+
+                  <p className="mt-1 text-sm leading-6 text-gray-500">
+                    You will be able to compare and select the best variant for each channel.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    void handleGenerateChannels()
+                  }
+                  disabled={
+                    generating
+                  }
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-7 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#06766a] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {generating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating channel options...
+                    </>
+                  ) : (
+                    <>
+                      Generate Channel Options
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </button>
+              </div>
 
               {generationMessage && (
-                <div className="ds-alert ds-alert-success mt-5 text-sm leading-6">
+                <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm leading-6 text-green-700">
                   {
                     generationMessage
                   }
                 </div>
               )}
-
-            </DesignSystemCard>
+            </div>
           </>
-        ) : null}
-
+        ) : (
+          !error && (
+            <div className="rounded-2xl border border-gray-200 bg-white px-6 py-14 text-center">
+              <p className="text-sm text-gray-500">
+                Communication Master is not available.
+              </p>
+            </div>
+          )
+        )}
       </main>
     </div>
   );
@@ -431,26 +430,33 @@ export function GuidedReady() {
 function MasterItem({
   label,
   value,
+  bordered = false,
 }: {
   label:
     string;
 
   value:
     string;
+
+  bordered?:
+    boolean;
 }) {
   return (
-    <DesignSystemCard
-      surface="muted"
-      className="p-4"
+    <div
+      className={`px-6 py-5 sm:px-7 ${
+        bordered
+          ? "border-t border-gray-200 sm:border-t-0 sm:border-l"
+          : ""
+      }`}
     >
-      <p className="ds-label-3 text-[var(--ds-text-tertiary)]">
+      <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-gray-400">
         {label}
       </p>
 
-      <p className="ds-body-sm mt-2">
+      <p className="mt-2 text-sm font-medium leading-6 text-gray-800">
         {value}
       </p>
-    </DesignSystemCard>
+    </div>
   );
 }
 
@@ -473,14 +479,8 @@ function ChannelPill({
         : FileText;
 
   return (
-    <span className="ds-chip ds-chip-selected">
-      <DesignSystemIcon
-        size="sm"
-        tone="action"
-      >
-        <Icon />
-      </DesignSystemIcon>
-
+    <span className="inline-flex items-center gap-2 rounded-full border border-[#bfe4df] bg-white px-3 py-1.5 text-xs font-medium text-[#075f58]">
+      <Icon className="h-3.5 w-3.5" />
       {formatChannel(
         channel
       )}
