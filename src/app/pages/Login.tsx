@@ -3,6 +3,10 @@ import {
   useState,
 } from "react";
 
+import type {
+  FormEvent,
+} from "react";
+
 import {
   useNavigate,
 } from "react-router";
@@ -94,7 +98,7 @@ export function Login() {
 
   async function handleSubmit(
     event:
-      React.FormEvent<HTMLFormElement>
+      FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
 
@@ -177,13 +181,14 @@ export function Login() {
 
 
   if (
-    authLoading
+    authLoading ||
+    user
   ) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f7f9f9] px-6">
         <div className="flex items-center gap-3 text-sm text-gray-500">
           <Loader2 className="h-4 w-4 animate-spin text-[#07877B]" />
-          Checking your session...
+          Preparing your workspace...
         </div>
       </div>
     );
@@ -211,7 +216,10 @@ export function Login() {
           {/* Product identity */}
           <div className="mb-7 text-center">
             <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-[#e8f5f4] text-[#07877B] ring-1 ring-[#d8ebe8]">
-              <Sparkles className="h-5 w-5" />
+              <Sparkles
+                className="h-5 w-5"
+                aria-hidden="true"
+              />
             </div>
 
             <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-[#07877B]">
@@ -259,13 +267,31 @@ export function Login() {
                   </label>
 
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-400" />
+                    <Mail
+                      className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-400"
+                      aria-hidden="true"
+                    />
 
                     <input
                       id="email"
                       name="email"
                       type="email"
                       autoComplete="email"
+                      inputMode="email"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      required
+                      aria-invalid={
+                        Boolean(
+                          error
+                        )
+                      }
+                      aria-describedby={
+                        error
+                          ? "login-error"
+                          : undefined
+                      }
                       value={
                         email
                       }
@@ -304,7 +330,10 @@ export function Login() {
                   </label>
 
                   <div className="relative">
-                    <LockKeyhole className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-400" />
+                    <LockKeyhole
+                      className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-gray-400"
+                      aria-hidden="true"
+                    />
 
                     <input
                       id="password"
@@ -315,6 +344,17 @@ export function Login() {
                           : "password"
                       }
                       autoComplete="current-password"
+                      required
+                      aria-invalid={
+                        Boolean(
+                          error
+                        )
+                      }
+                      aria-describedby={
+                        error
+                          ? "login-error"
+                          : undefined
+                      }
                       value={
                         password
                       }
@@ -372,7 +412,9 @@ export function Login() {
 
                 {error && (
                   <div
+                    id="login-error"
                     role="alert"
+                    aria-live="polite"
                     className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-700"
                   >
                     {error}
@@ -402,7 +444,10 @@ export function Login() {
 
             <div className="border-t border-gray-100 bg-gray-50/70 px-6 py-4 sm:px-7">
               <div className="flex items-start gap-2.5">
-                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#07877B]" />
+                <ShieldCheck
+                  className="mt-0.5 h-4 w-4 shrink-0 text-[#07877B]"
+                  aria-hidden="true"
+                />
 
                 <p className="text-xs leading-5 text-gray-500">
                   Access is restricted to authorised users. Communication activity is governed through role-based access and approval controls.
