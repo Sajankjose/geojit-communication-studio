@@ -426,13 +426,19 @@ export function GuidedCreation() {
           }
           className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B] disabled:opacity-50"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft
+            className="h-4 w-4"
+            aria-hidden="true"
+          />
           Back
         </button>
 
         <header className="mb-8 max-w-3xl">
           <div className="mb-3 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#07877B]" />
+            <Sparkles
+              className="h-5 w-5 text-[#07877B]"
+              aria-hidden="true"
+            />
 
             <p className="text-sm font-medium text-[#07877B]">
               Guided Creation
@@ -445,8 +451,8 @@ export function GuidedCreation() {
 
           <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-600">
             Explain the idea in your own words.
-            It does not need to sound like a communication yet —
-            Communication Studio will first understand what you mean.
+            It does not need to sound like a finished communication yet —
+            Communication Studio will help organise what you mean before you continue.
           </p>
         </header>
 
@@ -459,7 +465,7 @@ export function GuidedCreation() {
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-gray-500">
-                  Write it as you would explain it to a colleague sitting next to you.
+                  Write it naturally, just as you would explain it to a colleague.
                 </p>
               </div>
 
@@ -482,7 +488,10 @@ export function GuidedCreation() {
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#dff2ef] text-[#07877B]">
                     {SelectedStarterIcon && (
-                      <SelectedStarterIcon className="h-4 w-4" />
+                      <SelectedStarterIcon
+                        className="h-4 w-4"
+                        aria-hidden="true"
+                      />
                     )}
                   </div>
 
@@ -503,7 +512,16 @@ export function GuidedCreation() {
               </div>
             )}
 
+            <label
+              htmlFor="guided-idea"
+              className="sr-only"
+            >
+              Your communication idea
+            </label>
+
             <textarea
+              id="guided-idea"
+              aria-describedby="guided-idea-help"
               value={
                 rawInputContent
               }
@@ -529,7 +547,10 @@ export function GuidedCreation() {
             />
 
             <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-gray-500">
+              <p
+                id="guided-idea-help"
+                className="text-xs text-gray-500"
+              >
                 Grammar, spelling and structure do not matter here.
               </p>
 
@@ -548,17 +569,21 @@ export function GuidedCreation() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-[#07877B] shadow-sm">
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles
+                    className="h-4 w-4"
+                    aria-hidden="true"
+                  />
                 </div>
 
                 <div>
                   <p className="text-sm font-medium text-gray-800">
-                    AI understands first
+                    Review before anything is created
                   </p>
 
                   <p className="mt-1 max-w-xl text-xs leading-5 text-gray-500">
-                    Your original words are preserved. AI interprets the idea
-                    and shows you what it understood before anything is created.
+                    Your original words are preserved. Communication Studio
+                    organises the idea and shows the understanding back to you
+                    before you move forward.
                   </p>
                 </div>
               </div>
@@ -576,11 +601,11 @@ export function GuidedCreation() {
                 {processing ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Understanding your idea...
+                    Reviewing your idea...
                   </>
                 ) : (
                   <>
-                    Understand My Idea
+                    Review My Idea
                     <ArrowRight className="h-4 w-4" />
                   </>
                 )}
@@ -616,6 +641,9 @@ export function GuidedCreation() {
                       prompt.id
                     }
                     type="button"
+                    aria-pressed={
+                      selected
+                    }
                     onClick={() =>
                       handleStarterClick(
                         prompt
@@ -624,7 +652,7 @@ export function GuidedCreation() {
                     disabled={
                       processing
                     }
-                    className={`group flex min-h-[100px] items-start gap-3 rounded-xl border p-4 text-left transition-all disabled:opacity-50 ${
+                    className={`group flex min-h-[100px] items-start gap-3 rounded-xl border p-4 text-left transition-all focus:outline-none focus:ring-4 focus:ring-[#07877B]/10 disabled:opacity-50 ${
                       selected
                         ? "border-[#07877B] bg-[#f3fbfa]"
                         : "border-gray-200 bg-white hover:border-[#9bcfc9] hover:bg-gray-50/60"
@@ -637,7 +665,10 @@ export function GuidedCreation() {
                           : "bg-gray-100 text-gray-600 group-hover:bg-white"
                       }`}
                     >
-                      <Icon className="h-4 w-4" />
+                      <Icon
+                        className="h-4 w-4"
+                        aria-hidden="true"
+                      />
                     </div>
 
                     <div className="min-w-0 flex-1">
@@ -669,7 +700,11 @@ export function GuidedCreation() {
         </section>
 
         {error && (
-          <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mt-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+          >
             {error}
           </div>
         )}
@@ -677,20 +712,27 @@ export function GuidedCreation() {
         {understanding && (
           <section
             id="guided-understanding"
+            aria-labelledby="guided-understanding-title"
             className="mt-10 scroll-mt-6 overflow-hidden rounded-2xl border border-[#bfe4df] bg-white"
           >
             <div className="border-b border-gray-200 bg-[#f7fcfb] px-6 py-5 sm:px-7">
               <div className="flex items-start gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e2f3f0]">
-                  <CheckCircle2 className="h-5 w-5 text-[#07877B]" />
+                  <CheckCircle2
+                    className="h-5 w-5 text-[#07877B]"
+                    aria-hidden="true"
+                  />
                 </div>
 
                 <div>
                   <p className="text-sm font-medium text-[#07877B]">
-                    Here's what I understood
+                    Your idea, in brief
                   </p>
 
-                  <h2 className="mt-1 text-2xl text-gray-900">
+                  <h2
+                    id="guided-understanding-title"
+                    className="mt-1 text-2xl text-gray-900"
+                  >
                     Is this what you mean?
                   </h2>
                 </div>
@@ -772,13 +814,18 @@ export function GuidedCreation() {
                 understanding.nextQuestion && (
                   <div className="mt-6 rounded-xl border border-[#cfe3f8] bg-[#f6faff] px-5 py-4">
                     <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#356b9d]">
-                      One thing would help
+                      One point to consider
                     </p>
 
                     <p className="mt-2 text-sm font-medium leading-6 text-gray-900">
                       {
                         understanding.nextQuestion
                       }
+                    </p>
+
+                    <p className="mt-2 text-xs leading-5 text-gray-500">
+                      You can refine your idea above if needed, or continue and
+                      confirm the details in the next step.
                     </p>
 
                     {Array.isArray(
@@ -820,7 +867,7 @@ export function GuidedCreation() {
                     </p>
 
                     <p className="mt-1 text-xs leading-5 text-gray-600">
-                      Next, confirm the audience, purpose, personalisation and channels.
+                      Next, confirm the audience, purpose and other communication details.
                     </p>
                   </div>
                 </div>
@@ -846,7 +893,7 @@ export function GuidedCreation() {
                   }
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#07877B] px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#06766a]"
                 >
-                  Yes, that's my idea
+                  Yes, continue
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
