@@ -1891,6 +1891,32 @@ export function SmartInputForm() {
       );
     }
 
+    const normalizedCommunicationName =
+      formData.title
+        .replace(
+          /\s+/g,
+          " "
+        )
+        .trim();
+
+    if (
+      normalizedCommunicationName.length <
+      3
+    ) {
+      throw new Error(
+        "Communication Name must contain at least 3 characters."
+      );
+    }
+
+    if (
+      normalizedCommunicationName.length >
+      100
+    ) {
+      throw new Error(
+        "Communication Name cannot exceed 100 characters."
+      );
+    }
+
     const databaseCategory =
       mapCategoryToDatabase(
         category
@@ -1907,8 +1933,7 @@ export function SmartInputForm() {
         communicationId,
         {
           title:
-            formData.title.trim() ||
-            "New Communication",
+            normalizedCommunicationName,
 
           category:
             databaseCategory,
@@ -1949,6 +1974,19 @@ export function SmartInputForm() {
           },
         }
       );
+
+    if (
+      formData.title !==
+      normalizedCommunicationName
+    ) {
+      setFormData(
+        (current) => ({
+          ...current,
+          title:
+            normalizedCommunicationName,
+        })
+      );
+    }
 
     if (
       hadCreatorChanges
@@ -2244,7 +2282,7 @@ export function SmartInputForm() {
       <CommunicationStateBar
         title={
           formData.title ||
-          "New Communication"
+          "Untitled Communication"
         }
         category={
           category
@@ -2352,7 +2390,7 @@ export function SmartInputForm() {
               helper="Identify the communication and who should receive it."
             >
               <TextField
-                label="Communication Title"
+                label="Communication Name"
                 value={
                   formData.title
                 }
@@ -2362,11 +2400,12 @@ export function SmartInputForm() {
                     value
                   )
                 }
-                placeholder={
-                  getTitlePlaceholder(
-                    category
-                  )
+                placeholder="e.g., SIP Awareness – September 2026"
+                required
+                maxLength={
+                  100
                 }
+                helper="Internal working name used in Communication History and approvals. Channel-facing titles and subjects are generated separately."
               />
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -2762,11 +2801,12 @@ export function SmartInputForm() {
               <div className="mt-4 space-y-3">
                 <ReadinessItem
                   ready={
-                    Boolean(
-                      formData.title.trim()
-                    )
+                    formData.title
+                      .trim()
+                      .length >=
+                    3
                   }
-                  label="Communication title"
+                  label="Communication name"
                 />
 
                 <ReadinessItem
@@ -4606,6 +4646,10 @@ function TextField({
     "",
   type =
     "text",
+  required =
+    false,
+  maxLength,
+  helper,
 }: {
   label:
     string;
@@ -4624,11 +4668,29 @@ function TextField({
 
   type?:
     string;
+
+  required?:
+    boolean;
+
+  maxLength?:
+    number;
+
+  helper?:
+    string;
 }) {
   return (
     <div>
       <label className="mb-2 block text-sm font-medium text-gray-700">
         {label}
+
+        {required && (
+          <span
+            className="ml-1 text-red-500"
+            aria-hidden="true"
+          >
+            *
+          </span>
+        )}
       </label>
 
       <input
@@ -4648,10 +4710,27 @@ function TextField({
         placeholder={
           placeholder
         }
+        required={
+          required
+        }
+        maxLength={
+          maxLength
+        }
+        aria-required={
+          required
+            ? true
+            : undefined
+        }
         className={
           inputClassName
         }
       />
+
+      {helper && (
+        <p className="mt-2 text-xs leading-5 text-gray-500">
+          {helper}
+        </p>
+      )}
     </div>
   );
 }
@@ -5513,34 +5592,6 @@ function getCategoryLabel(
 
     case "onboarding":
       return "Onboarding & Journey";
-  }
-}
-
-
-function getTitlePlaceholder(
-  category:
-    Category
-) {
-  switch (
-    category
-  ) {
-    case "research":
-      return "e.g., Q4 Market Outlook Report";
-
-    case "education":
-      return "e.g., Understanding Mutual Funds";
-
-    case "product":
-      return "e.g., OCO Orders on Flip";
-
-    case "service":
-      return "e.g., Platform Maintenance Notification";
-
-    case "regulatory":
-      return "e.g., New SEBI Guidelines Implementation";
-
-    case "onboarding":
-      return "e.g., Welcome to Geojit";
   }
 }
 
