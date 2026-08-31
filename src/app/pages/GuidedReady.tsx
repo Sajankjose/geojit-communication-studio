@@ -100,14 +100,14 @@ export function GuidedReady() {
         );
       } catch (err) {
         console.error(
-          "Unable to prepare Communication Master:",
+          "Unable to prepare communication summary:",
           err
         );
 
         setError(
           err instanceof Error
             ? err.message
-            : "Unable to prepare the Communication Master."
+            : "Unable to prepare the communication summary."
         );
       } finally {
         setLoading(false);
@@ -162,7 +162,7 @@ export function GuidedReady() {
             (item) =>
               `${formatChannel(
                 item.channel
-              )}: ${item.variants} variants`
+              )}: ${item.variants} options`
           )
           .join(
             " · "
@@ -202,8 +202,11 @@ export function GuidedReady() {
 
         <main className="mx-auto flex min-h-[72vh] max-w-3xl items-center justify-center px-6">
           <div className="flex items-center gap-3 text-sm text-gray-500">
-            <Loader2 className="h-4 w-4 animate-spin text-[#07877B]" />
-            Preparing Communication Master...
+            <Loader2
+              className="h-4 w-4 animate-spin text-[#07877B]"
+              aria-hidden="true"
+            />
+            Preparing communication summary...
           </div>
         </main>
       </div>
@@ -220,14 +223,24 @@ export function GuidedReady() {
           onClick={
             handleBack
           }
-          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B]"
+          disabled={
+            generating
+          }
+          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft
+            className="h-4 w-4"
+            aria-hidden="true"
+          />
           Back to Guided Brief
         </button>
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+          >
             {error}
           </div>
         )}
@@ -236,29 +249,38 @@ export function GuidedReady() {
           <>
             <header className="mb-8 max-w-3xl">
               <div className="mb-3 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-[#07877B]" />
+                <Sparkles
+                  className="h-5 w-5 text-[#07877B]"
+                  aria-hidden="true"
+                />
 
                 <p className="text-sm font-medium text-[#07877B]">
-                  Communication Master
+                  Communication summary
                 </p>
               </div>
 
               <h1 className="text-3xl text-gray-900">
-                Your communication is ready to adapt
+                Review the communication before creating channel options
               </h1>
 
               <p className="mt-3 text-sm leading-7 text-gray-600">
-                Review the core meaning below before Communication Studio
-                adapts it into the selected channels. The message stays
-                governed, while the expression changes for each channel.
+                Check the core message and details below before Communication Studio
+                adapts it for the selected channels. The meaning stays consistent
+                while the format changes for each channel.
               </p>
             </header>
 
-            <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+            <section
+              aria-labelledby="guided-ready-summary-heading"
+              className="overflow-hidden rounded-2xl border border-gray-200 bg-white"
+            >
               <div className="border-b border-gray-200 px-6 py-5 sm:px-7">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-[0.14em] text-gray-400">
+                    <p
+                      id="guided-ready-summary-heading"
+                      className="text-xs font-medium uppercase tracking-[0.14em] text-gray-400"
+                    >
                       Core idea
                     </p>
 
@@ -270,8 +292,11 @@ export function GuidedReady() {
                   </div>
 
                   <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5f4] px-3 py-1.5 text-xs font-medium text-[#075f58]">
-                    <Check className="h-3.5 w-3.5" />
-                    Master ready
+                    <Check
+                      className="h-3.5 w-3.5"
+                      aria-hidden="true"
+                    />
+                    Summary ready
                   </div>
                 </div>
               </div>
@@ -295,7 +320,7 @@ export function GuidedReady() {
                 />
 
                 <MasterItem
-                  label="Personalisation"
+                  label="Presentation"
                   value={
                     formatPersonalisation(
                       master.personalisation.mode
@@ -305,7 +330,7 @@ export function GuidedReady() {
                 />
 
                 <MasterItem
-                  label="Communication area"
+                  label="Category"
                   value={
                     master.category
                       ? formatCategory(
@@ -325,7 +350,7 @@ export function GuidedReady() {
                     </p>
 
                     <p className="mt-1 text-xs leading-5 text-gray-500">
-                      Communication Studio will create three variants for each selected channel.
+                      Communication Studio will create three options for each selected channel.
                     </p>
                   </div>
 
@@ -350,18 +375,21 @@ export function GuidedReady() {
             <section className="mt-6 rounded-2xl border border-[#bfe4df] bg-[#f7fcfb] px-6 py-5 sm:px-7">
               <div className="flex items-start gap-4">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e2f3f0] text-[#07877B]">
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles
+                    className="h-4 w-4"
+                    aria-hidden="true"
+                  />
                 </div>
 
                 <div>
                   <p className="text-sm font-medium text-gray-900">
-                    One governed meaning. Channel-specific expression.
+                    One core message. Adapted for each channel.
                   </p>
 
                   <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
                     Email can carry more context, WhatsApp stays concise and
-                    mobile-first, and Leaflet content becomes more scannable.
-                    The underlying meaning remains consistent across all outputs.
+                    mobile-first, and Leaflet content becomes easier to scan.
+                    The core message remains consistent across all selected channels.
                   </p>
                 </div>
               </div>
@@ -375,7 +403,7 @@ export function GuidedReady() {
                   </p>
 
                   <p className="mt-1 text-sm leading-6 text-gray-500">
-                    You will be able to compare and select the best variant for each channel.
+                    You will be able to compare and select the preferred option for each channel.
                   </p>
                 </div>
 
@@ -391,20 +419,30 @@ export function GuidedReady() {
                 >
                   {generating ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <Loader2
+                        className="h-4 w-4 animate-spin"
+                        aria-hidden="true"
+                      />
                       Generating channel options...
                     </>
                   ) : (
                     <>
                       Generate Channel Options
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight
+                        className="h-4 w-4"
+                        aria-hidden="true"
+                      />
                     </>
                   )}
                 </button>
               </div>
 
               {generationMessage && (
-                <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm leading-6 text-green-700">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="mt-5 rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm leading-6 text-green-700"
+                >
                   {
                     generationMessage
                   }
@@ -416,7 +454,7 @@ export function GuidedReady() {
           !error && (
             <div className="rounded-2xl border border-gray-200 bg-white px-6 py-14 text-center">
               <p className="text-sm text-gray-500">
-                Communication Master is not available.
+                Communication summary is not available.
               </p>
             </div>
           )
@@ -480,7 +518,10 @@ function ChannelPill({
 
   return (
     <span className="inline-flex items-center gap-2 rounded-full border border-[#bfe4df] bg-white px-3 py-1.5 text-xs font-medium text-[#075f58]">
-      <Icon className="h-3.5 w-3.5" />
+      <Icon
+        className="h-3.5 w-3.5"
+        aria-hidden="true"
+      />
       {formatChannel(
         channel
       )}
