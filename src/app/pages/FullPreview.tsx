@@ -339,7 +339,7 @@ export function FullPreview() {
     setCommunicationTitle,
   ] =
     useState(
-      "New Communication"
+      "Untitled Communication"
     );
 
   const [
@@ -522,7 +522,7 @@ export function FullPreview() {
       !variantId
     ) {
       setError(
-        "Communication or selected variant is missing."
+        "Communication or selected option is missing."
       );
 
       setLoading(
@@ -558,7 +558,7 @@ export function FullPreview() {
 
         setCommunicationTitle(
           communication.title ||
-          "New Communication"
+          "Untitled Communication"
         );
 
         setSubcategory(
@@ -638,7 +638,7 @@ export function FullPreview() {
           !variantRow
         ) {
           throw new Error(
-            "Selected variant was not found or you do not have permission to view it."
+            "Selected option was not found or you do not have permission to view it."
           );
         }
 
@@ -785,7 +785,7 @@ export function FullPreview() {
         setError(
           err instanceof Error
             ? err.message
-            : "Unable to load the selected AI variant."
+            : "Unable to load the selected communication option."
         );
       } finally {
         if (
@@ -827,7 +827,7 @@ export function FullPreview() {
       !variant
     ) {
       throw new Error(
-        "Communication or variant is missing."
+        "Communication or selected option is missing."
       );
     }
 
@@ -913,7 +913,7 @@ export function FullPreview() {
         0
     ) {
       throw new Error(
-        "Variant could not be updated. You may not have permission to edit it in the current workflow stage."
+        "The selected option could not be updated. You may not have permission to edit it in the current workflow stage."
       );
     }
 
@@ -1429,32 +1429,36 @@ export function FullPreview() {
     <div className="min-h-screen bg-background">
       <TopNavBar />
 
-      <CommunicationStateBar
-        title={
-          communicationTitle
-        }
-        category={
-          category
-        }
-        status="preview-ready"
-        currentStep={
-          5
-        }
-        totalSteps={
-          5
-        }
-        onSaveDraft={
-          canEdit
-            ? handleSave
-            : undefined
-        }
-      />
+      {isCreator && !isReviewMode && (
+        <>
+          <CommunicationStateBar
+            title={
+              communicationTitle
+            }
+            category={
+              category
+            }
+            status="preview-ready"
+            currentStep={
+              5
+            }
+            totalSteps={
+              5
+            }
+            onSaveDraft={
+              canEdit
+                ? handleSave
+                : undefined
+            }
+          />
 
-      <ProgressStepper
-        currentStep={
-          5
-        }
-      />
+          <ProgressStepper
+            currentStep={
+              5
+            }
+          />
+        </>
+      )}
 
       <main className="mx-auto max-w-7xl px-6 py-9 sm:px-8 sm:py-10">
         <button
@@ -1472,7 +1476,7 @@ export function FullPreview() {
           {isReviewMode
             ? "Back to Review Queue"
             : isCreator
-              ? "Back to Variants"
+              ? "Back to Options"
               : "Back to Dashboard"}
         </button>
 
@@ -1480,14 +1484,17 @@ export function FullPreview() {
         <header className="mb-7 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Sparkles className="h-5 w-5 text-[#07877B]" />
+              <Sparkles
+                className="h-5 w-5 text-[#07877B]"
+                aria-hidden="true"
+              />
 
               <p className="text-sm font-medium text-[#07877B]">
                 {isReviewMode
                   ? "Communication Review"
                   : isRevisionMode
                     ? "Revise Communication"
-                    : "Full Preview"}
+                    : "Preview"}
               </p>
 
               <CategoryTag
@@ -1510,7 +1517,7 @@ export function FullPreview() {
                 ? "Review the exact communication submitted by the Creator. This preview is read-only; record the review decision in the panel beside it."
                 : isRevisionMode
                   ? "Review the requested changes, refine the selected communication and save it before resubmitting it into the approval workflow."
-                  : "Review the selected communication as the customer will receive it. Refine only the editable copy; layout, brand styling and governed fields remain controlled."}
+                  : "Review the selected communication as the customer will receive it. Refine the editable copy while layout, brand styling and governed fields remain controlled."}
             </p>
           </div>
 
@@ -1544,14 +1551,22 @@ export function FullPreview() {
 
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+          >
             {error}
           </div>
         )}
 
 
         {savedMessage && (
-          <div className="mb-6 rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-700">
+          <div
+            role="status"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-700"
+          >
             {savedMessage}
           </div>
         )}
@@ -1577,7 +1592,7 @@ export function FullPreview() {
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-medium uppercase tracking-[0.14em] text-[#07877B]">
-                        Variant {variant.variant_key}
+                        Option {variant.variant_key}
                       </span>
 
                       <span className="text-xs text-gray-400">
@@ -1934,7 +1949,7 @@ export function FullPreview() {
             {isReviewMode
               ? "Back to Review Queue"
               : isCreator
-                ? "Back to Variants"
+                ? "Back to Options"
                 : "Back to Dashboard"}
           </button>
         </div>
@@ -1960,7 +1975,11 @@ function ViewToggle({
     ) => void;
 }) {
   return (
-    <div className="flex rounded-lg border border-gray-200 bg-white p-1">
+    <div
+      role="group"
+      aria-label="Preview size"
+      className="flex rounded-lg border border-gray-200 bg-white p-1"
+    >
       <button
         type="button"
         onClick={() =>
@@ -1968,7 +1987,11 @@ function ViewToggle({
             "desktop"
           )
         }
-        className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+        aria-pressed={
+          value ===
+          "desktop"
+        }
+        className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-colors focus:outline-none focus:ring-4 focus:ring-[#07877B]/10 ${
           value ===
           "desktop"
             ? "bg-[#07877B] text-white"
@@ -1986,7 +2009,11 @@ function ViewToggle({
             "mobile"
           )
         }
-        className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-colors ${
+        aria-pressed={
+          value ===
+          "mobile"
+        }
+        className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-xs font-medium transition-colors focus:outline-none focus:ring-4 focus:ring-[#07877B]/10 ${
           value ===
           "mobile"
             ? "bg-[#07877B] text-white"
@@ -2125,8 +2152,8 @@ function CommunicationSummary({
           icon={
             Sparkles
           }
-          label="Selected variant"
-          value={`Variant ${variant.variant_key} · ${variant.variant_name}`}
+          label="Selected option"
+          value={`Option ${variant.variant_key} · ${variant.variant_name}`}
         />
       </div>
     </section>
