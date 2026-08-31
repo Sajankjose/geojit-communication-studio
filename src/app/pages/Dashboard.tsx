@@ -166,6 +166,14 @@ export function Dashboard() {
     );
 
   const [
+    createError,
+    setCreateError,
+  ] =
+    useState(
+      ""
+    );
+
+  const [
     searchQuery,
     setSearchQuery,
   ] =
@@ -356,6 +364,10 @@ export function Dashboard() {
       ""
     );
 
+    setCreateError(
+      ""
+    );
+
     setIsNameModalOpen(
       true
     );
@@ -381,11 +393,19 @@ export function Dashboard() {
         ""
       );
 
+      setCreateError(
+        ""
+      );
+
       const communication =
         await createCommunication(
           user.id,
           communicationName
         );
+
+      setCreateError(
+        ""
+      );
 
       setIsNameModalOpen(
         false
@@ -408,7 +428,7 @@ export function Dashboard() {
         err
       );
 
-      setError(
+      setCreateError(
         err instanceof Error
           ? err.message
           : "Unable to create a new communication. Please try again."
@@ -987,9 +1007,15 @@ export function Dashboard() {
             <div className="max-w-3xl">
               <div className="mb-3 flex items-center gap-2">
                 {isReviewer ? (
-                  <ClipboardCheck className="h-5 w-5 text-[#07877B]" />
+                  <ClipboardCheck
+                    className="h-5 w-5 text-[#07877B]"
+                    aria-hidden="true"
+                  />
                 ) : (
-                  <Plus className="h-5 w-5 text-[#07877B]" />
+                  <Plus
+                    className="h-5 w-5 text-[#07877B]"
+                    aria-hidden="true"
+                  />
                 )}
 
                 <p className="text-sm font-medium text-[#07877B]">
@@ -1046,7 +1072,11 @@ export function Dashboard() {
 
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+          >
             {error}
           </div>
         )}
@@ -1089,7 +1119,11 @@ export function Dashboard() {
             icon={
               Clock
             }
-            label="Pending Approval"
+            label={
+              isReviewer
+                ? "Pending Reviews"
+                : "Pending Approval"
+            }
             value={
               loading
                 ? "—"
@@ -1231,7 +1265,7 @@ export function Dashboard() {
               <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                 <div>
                   <p className="text-sm font-medium text-[#07877B]">
-                    Communications History
+                    Communication History
                   </p>
 
                   <h2 className="mt-1 text-xl text-gray-900">
@@ -1497,7 +1531,7 @@ export function Dashboard() {
               <div className="min-w-[900px]">
                 <div className="grid grid-cols-[minmax(260px,1.8fr)_170px_120px_150px_150px_110px] gap-4 border-b border-gray-100 bg-white px-6 py-3 text-[11px] font-medium uppercase tracking-[0.1em] text-gray-400 sm:px-7">
                   <span>
-                    Communication
+                    Communication Name
                   </span>
 
                   <span>
@@ -1517,7 +1551,7 @@ export function Dashboard() {
                   </span>
 
                   <span className="text-right">
-                    Action
+                    Actions
                   </span>
                 </div>
 
@@ -1673,6 +1707,11 @@ export function Dashboard() {
                                   <button
                                     type="button"
                                     aria-label="Communication options"
+                                    aria-haspopup="menu"
+                                    aria-expanded={
+                                      menuOpenId ===
+                                      comm.id
+                                    }
                                     onClick={() =>
                                       setMenuOpenId(
                                         (
@@ -1703,9 +1742,13 @@ export function Dashboard() {
                                         className="fixed inset-0 z-10 cursor-default"
                                       />
 
-                                      <div className="absolute right-0 top-9 z-20 w-40 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
+                                      <div
+                                        role="menu"
+                                        className="absolute right-0 top-9 z-20 w-40 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg"
+                                      >
                                         <button
                                           type="button"
+                                          role="menuitem"
                                           onClick={() =>
                                             requestDelete(
                                               comm
@@ -1756,7 +1799,10 @@ export function Dashboard() {
                 </p>
 
 
-                <div className="flex items-center gap-1">
+                <nav
+                  aria-label="Communication history pagination"
+                  className="flex items-center gap-1"
+                >
                   <button
                     type="button"
                     onClick={() =>
@@ -1805,6 +1851,12 @@ export function Dashboard() {
                               page
                             }
                             type="button"
+                            aria-current={
+                              currentPage ===
+                              page
+                                ? "page"
+                                : undefined
+                            }
                             onClick={() =>
                               setCurrentPage(
                                 page
@@ -1847,7 +1899,7 @@ export function Dashboard() {
                     Next
                     <ChevronRight className="h-3.5 w-3.5" />
                   </button>
-                </div>
+                </nav>
               </div>
             )}
           </section>
@@ -1877,7 +1929,7 @@ export function Dashboard() {
                 }
                 className="inline-flex w-fit items-center gap-2 rounded-lg bg-[#07877B] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#06766a]"
               >
-                Open Full Queue
+                Open Review Queue
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
@@ -1906,12 +1958,19 @@ export function Dashboard() {
           creating={
             creating
           }
+          error={
+            createError
+          }
           onCancel={() => {
             if (
               creating
             ) {
               return;
             }
+
+            setCreateError(
+              ""
+            );
 
             setIsNameModalOpen(
               false
@@ -1962,11 +2021,15 @@ export function Dashboard() {
 
 function CommunicationNameModal({
   creating,
+  error,
   onCancel,
   onCreate,
 }: {
   creating:
     boolean;
+
+  error:
+    string;
 
   onCancel:
     () => void;
@@ -2050,20 +2113,29 @@ function CommunicationNameModal({
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/30 px-5 py-8 backdrop-blur-[1px]">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="communication-name-title"
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
+      >
         <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
           <div>
             <p className="text-sm font-medium text-[#07877B]">
               New Communication
             </p>
 
-            <h2 className="mt-1 text-xl text-gray-900">
+            <h2
+              id="communication-name-title"
+              className="mt-1 text-xl text-gray-900"
+            >
               Name this communication
             </h2>
           </div>
 
           <button
             type="button"
+            aria-label="Close new communication dialog"
             onClick={
               onCancel
             }
@@ -2115,7 +2187,7 @@ function CommunicationNameModal({
               }
             }}
             maxLength={
-              110
+              100
             }
             placeholder="e.g., SIP Awareness – September 2026"
             disabled={
@@ -2125,7 +2197,10 @@ function CommunicationNameModal({
           />
 
           <div className="mt-2 flex items-start justify-between gap-4">
-            <p className="text-xs leading-5 text-gray-500">
+            <p
+              id="communication-name-help"
+              className="text-xs leading-5 text-gray-500"
+            >
               Use a simple working name so you can identify this communication later.
             </p>
 
@@ -2141,10 +2216,27 @@ function CommunicationNameModal({
 
 
           {validationError && (
-            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+            <div
+              id="communication-name-validation"
+              role="alert"
+              aria-live="polite"
+              className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700"
+            >
               {validationError}
             </div>
           )}
+
+          {!validationError &&
+            error && (
+              <div
+                id="communication-name-create-error"
+                role="alert"
+                aria-live="polite"
+                className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700"
+              >
+                {error}
+              </div>
+            )}
 
 
           <div className="mt-6 flex justify-end gap-2">
@@ -2212,14 +2304,22 @@ function DeleteDraftModal({
 }) {
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/30 px-5 py-8 backdrop-blur-[1px]">
-      <div className="w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="delete-draft-title"
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
+      >
         <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5">
           <div>
             <p className="text-sm font-medium text-red-600">
               Delete Draft
             </p>
 
-            <h2 className="mt-1 text-xl text-gray-900">
+            <h2
+              id="delete-draft-title"
+              className="mt-1 text-xl text-gray-900"
+            >
               {step ===
               1
                 ? "Delete this draft?"
@@ -2229,6 +2329,7 @@ function DeleteDraftModal({
 
           <button
             type="button"
+            aria-label="Close delete draft dialog"
             onClick={
               onCancel
             }
