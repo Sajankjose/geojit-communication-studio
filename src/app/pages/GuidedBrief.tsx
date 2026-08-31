@@ -104,21 +104,21 @@ const PERSONALISATION_OPTIONS: Array<{
     value: "brand",
     label: "From Geojit",
     helper:
-      "Standard communication in Geojit's approved brand voice.",
+      "A standard communication presented clearly as Geojit.",
     icon: Building2,
   },
   {
     value: "branch",
     label: "From me / my branch",
     helper:
-      "More human and conversational, while staying within Geojit governance.",
+      "A more personal communication from you or your branch, within Geojit standards.",
     icon: UserRound,
   },
   {
     value: "customer",
     label: "Personalised for each customer",
     helper:
-      "Prepare the communication for customer-level personalisation later.",
+      "Prepare the communication so customer-specific details can be added later.",
     icon: UsersRound,
   },
 ];
@@ -133,7 +133,7 @@ const CHANNEL_OPTIONS: Array<{
     value: "email",
     label: "Email",
     helper:
-      "Structured communication with subject, body and CTA.",
+      "A structured message with subject, body and an optional action.",
     icon: Mail,
   },
   {
@@ -485,7 +485,10 @@ export function GuidedBrief() {
 
         <main className="mx-auto flex min-h-[72vh] max-w-3xl items-center justify-center px-6">
           <div className="flex items-center gap-3 text-sm text-gray-500">
-            <Loader2 className="h-4 w-4 animate-spin text-[#07877B]" />
+            <Loader2
+              className="h-4 w-4 animate-spin text-[#07877B]"
+              aria-hidden="true"
+            />
             Preparing your guided brief...
           </div>
         </main>
@@ -505,13 +508,19 @@ export function GuidedBrief() {
           }
           className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B]"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft
+            className="h-4 w-4"
+            aria-hidden="true"
+          />
           Back
         </button>
 
         <header className="mb-8 max-w-3xl">
           <div className="mb-3 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#07877B]" />
+            <Sparkles
+              className="h-5 w-5 text-[#07877B]"
+              aria-hidden="true"
+            />
 
             <p className="text-sm font-medium text-[#07877B]">
               Guided Brief
@@ -523,9 +532,9 @@ export function GuidedBrief() {
           </h1>
 
           <p className="mt-3 text-sm leading-7 text-gray-600">
-            We already understand the core idea.
+            We've organised the core idea.
             Confirm who it is for, what it should achieve,
-            how personal it should feel, and where you want to use it.
+            how it should be presented, and where you want to use it.
           </p>
         </header>
 
@@ -533,12 +542,15 @@ export function GuidedBrief() {
           <section className="mb-7 rounded-2xl border border-[#bfe4df] bg-[#f7fcfb] px-6 py-5">
             <div className="flex items-start gap-4">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e2f3f0] text-[#07877B]">
-                <Sparkles className="h-4 w-4" />
+                <Sparkles
+                  className="h-4 w-4"
+                  aria-hidden="true"
+                />
               </div>
 
               <div>
                 <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#07877B]">
-                  Your idea
+                  Your idea, in brief
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-gray-700">
@@ -552,7 +564,11 @@ export function GuidedBrief() {
         )}
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+          >
             {error}
           </div>
         )}
@@ -565,6 +581,11 @@ export function GuidedBrief() {
             helper="We've pre-filled this from what we understood. Change it only if needed."
           >
             <input
+              aria-label="Audience"
+              required
+              disabled={
+                saving
+              }
               value={
                 audience
               }
@@ -575,7 +596,7 @@ export function GuidedBrief() {
                 setError("");
               }}
               placeholder="e.g., Customers considering starting an SIP"
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10"
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-[#07877B] focus:ring-4 focus:ring-[#07877B]/10 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500"
             />
           </BriefSection>
 
@@ -583,7 +604,7 @@ export function GuidedBrief() {
             number="02"
             title="Purpose"
             question="What should this communication achieve?"
-            helper="Choose the primary outcome. Communication Studio will shape the content around it."
+            helper="Choose the main outcome. Communication Studio will use it to shape the communication."
             bordered
           >
             <div className="grid gap-3 sm:grid-cols-2">
@@ -599,13 +620,19 @@ export function GuidedBrief() {
                         option.value
                       }
                       type="button"
+                      aria-pressed={
+                        selected
+                      }
+                      disabled={
+                        saving
+                      }
                       onClick={() => {
                         setPurpose(
                           option.value
                         );
                         setError("");
                       }}
-                      className={`flex min-h-[92px] items-start justify-between gap-4 rounded-xl border p-4 text-left transition-all ${
+                      className={`flex min-h-[92px] items-start justify-between gap-4 rounded-xl border p-4 text-left transition-all focus:outline-none focus:ring-4 focus:ring-[#07877B]/10 disabled:cursor-not-allowed disabled:opacity-60 ${
                         selected
                           ? "border-[#07877B] bg-[#f3fbfa]"
                           : "border-gray-200 bg-white hover:border-[#9bcfc9] hover:bg-gray-50/50"
@@ -639,9 +666,9 @@ export function GuidedBrief() {
 
           <BriefSection
             number="03"
-            title="Personalisation"
-            question="How personal should it feel?"
-            helper="You don't need to choose a writing tone. Communication Studio will apply the appropriate Geojit tone automatically."
+            title="Presentation"
+            question="Who should it feel like it comes from?"
+            helper="Choose how the communication should be presented. Geojit language and brand standards remain consistent."
             bordered
           >
             <div className="grid gap-3 md:grid-cols-3">
@@ -660,13 +687,19 @@ export function GuidedBrief() {
                         option.value
                       }
                       type="button"
+                      aria-pressed={
+                        selected
+                      }
+                      disabled={
+                        saving
+                      }
                       onClick={() => {
                         setPersonalisationMode(
                           option.value
                         );
                         setError("");
                       }}
-                      className={`min-h-[168px] rounded-xl border p-5 text-left transition-all ${
+                      className={`min-h-[168px] rounded-xl border p-5 text-left transition-all focus:outline-none focus:ring-4 focus:ring-[#07877B]/10 disabled:cursor-not-allowed disabled:opacity-60 ${
                         selected
                           ? "border-[#07877B] bg-[#f3fbfa]"
                           : "border-gray-200 bg-white hover:border-[#9bcfc9] hover:bg-gray-50/50"
@@ -681,6 +714,7 @@ export function GuidedBrief() {
                           }`}
                         >
                           <Icon
+                            aria-hidden="true"
                             className={`h-5 w-5 ${
                               selected
                                 ? "text-[#07877B]"
@@ -718,7 +752,7 @@ export function GuidedBrief() {
             number="04"
             title="Channels"
             question="Where would you like to use it?"
-            helper="Choose one or more. Each output will be adapted to the channel rather than simply copied or resized."
+            helper="Choose one or more. The communication will be adapted for each selected channel."
             bordered
           >
             <div className="grid gap-3 md:grid-cols-3">
@@ -738,12 +772,18 @@ export function GuidedBrief() {
                         option.value
                       }
                       type="button"
+                      aria-pressed={
+                        selected
+                      }
+                      disabled={
+                        saving
+                      }
                       onClick={() =>
                         toggleChannel(
                           option.value
                         )
                       }
-                      className={`min-h-[158px] rounded-xl border p-5 text-left transition-all ${
+                      className={`min-h-[158px] rounded-xl border p-5 text-left transition-all focus:outline-none focus:ring-4 focus:ring-[#07877B]/10 disabled:cursor-not-allowed disabled:opacity-60 ${
                         selected
                           ? "border-[#07877B] bg-[#f3fbfa]"
                           : "border-gray-200 bg-white hover:border-[#9bcfc9] hover:bg-gray-50/50"
@@ -758,6 +798,7 @@ export function GuidedBrief() {
                           }`}
                         >
                           <Icon
+                            aria-hidden="true"
                             className={`h-5 w-5 ${
                               selected
                                 ? "text-[#07877B]"
@@ -790,7 +831,11 @@ export function GuidedBrief() {
               )}
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+            <div
+              role="status"
+              aria-live="polite"
+              className="mt-4 flex flex-wrap items-center gap-2 text-xs"
+            >
               <span className="text-gray-500">
                 Selected:
               </span>
@@ -830,13 +875,16 @@ export function GuidedBrief() {
               }
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft
+                className="h-4 w-4"
+                aria-hidden="true"
+              />
               Back
             </button>
 
             <div className="flex flex-col items-stretch gap-2 sm:items-end">
               <p className="text-xs text-gray-500 sm:text-right">
-                Next: review the Communication Master
+                Next: review the communication summary
               </p>
 
               <button
@@ -851,13 +899,19 @@ export function GuidedBrief() {
               >
                 {saving ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2
+                      className="h-4 w-4 animate-spin"
+                      aria-hidden="true"
+                    />
                     Saving...
                   </>
                 ) : (
                   <>
-                    Confirm Guided Brief
-                    <ArrowRight className="h-4 w-4" />
+                    Confirm Details
+                    <ArrowRight
+                      className="h-4 w-4"
+                      aria-hidden="true"
+                    />
                   </>
                 )}
               </button>
@@ -898,6 +952,7 @@ function BriefSection({
 }) {
   return (
     <section
+      aria-labelledby={`guided-brief-section-${number}`}
       className={`px-6 py-6 sm:px-7 sm:py-7 ${
         bordered
           ? "border-t border-gray-200"
@@ -916,7 +971,10 @@ function BriefSection({
             </p>
           </div>
 
-          <h2 className="mt-3 text-lg leading-7 text-gray-900">
+          <h2
+            id={`guided-brief-section-${number}`}
+            className="mt-3 text-lg leading-7 text-gray-900"
+          >
             {question}
           </h2>
 
@@ -942,6 +1000,7 @@ function SelectionIndicator({
 }) {
   return (
     <div
+      aria-hidden="true"
       className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
         selected
           ? "border-[#07877B] bg-[#07877B]"
