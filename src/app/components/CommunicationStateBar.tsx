@@ -1,5 +1,4 @@
 import {
-  Check,
   FilePenLine,
   Loader2,
   Save,
@@ -99,8 +98,9 @@ export function CommunicationStateBar({
             </div>
 
             <p className="max-w-[620px] truncate text-sm font-medium text-gray-900">
-              {title ||
-                "New Communication"}
+              {getDisplayTitle(
+                title
+              )}
             </p>
 
             <span className="hidden text-gray-300 sm:inline">
@@ -139,8 +139,8 @@ export function CommunicationStateBar({
         </div>
 
 
-        <div className="flex shrink-0 items-center gap-3">
-          {onSaveDraft && (
+        {onSaveDraft && (
+          <div className="flex shrink-0 items-center">
             <button
               type="button"
               onClick={() =>
@@ -163,19 +163,35 @@ export function CommunicationStateBar({
                 </>
               )}
             </button>
-          )}
-
-          {!onSaveDraft &&
-            statusDisplay.completed && (
-            <div className="hidden items-center gap-2 text-xs text-gray-500 sm:flex">
-              <Check className="h-3.5 w-3.5 text-[#07877B]" />
-              Progress saved
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+
+function getDisplayTitle(
+  title:
+    string
+) {
+  const normalized =
+    title
+      .replace(
+        /\s+/g,
+        " "
+      )
+      .trim();
+
+  if (
+    !normalized ||
+    normalized.toLowerCase() ===
+      "new communication"
+  ) {
+    return "Untitled Communication";
+  }
+
+  return normalized;
 }
 
 
@@ -205,25 +221,19 @@ function getStatusDisplay(
 
         dotClassName:
           "bg-gray-400",
-
-        completed:
-          false,
       };
 
     case "input-complete":
     case "input-ready":
       return {
         label:
-          "Source information",
+          "Input Ready",
 
         className:
           "bg-[#e8f5f4] text-[#075f58]",
 
         dotClassName:
           "bg-[#07877B]",
-
-        completed:
-          true,
       };
 
     case "generating":
@@ -236,95 +246,105 @@ function getStatusDisplay(
 
         dotClassName:
           "bg-blue-500",
-
-        completed:
-          false,
       };
 
     case "generated":
     case "variants-ready":
       return {
         label:
-          "Options ready",
+          "Options Ready",
 
         className:
           "bg-[#e8f5f4] text-[#075f58]",
 
         dotClassName:
           "bg-[#07877B]",
-
-        completed:
-          true,
       };
 
     case "variant-selected":
+    case "selected":
       return {
         label:
-          "Option selected",
+          "Option Selected",
 
         className:
           "bg-[#e8f5f4] text-[#075f58]",
 
         dotClassName:
           "bg-[#07877B]",
-
-        completed:
-          true,
       };
 
     case "preview-ready":
       return {
         label:
-          "Preview ready",
+          "Preview Ready",
 
         className:
           "bg-[#e8f5f4] text-[#075f58]",
 
         dotClassName:
           "bg-[#07877B]",
-
-        completed:
-          true,
       };
 
     case "pending-approval":
     case "submitted":
-    case "marketing-review":
-    case "marketing-approved":
-    case "corpcom-review":
       return {
         label:
-          normalized ===
-          "corpcom-review"
-            ? "CorpCom review"
-            : normalized ===
-                "marketing-approved"
-              ? "Marketing approved"
-              : "Approval in progress",
+          "Pending Approval",
 
         className:
           "bg-blue-50 text-blue-700",
 
         dotClassName:
           "bg-blue-500",
+      };
 
-        completed:
-          false,
+    case "marketing-review":
+      return {
+        label:
+          "Marketing Review",
+
+        className:
+          "bg-blue-50 text-blue-700",
+
+        dotClassName:
+          "bg-blue-500",
+      };
+
+    case "marketing-approved":
+      return {
+        label:
+          "Marketing Approved",
+
+        className:
+          "bg-[#e8f5f4] text-[#075f58]",
+
+        dotClassName:
+          "bg-[#07877B]",
+      };
+
+    case "corpcom-review":
+      return {
+        label:
+          "CorpCom Review",
+
+        className:
+          "bg-blue-50 text-blue-700",
+
+        dotClassName:
+          "bg-blue-500",
       };
 
     case "changes-requested":
       return {
         label:
-          "Changes requested",
+          "Changes Requested",
 
         className:
           "bg-amber-50 text-amber-700",
 
         dotClassName:
           "bg-amber-500",
-
-        completed:
-          false,
       };
 
     case "rejected":
@@ -337,9 +357,6 @@ function getStatusDisplay(
 
         dotClassName:
           "bg-red-500",
-
-        completed:
-          false,
       };
 
     case "approved":
@@ -352,9 +369,6 @@ function getStatusDisplay(
 
         dotClassName:
           "bg-green-500",
-
-        completed:
-          true,
       };
 
     default:
@@ -369,9 +383,6 @@ function getStatusDisplay(
 
         dotClassName:
           "bg-gray-400",
-
-        completed:
-          false,
       };
   }
 }
@@ -392,7 +403,7 @@ function humanizeStatus(
   if (
     !cleaned
   ) {
-    return "In progress";
+    return "In Progress";
   }
 
   return (
