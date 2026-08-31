@@ -79,13 +79,19 @@ export function CreationModeSelection() {
           }
           className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B]"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft
+            className="h-4 w-4"
+            aria-hidden="true"
+          />
           Back to Dashboard
         </button>
 
         <header className="mb-9 max-w-3xl">
           <div className="mb-3 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#07877B]" />
+            <Sparkles
+              className="h-5 w-5 text-[#07877B]"
+              aria-hidden="true"
+            />
 
             <p className="text-sm font-medium text-[#07877B]">
               Create Communication
@@ -97,13 +103,17 @@ export function CreationModeSelection() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-600">
-            Both paths use the same Geojit governance and approval process.
-            Choose the starting experience that best matches what you already have.
+            Both paths follow the same Geojit governance and approval process.
+            Choose based on how much structure you already have when you begin.
           </p>
         </header>
 
         {!communicationId && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+          >
             Communication ID is missing. Please return to the Dashboard and start a new communication.
           </div>
         )}
@@ -113,14 +123,14 @@ export function CreationModeSelection() {
             <ModeOption
               mode="guided"
               title="Guided Creation"
-              description="Start with your idea in your own words. Communication Studio helps understand it, shape the brief and adapt it for the channels you need."
+              description="Start with your idea in your own words. Communication Studio helps shape it into a clear brief and adapt it for the channels you need."
               label="Recommended for most communications"
               icon={
                 Sparkles
               }
               benefits={[
                 "Start from a rough idea or customer insight",
-                "AI helps turn intent into a clear brief",
+                "Turn your intent into a clear communication brief",
                 "Create channel-specific Email, WhatsApp and Leaflet options",
               ]}
               actionLabel="Start Guided Creation"
@@ -137,7 +147,7 @@ export function CreationModeSelection() {
             <ModeOption
               mode="expert"
               title="Expert Creation"
-              description="Use the existing structured workflow when you already know the communication category, inputs and content requirements."
+              description="Use the structured workflow when the communication category, source information and content requirements are already clear."
               label="For structured inputs"
               icon={
                 FileText
@@ -145,7 +155,7 @@ export function CreationModeSelection() {
               benefits={[
                 "Choose the communication category first",
                 "Enter structured, category-specific details",
-                "Continue through the existing variant and preview workflow",
+                "Continue through option selection and preview",
               ]}
               actionLabel="Start Expert Creation"
               disabled={
@@ -164,7 +174,10 @@ export function CreationModeSelection() {
         <section className="mt-6 rounded-2xl border border-[#bfe4df] bg-[#f7fcfb] px-6 py-5 sm:px-7">
           <div className="flex items-start gap-4">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e2f3f0] text-[#07877B]">
-              <Check className="h-4 w-4" />
+              <Check
+                className="h-4 w-4"
+                aria-hidden="true"
+              />
             </div>
 
             <div>
@@ -173,9 +186,9 @@ export function CreationModeSelection() {
               </p>
 
               <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
-                Whichever path you choose, the communication remains within
-                the same brand, content-quality and approval framework before
-                it can move forward.
+                Whichever path you choose, the communication follows the same
+                brand, content-quality and approval checks before it can move
+                forward.
               </p>
             </div>
           </div>
@@ -235,7 +248,8 @@ function ModeOption({
 
   return (
     <article
-      className={`flex min-h-[470px] flex-col px-6 py-7 sm:px-8 sm:py-8 ${
+      aria-labelledby={`${mode}-creation-title`}
+      className={`flex flex-col px-6 py-7 sm:px-8 sm:py-8 lg:min-h-[470px] ${
         bordered
           ? "border-t border-gray-200 lg:border-l lg:border-t-0"
           : ""
@@ -253,7 +267,10 @@ function ModeOption({
               : "bg-gray-100 text-gray-600"
           }`}
         >
-          <Icon className="h-5 w-5" />
+          <Icon
+            className="h-5 w-5"
+            aria-hidden="true"
+          />
         </div>
 
         <span
@@ -268,7 +285,10 @@ function ModeOption({
       </div>
 
       <div className="mt-7">
-        <h2 className="text-2xl text-gray-900">
+        <h2
+          id={`${mode}-creation-title`}
+          className="text-2xl text-gray-900"
+        >
           {title}
         </h2>
 
@@ -295,7 +315,10 @@ function ModeOption({
                     : "bg-gray-100 text-gray-500"
                 }`}
               >
-                <Check className="h-3 w-3" />
+                <Check
+                  className="h-3 w-3"
+                  aria-hidden="true"
+                />
               </div>
 
               <p className="text-sm leading-6 text-gray-600">
@@ -315,6 +338,7 @@ function ModeOption({
           disabled={
             disabled
           }
+          aria-describedby={`${mode}-creation-title`}
           className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
             guided
               ? "bg-[#07877B] text-white shadow-sm hover:bg-[#06766a]"
@@ -322,7 +346,10 @@ function ModeOption({
           }`}
         >
           {actionLabel}
-          <ArrowRight className="h-4 w-4" />
+          <ArrowRight
+            className="h-4 w-4"
+            aria-hidden="true"
+          />
         </button>
       </div>
     </article>
