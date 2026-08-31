@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import {
+  useLocation,
   useNavigate,
 } from "react-router";
 
@@ -270,6 +271,9 @@ export function TopNavBar() {
   const navigate =
     useNavigate();
 
+  const location =
+    useLocation();
+
   const [
     isUserMenuOpen,
     setIsUserMenuOpen,
@@ -500,6 +504,23 @@ export function TopNavBar() {
 
 
   /**
+   * Close floating menus after navigation.
+   */
+  useEffect(() => {
+    setIsUserMenuOpen(
+      false
+    );
+
+    setIsNotificationOpen(
+      false
+    );
+  }, [
+    location.pathname,
+    location.search,
+  ]);
+
+
+  /**
    * Close floating menus with Escape.
    */
   useEffect(() => {
@@ -708,6 +729,7 @@ export function TopNavBar() {
         {/* Brand */}
         <button
           type="button"
+          aria-label="Go to dashboard"
           onClick={
             handleHome
           }
@@ -719,7 +741,13 @@ export function TopNavBar() {
 
           <div className="min-w-0">
             <p className="truncate text-[15px] font-semibold leading-5 text-gray-900 transition-colors group-hover:text-[#07877B] sm:text-base">
-              Geojit Communication Studio
+              <span className="sm:hidden">
+                Communication Studio
+              </span>
+
+              <span className="hidden sm:inline">
+                Geojit Communication Studio
+              </span>
             </p>
 
             <p className="mt-0.5 hidden text-xs leading-4 text-gray-500 sm:block">
@@ -760,7 +788,10 @@ export function TopNavBar() {
                   : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               }`}
             >
-              <Bell className="h-[19px] w-[19px]" />
+              <Bell
+                className="h-[19px] w-[19px]"
+                aria-hidden="true"
+              />
 
               {unreadCount >
                 0 && (
@@ -829,8 +860,23 @@ export function TopNavBar() {
                         Loading notifications...
                       </div>
                     ) : notificationError ? (
-                      <div className="px-5 py-8 text-center text-sm text-red-600">
-                        {notificationError}
+                      <div className="px-5 py-8 text-center">
+                        <p className="text-sm text-red-600">
+                          {notificationError}
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void loadNotifications(
+                              true,
+                              true
+                            )
+                          }
+                          className="mt-3 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                        >
+                          Try Again
+                        </button>
                       </div>
                     ) : notifications.length ===
                       0 ? (
@@ -923,12 +969,16 @@ export function TopNavBar() {
             <button
               type="button"
               aria-label="Settings"
+              title="Settings"
               onClick={
                 handleSettings
               }
               className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
             >
-              <Settings className="h-[19px] w-[19px]" />
+              <Settings
+                className="h-[19px] w-[19px]"
+                aria-hidden="true"
+              />
             </button>
           )}
 
@@ -940,6 +990,7 @@ export function TopNavBar() {
           <div className="relative">
             <button
               type="button"
+              aria-label={`Open profile menu for ${employeeName}`}
               aria-haspopup="menu"
               aria-expanded={
                 isUserMenuOpen
