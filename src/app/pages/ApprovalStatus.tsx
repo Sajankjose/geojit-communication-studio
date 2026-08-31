@@ -76,6 +76,26 @@ export function ApprovalStatus() {
   const [searchParams] =
     useSearchParams();
 
+  const isReviewer =
+    profile?.role ===
+      "marketing_reviewer" ||
+    profile?.role ===
+      "corpcom_reviewer";
+
+  const isCreator =
+    profile?.role ===
+    "creator";
+
+  const backDestination =
+    isReviewer
+      ? "/reviews"
+      : "/";
+
+  const backLabel =
+    isReviewer
+      ? "Back to Review Queue"
+      : "Back to Dashboard";
+
   const communicationId =
     searchParams.get(
       "communicationId"
@@ -243,12 +263,6 @@ export function ApprovalStatus() {
      * single selected email variant.
      */
     if (isGuided) {
-      const isReviewer =
-        profile?.role ===
-          "marketing_reviewer" ||
-        profile?.role ===
-          "corpcom_reviewer";
-
       navigate(
         `/create/guided/approval-package?communicationId=${id}${
           isReviewer
@@ -271,12 +285,21 @@ export function ApprovalStatus() {
       return;
     }
 
+    const expertMode =
+      isReviewer
+        ? "&mode=review"
+        : isCreator &&
+            communication.status ===
+              "changes_requested"
+          ? "&mode=revision"
+          : "";
+
     navigate(
       `/create/preview?communicationId=${id}&variantId=${encodeURIComponent(
         communication.selected_variant_id
       )}&category=${encodeURIComponent(
         category
-      )}`
+      )}${expertMode}`
     );
   }
 
@@ -305,17 +328,23 @@ export function ApprovalStatus() {
         <button
           type="button"
           onClick={() =>
-            navigate("/")
+            navigate(
+              backDestination
+            )
           }
           className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B]"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
+          {backLabel}
         </button>
 
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+          >
             {error}
           </div>
         )}
@@ -325,7 +354,10 @@ export function ApprovalStatus() {
           <>
             <header className="mb-8">
               <div className="mb-3 flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-[#07877B]" />
+                <ShieldCheck
+                  className="h-5 w-5 text-[#07877B]"
+                  aria-hidden="true"
+                />
 
                 <p className="text-sm font-medium text-[#07877B]">
                   Approval Status
@@ -336,11 +368,11 @@ export function ApprovalStatus() {
                 <div className="max-w-3xl">
                   <h1 className="text-3xl font-medium tracking-tight text-gray-900 sm:text-4xl">
                     {communication.title ||
-                      "Communication"}
+                      "Untitled Communication"}
                   </h1>
 
                   <p className="mt-3 max-w-2xl text-base leading-7 text-gray-600">
-                    Follow this communication through Marketing and CorpCom review, including every approval decision and requested change.
+                    Track this communication through Marketing and CorpCom review, including approval decisions and requested changes.
                   </p>
 
                   <div className="mt-4 flex flex-wrap items-center gap-2.5">
@@ -426,7 +458,9 @@ export function ApprovalStatus() {
                       className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-[#07877B] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#06766a]"
                     >
                       <FilePenLine className="h-4 w-4" />
-                      Review Requested Changes
+                      {isCreator
+                        ? "Open Revision"
+                        : "View Requested Changes"}
                     </button>
                   )}
               </div>
@@ -463,7 +497,7 @@ export function ApprovalStatus() {
 
                 <StageCard
                   step="03"
-                  label="Final Approval"
+                  label="Approved"
                   state={
                     finalState
                   }
@@ -535,12 +569,14 @@ export function ApprovalStatus() {
               <button
                 type="button"
                 onClick={() =>
-                  navigate("/")
+                  navigate(
+                    backDestination
+                  )
                 }
                 className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back to Dashboard
+                {backLabel}
               </button>
             </div>
           </>
