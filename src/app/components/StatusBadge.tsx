@@ -18,6 +18,7 @@ export type Status =
   | "rejected"
   | "approved";
 
+
 export type StatusTone =
   | "neutral"
   | "info"
@@ -26,140 +27,154 @@ export type StatusTone =
   | "success"
   | "error";
 
+
 interface StatusBadgeProps {
-  status: Status;
-  size?: "sm" | "md";
+  status:
+    Status;
+
+  size?:
+    "sm" |
+    "md";
 }
 
-const labels: Record<
-  Status,
-  string
-> = {
-  draft:
-    "Draft",
 
-  input_ready:
-    "Input Complete",
+const labels:
+  Record<
+    Status,
+    string
+  > = {
+    draft:
+      "Draft",
 
-  "input-complete":
-    "Input Complete",
+    input_ready:
+      "Input Ready",
 
-  generating:
-    "Generating",
+    "input-complete":
+      "Input Ready",
 
-  variants_ready:
-    "Variants Ready",
+    generating:
+      "Generating",
 
-  "variants-ready":
-    "Variants Ready",
+    variants_ready:
+      "Options Ready",
 
-  variant_selected:
-    "Variant Selected",
+    "variants-ready":
+      "Options Ready",
 
-  selected:
-    "Selected",
+    variant_selected:
+      "Option Selected",
 
-  preview_ready:
-    "Preview Ready",
+    selected:
+      "Option Selected",
 
-  "preview-ready":
-    "Preview Ready",
+    preview_ready:
+      "Preview Ready",
 
-  pending_approval:
-    "Pending Marketing Approval",
+    "preview-ready":
+      "Preview Ready",
 
-  submitted:
-    "Pending Marketing Approval",
+    pending_approval:
+      "Pending Approval",
 
-  marketing_review:
-    "Marketing Review",
+    submitted:
+      "Pending Approval",
 
-  marketing_approved:
-    "Marketing Approved",
+    marketing_review:
+      "Marketing Review",
 
-  corpcom_review:
-    "Pending CorpCom Approval",
+    marketing_approved:
+      "Marketing Approved",
 
-  changes_requested:
-    "Changes Requested",
+    corpcom_review:
+      "CorpCom Review",
 
-  rejected:
-    "Rejected",
+    changes_requested:
+      "Changes Requested",
 
-  approved:
-    "Approved",
-};
+    rejected:
+      "Rejected",
 
-const tones: Record<
-  Status,
-  StatusTone
-> = {
-  draft:
-    "neutral",
+    approved:
+      "Approved",
+  };
 
-  input_ready:
-    "info",
 
-  "input-complete":
-    "info",
+const tones:
+  Record<
+    Status,
+    StatusTone
+  > = {
+    draft:
+      "neutral",
 
-  generating:
-    "progress",
+    input_ready:
+      "info",
 
-  variants_ready:
-    "success",
+    "input-complete":
+      "info",
 
-  "variants-ready":
-    "success",
+    generating:
+      "progress",
 
-  variant_selected:
-    "info",
+    variants_ready:
+      "success",
 
-  selected:
-    "info",
+    "variants-ready":
+      "success",
 
-  preview_ready:
-    "success",
+    variant_selected:
+      "info",
 
-  "preview-ready":
-    "success",
+    selected:
+      "info",
 
-  pending_approval:
-    "warning",
+    preview_ready:
+      "success",
 
-  submitted:
-    "warning",
+    "preview-ready":
+      "success",
 
-  marketing_review:
-    "warning",
+    pending_approval:
+      "warning",
 
-  marketing_approved:
-    "info",
+    submitted:
+      "warning",
 
-  corpcom_review:
-    "warning",
+    marketing_review:
+      "warning",
 
-  changes_requested:
-    "warning",
+    marketing_approved:
+      "info",
 
-  rejected:
-    "error",
+    corpcom_review:
+      "warning",
 
-  approved:
-    "success",
-};
+    changes_requested:
+      "warning",
+
+    rejected:
+      "error",
+
+    approved:
+      "success",
+  };
+
 
 export function StatusBadge({
   status,
   size = "md",
 }: StatusBadgeProps) {
   const tone =
-    tones[status];
+    tones[
+      status
+    ];
 
   const sizeClass =
-    size === "sm"
+    size ===
+      "sm"
       ? "ds-status-sm"
       : "ds-status-md";
+
 
   return (
     <span
@@ -171,7 +186,11 @@ export function StatusBadge({
       />
 
       <span>
-        {labels[status]}
+        {
+          labels[
+            status
+          ]
+        }
       </span>
     </span>
   );
