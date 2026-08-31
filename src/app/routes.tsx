@@ -1,5 +1,7 @@
 import {
   createBrowserRouter,
+  Navigate,
+  useLocation,
 } from "react-router";
 
 import {
@@ -26,7 +28,7 @@ import {
  *
  * Guided Creation:
  * captures the Creator's raw idea
- * and runs the Idea Understanding layer.
+ * and prepares it for the Guided brief.
  */
 import {
   GuidedCreation,
@@ -46,7 +48,7 @@ import {
 /**
  * PHASE 2
  *
- * Communication Master + channel generation.
+ * Communication summary + channel generation.
  */
 import {
   GuidedReady,
@@ -116,12 +118,38 @@ import {
 } from "./pages/UserManagement";
 
 import {
+  NotFoundPage,
+} from "./pages/NotFoundPage";
+
+import {
   ProtectedRoute,
 } from "./components/ProtectedRoute";
 
 import {
   RoleGuard,
 } from "./auth/RoleGuard";
+
+
+function LegacyApprovalStatusRedirect() {
+  const location =
+    useLocation();
+
+  return (
+    <Navigate
+      to={{
+        pathname:
+          "/approval/status",
+
+        search:
+          location.search,
+
+        hash:
+          location.hash,
+      }}
+      replace
+    />
+  );
+}
 
 
 export const router =
@@ -246,13 +274,13 @@ export const router =
 
     /**
      * ------------------------------------------------------
-     * COMMUNICATION MASTER / CHANNEL GENERATION
+     * COMMUNICATION SUMMARY / CHANNEL GENERATION
      * ------------------------------------------------------
      *
-     * Builds the Communication Master from the
+     * Prepares the communication summary from the
      * confirmed Guided Brief.
      *
-     * Then generates selected channel variants.
+     * Then generates selected channel options.
      */
 
     {
@@ -279,7 +307,7 @@ export const router =
      * GUIDED CHANNEL PREVIEW
      * ------------------------------------------------------
      *
-     * Displays generated A/B/C variants for
+     * Displays generated A/B/C options for
      * every selected channel.
      *
      * Current channels:
@@ -288,7 +316,7 @@ export const router =
      * - WhatsApp
      * - Leaflet
      *
-     * Creator selects one variant per channel.
+     * Creator selects one option per channel.
      */
 
     {
@@ -316,14 +344,14 @@ export const router =
      * ------------------------------------------------------
      *
      * Combines the selected channel outputs into
-     * one governed review package.
+     * one review package.
      *
      * Creator:
-     * - prepares / inspects the frozen package
+     * - prepares / inspects the package
      * - submits the package into approval
      *
      * Marketing / CorpCom:
-     * - open the same package in read-only review mode
+     * - always open the package read-only
      * - never rebuild or modify the Creator's package
      *
      * Admin:
@@ -332,10 +360,6 @@ export const router =
      * Example:
      *
      * /create/guided/approval-package?communicationId=<UUID>
-     *
-     * Reviewer example:
-     *
-     * /create/guided/approval-package?communicationId=<UUID>&mode=review
      */
 
     {
@@ -504,6 +528,18 @@ export const router =
 
     {
       path:
+        "/approval-status",
+
+      element: (
+        <ProtectedRoute>
+          <LegacyApprovalStatusRedirect />
+        </ProtectedRoute>
+      ),
+    },
+
+
+    {
+      path:
         "/approval/status",
 
       element: (
@@ -584,5 +620,20 @@ export const router =
           </RoleGuard>
         </ProtectedRoute>
       ),
+    },
+
+
+    /**
+     * ------------------------------------------------------
+     * FALLBACK / INVALID URL
+     * ------------------------------------------------------
+     */
+
+    {
+      path:
+        "*",
+
+      Component:
+        NotFoundPage,
     },
   ]);
