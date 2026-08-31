@@ -301,6 +301,12 @@ export function GuidedChannelPreview() {
 
   async function handleSaveSelections() {
     if (
+      saving
+    ) {
+      return;
+    }
+
+    if (
       !communicationId
     ) {
       setError(
@@ -314,7 +320,7 @@ export function GuidedChannelPreview() {
       !allSelected
     ) {
       setError(
-        "Please choose one variant for each selected channel."
+        "Please choose one option for each selected channel."
       );
 
       return;
@@ -375,7 +381,10 @@ export function GuidedChannelPreview() {
 
         <main className="mx-auto flex min-h-[70vh] max-w-4xl items-center justify-center px-6">
           <div className="flex items-center gap-3 text-sm text-gray-500">
-            <RefreshCw className="h-4 w-4 animate-spin text-[#07877B]" />
+            <RefreshCw
+              className="h-4 w-4 animate-spin text-[#07877B]"
+              aria-hidden="true"
+            />
             Loading channel options...
           </div>
         </main>
@@ -393,36 +402,49 @@ export function GuidedChannelPreview() {
           onClick={
             handleBack
           }
-          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B]"
+          disabled={
+            saving
+          }
+          className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft
+            className="h-4 w-4"
+            aria-hidden="true"
+          />
           Back
         </button>
 
         <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <div className="mb-3 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-[#07877B]" />
+              <Sparkles
+                className="h-5 w-5 text-[#07877B]"
+                aria-hidden="true"
+              />
 
               <p className="text-sm font-medium text-[#07877B]">
-                Channel Preview
+                Channel Options
               </p>
             </div>
 
             <h1 className="text-3xl text-gray-900">
-              Choose the best version for each channel
+              Choose an option for each channel
             </h1>
 
             <p className="mt-3 text-sm leading-7 text-gray-600">
               The core message stays consistent.
               Compare the channel-specific options
-              and choose one version for each channel
+              and choose the preferred option for each channel
               before preparing the approval package.
             </p>
           </div>
 
           {outputs.length > 0 && (
-            <div className="flex items-center gap-3 lg:pb-1">
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex items-center gap-3 lg:pb-1"
+            >
               <div
                 className={`flex h-9 w-9 items-center justify-center rounded-full ${
                   allSelected
@@ -431,7 +453,10 @@ export function GuidedChannelPreview() {
                 }`}
               >
                 {allSelected ? (
-                  <Check className="h-4 w-4" />
+                  <Check
+                    className="h-4 w-4"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <span className="text-sm font-semibold">
                     {selectedCount}
@@ -456,7 +481,11 @@ export function GuidedChannelPreview() {
         </div>
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+          >
             {error}
           </div>
         )}
@@ -465,15 +494,18 @@ export function GuidedChannelPreview() {
           0 ? (
           <div className="rounded-2xl border border-gray-200 bg-white px-6 py-14 text-center">
             <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-gray-100">
-              <RefreshCw className="h-5 w-5 text-gray-500" />
+              <RefreshCw
+                className="h-5 w-5 text-gray-500"
+                aria-hidden="true"
+              />
             </div>
 
             <h2 className="mt-4 text-lg font-medium text-gray-900">
-              No channel outputs found
+              No channel options found
             </h2>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-              Return to Communication Master and
+              Return to the communication summary and
               generate the channel options first.
             </p>
           </div>
@@ -486,7 +518,11 @@ export function GuidedChannelPreview() {
                 </p>
               </div>
 
-              <div className="grid sm:grid-cols-3">
+              <div
+                role="tablist"
+                aria-label="Channel options"
+                className="grid sm:grid-cols-3"
+              >
                 {availableChannels.map(
                   (channel, index) => {
                     const active =
@@ -504,12 +540,21 @@ export function GuidedChannelPreview() {
                           channel
                         }
                         type="button"
+                        role="tab"
+                        id={`channel-tab-${channel}`}
+                        aria-selected={
+                          active
+                        }
+                        aria-controls={`channel-panel-${channel}`}
+                        disabled={
+                          saving
+                        }
                         onClick={() =>
                           setActiveChannel(
                             channel
                           )
                         }
-                        className={`flex items-center justify-between gap-4 px-5 py-4 text-left transition-colors sm:px-6 ${
+                        className={`flex items-center justify-between gap-4 px-5 py-4 text-left transition-colors focus:outline-none focus:ring-4 focus:ring-inset focus:ring-[#07877B]/10 disabled:cursor-not-allowed disabled:opacity-60 sm:px-6 ${
                           index > 0
                             ? "border-t border-gray-200 sm:border-l sm:border-t-0"
                             : ""
@@ -549,13 +594,14 @@ export function GuidedChannelPreview() {
 
                             <p className="mt-0.5 text-xs text-gray-500">
                               {selected
-                                ? `Variant ${selected} selected`
-                                : "Select a variant"}
+                                ? `Option ${selected} selected`
+                                : "Select an option"}
                             </p>
                           </div>
                         </div>
 
                         <div
+                          aria-hidden="true"
                           className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${
                             selected
                               ? "border-[#07877B] bg-[#07877B]"
@@ -576,7 +622,11 @@ export function GuidedChannelPreview() {
             </section>
 
             {activeChannel && (
-              <section>
+              <section
+                role="tabpanel"
+                id={`channel-panel-${activeChannel}`}
+                aria-labelledby={`channel-tab-${activeChannel}`}
+              >
                 <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-xs font-medium uppercase tracking-[0.14em] text-[#07877B]">
@@ -586,12 +636,12 @@ export function GuidedChannelPreview() {
                     </p>
 
                     <h2 className="mt-1 text-xl text-gray-900">
-                      Compare variants
+                      Compare options
                     </h2>
                   </div>
 
                   <p className="text-sm text-gray-500">
-                    Choose the version that works best for this channel.
+                    Choose the option you prefer for this channel.
                   </p>
                 </div>
 
@@ -614,7 +664,8 @@ export function GuidedChannelPreview() {
                           key={
                             output.id
                           }
-                          className={`flex min-h-[520px] flex-col overflow-hidden rounded-2xl border bg-white transition-all ${
+                          aria-label={`Option ${output.variant}: ${variantInfo.title}`}
+                          className={`flex flex-col overflow-hidden rounded-2xl border bg-white transition-all lg:min-h-[520px] ${
                             selected
                               ? "border-[#07877B] shadow-[0_0_0_3px_rgba(7,135,123,0.08)]"
                               : "border-gray-200 hover:border-gray-300"
@@ -625,7 +676,7 @@ export function GuidedChannelPreview() {
                               <div>
                                 <div className="flex items-center gap-2">
                                   <span className="text-xs font-medium uppercase tracking-[0.14em] text-[#07877B]">
-                                    Variant {output.variant}
+                                    Option {output.variant}
                                   </span>
 
                                   {selected && (
@@ -656,8 +707,14 @@ export function GuidedChannelPreview() {
                                     output.variant
                                   )
                                 }
-                                aria-label={`Select Variant ${output.variant}`}
-                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                                disabled={
+                                  saving
+                                }
+                                aria-label={`Select Option ${output.variant}`}
+                                aria-pressed={
+                                  selected
+                                }
+                                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-4 focus:ring-[#07877B]/10 disabled:cursor-not-allowed disabled:opacity-50 ${
                                   selected
                                     ? "border-[#07877B] bg-[#07877B]"
                                     : "border-gray-300 bg-white hover:border-[#07877B]"
@@ -689,7 +746,13 @@ export function GuidedChannelPreview() {
                                   output.variant
                                 )
                               }
-                              className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+                              disabled={
+                                saving
+                              }
+                              aria-pressed={
+                                selected
+                              }
+                              className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-4 focus:ring-[#07877B]/10 disabled:cursor-not-allowed disabled:opacity-50 ${
                                 selected
                                   ? "bg-[#07877B] text-white"
                                   : "border border-[#9bcfc9] bg-white text-[#075f58] hover:bg-[#f3fbfa]"
@@ -697,7 +760,7 @@ export function GuidedChannelPreview() {
                             >
                               {selected
                                 ? "Selected"
-                                : `Choose Variant ${output.variant}`}
+                                : `Choose Option ${output.variant}`}
                             </button>
                           </div>
                         </article>
@@ -715,7 +778,11 @@ export function GuidedChannelPreview() {
                     Your channel selections
                   </p>
 
-                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    className="mt-3 flex flex-wrap gap-x-5 gap-y-2"
+                  >
                     {availableChannels.map(
                       (channel) => {
                         const selection =
@@ -731,6 +798,7 @@ export function GuidedChannelPreview() {
                             className="flex items-center gap-2 text-sm"
                           >
                             <div
+                              aria-hidden="true"
                               className={`flex h-5 w-5 items-center justify-center rounded-full ${
                                 selection
                                   ? "bg-[#e8f5f4] text-[#07877B]"
@@ -758,7 +826,7 @@ export function GuidedChannelPreview() {
                               }`}
                             >
                               {selection
-                                ? `Variant ${selection}`
+                                ? `Option ${selection}`
                                 : "Not selected"}
                             </span>
                           </div>
@@ -781,20 +849,30 @@ export function GuidedChannelPreview() {
                 >
                   {saving ? (
                     <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
+                      <RefreshCw
+                        className="h-4 w-4 animate-spin"
+                        aria-hidden="true"
+                      />
                       Saving...
                     </>
                   ) : (
                     <>
                       Continue to Approval Package
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight
+                        className="h-4 w-4"
+                        aria-hidden="true"
+                      />
                     </>
                   )}
                 </button>
               </div>
 
               {savedMessage && (
-                <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700"
+                >
                   {
                     savedMessage
                   }
