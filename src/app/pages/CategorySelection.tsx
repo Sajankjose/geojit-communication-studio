@@ -67,7 +67,7 @@ const CATEGORY_OPTIONS:
         "Fundamental Research",
 
       description:
-        "Research-led communication based on verified market or investment insights.",
+        "Communication based on verified research, market views or investment insights.",
 
       helper:
         "Equity research, reports, recommendations and market views",
@@ -101,7 +101,7 @@ const CATEGORY_OPTIONS:
         "Product & Sales",
 
       description:
-        "Communicate a product, feature, plan, offer or customer opportunity.",
+        "Communicate a product, feature, plan, offer or relevant customer proposition.",
 
       helper:
         "Products, platform features, pricing and campaigns",
@@ -384,13 +384,19 @@ export function CategorySelection() {
           }
           className="mb-7 inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-[#07877B] disabled:opacity-50"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft
+            className="h-4 w-4"
+            aria-hidden="true"
+          />
           Back to Creation Mode
         </button>
 
         <header className="mb-8 max-w-3xl">
           <div className="mb-3 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-[#07877B]" />
+            <Sparkles
+              className="h-5 w-5 text-[#07877B]"
+              aria-hidden="true"
+            />
 
             <p className="text-sm font-medium text-[#07877B]">
               Expert Creation
@@ -403,28 +409,42 @@ export function CategorySelection() {
 
           <p className="mt-3 max-w-2xl text-sm leading-7 text-gray-600">
             Choose the category that best matches the communication.
-            This determines the structured inputs, AI rules and
-            governance checks used in the next steps.
+            This determines the information requested and the
+            category-specific checks applied in the next steps.
           </p>
         </header>
 
         {!communicationId && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+          >
             Communication ID is missing. Please return to the Dashboard and start a new communication.
           </div>
         )}
 
         {error && communicationId && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+          >
             {error}
           </div>
         )}
 
-        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white">
+        <section
+          aria-labelledby="communication-category-heading"
+          className="overflow-hidden rounded-2xl border border-gray-200 bg-white"
+        >
           <div className="border-b border-gray-200 px-6 py-5 sm:px-7">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-900">
+                <p
+                  id="communication-category-heading"
+                  className="text-sm font-medium text-gray-900"
+                >
                   Communication category
                 </p>
 
@@ -434,8 +454,15 @@ export function CategorySelection() {
               </div>
 
               {selectedCategory && (
-                <div className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5f4] px-3 py-1.5 text-xs font-medium text-[#075f58] sm:mt-0">
-                  <Check className="h-3.5 w-3.5" />
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="mt-2 inline-flex w-fit items-center gap-2 rounded-full bg-[#e8f5f4] px-3 py-1.5 text-xs font-medium text-[#075f58] sm:mt-0"
+                >
+                  <Check
+                    className="h-3.5 w-3.5"
+                    aria-hidden="true"
+                  />
                   {getCategoryLabel(
                     selectedCategory
                   )}
@@ -472,6 +499,9 @@ export function CategorySelection() {
                       option.id
                     }
                     type="button"
+                    aria-pressed={
+                      selected
+                    }
                     onClick={() => {
                       setSelectedCategory(
                         option.id
@@ -483,7 +513,7 @@ export function CategorySelection() {
                       saving ||
                       !communicationId
                     }
-                    className={`group min-h-[190px] px-6 py-6 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:px-7 ${
+                    className={`group px-6 py-6 text-left transition-colors focus:outline-none focus:ring-4 focus:ring-inset focus:ring-[#07877B]/10 disabled:cursor-not-allowed disabled:opacity-50 sm:px-7 md:min-h-[190px] ${
                       isRightColumn
                         ? "border-t border-gray-200 md:border-l"
                         : isAfterFirstRow
@@ -503,7 +533,10 @@ export function CategorySelection() {
                             : "bg-gray-100 text-gray-600 group-hover:bg-white"
                         }`}
                       >
-                        <Icon className="h-5 w-5" />
+                        <Icon
+                          className="h-5 w-5"
+                          aria-hidden="true"
+                        />
                       </div>
 
                       <div className="min-w-0 flex-1">
@@ -536,7 +569,10 @@ export function CategorySelection() {
                             }`}
                           >
                             {selected && (
-                              <Check className="h-3.5 w-3.5 text-white" />
+                              <Check
+                                className="h-3.5 w-3.5 text-white"
+                                aria-hidden="true"
+                              />
                             )}
                           </div>
                         </div>
@@ -558,7 +594,10 @@ export function CategorySelection() {
         <section className="mt-6 rounded-2xl border border-[#bfe4df] bg-[#f7fcfb] px-6 py-5 sm:px-7">
           <div className="flex items-start gap-4">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e2f3f0] text-[#07877B]">
-              <Megaphone className="h-4 w-4" />
+              <Megaphone
+                className="h-4 w-4"
+                aria-hidden="true"
+              />
             </div>
 
             <div>
@@ -567,9 +606,9 @@ export function CategorySelection() {
               </p>
 
               <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
-                The next screen will ask only for the source information
-                relevant to this category. AI generation and approval controls
-                continue to use the same governed Expert workflow.
+                The next step asks for the source information relevant to
+                this category. Generation, preview and approval then continue
+                through the same Expert workflow.
               </p>
             </div>
           </div>
@@ -587,13 +626,16 @@ export function CategorySelection() {
               }
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft
+                className="h-4 w-4"
+                aria-hidden="true"
+              />
               Back
             </button>
 
             <div className="flex flex-col items-stretch gap-2 sm:items-end">
               <p className="text-xs text-gray-500 sm:text-right">
-                Next: add the source information
+                Next: Source Information
               </p>
 
               <button
@@ -611,12 +653,15 @@ export function CategorySelection() {
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving category...
+                    Saving...
                   </>
                 ) : (
                   <>
                     Continue
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight
+                      className="h-4 w-4"
+                      aria-hidden="true"
+                    />
                   </>
                 )}
               </button>
