@@ -235,7 +235,7 @@ export function ApprovalSubmission() {
     setCommunicationTitle,
   ] =
     useState(
-      "New Communication"
+      "Untitled Communication"
     );
 
   const [
@@ -381,7 +381,7 @@ export function ApprovalSubmission() {
       !variantId
     ) {
       setError(
-        "Communication or selected variant is missing."
+        "Communication or selected option is missing."
       );
 
       setLoading(
@@ -417,7 +417,7 @@ export function ApprovalSubmission() {
 
         setCommunicationTitle(
           communication.title ||
-          "New Communication"
+          "Untitled Communication"
         );
 
         setAudience(
@@ -491,7 +491,7 @@ export function ApprovalSubmission() {
           !variantRow
         ) {
           throw new Error(
-            "Selected variant was not found or you do not have permission to view it."
+            "Selected option was not found or you do not have permission to view it."
           );
         }
 
@@ -936,31 +936,35 @@ export function ApprovalSubmission() {
     <div className="min-h-screen bg-background">
       <TopNavBar />
 
-      <CommunicationStateBar
-        title={
-          communicationTitle
-        }
-        category={
-          category
-        }
-        status={
-          getCommunicationBarStatus(
-            approvalStage
-          )
-        }
-        currentStep={
-          5
-        }
-        totalSteps={
-          5
-        }
-      />
+      {isCreator && (
+        <>
+          <CommunicationStateBar
+            title={
+              communicationTitle
+            }
+            category={
+              category
+            }
+            status={
+              getCommunicationBarStatus(
+                approvalStage
+              )
+            }
+            currentStep={
+              5
+            }
+            totalSteps={
+              5
+            }
+          />
 
-      <ProgressStepper
-        currentStep={
-          5
-        }
-      />
+          <ProgressStepper
+            currentStep={
+              5
+            }
+          />
+        </>
+      )}
 
 
       <main className="mx-auto max-w-6xl px-6 py-9 sm:px-8 sm:py-10">
@@ -990,17 +994,22 @@ export function ApprovalSubmission() {
             : approvalStage ===
                 "changes_requested"
               ? "Back to Revision"
-              : "Back to Full Preview"}
+              : "Back to Preview"}
         </button>
 
 
         <header className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <Send className="h-5 w-5 text-[#07877B]" />
+              <Send
+                className="h-5 w-5 text-[#07877B]"
+                aria-hidden="true"
+              />
 
               <p className="text-sm font-medium text-[#07877B]">
-                Approval Checkpoint
+                {isAdmin
+                  ? "Approval Oversight"
+                  : "Approval Checkpoint"}
               </p>
 
               <CategoryTag
@@ -1030,7 +1039,11 @@ export function ApprovalSubmission() {
 
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+          >
             {error}
           </div>
         )}
@@ -1049,8 +1062,8 @@ export function ApprovalSubmission() {
                 </p>
 
                 <p className="mt-1 text-xs leading-5 text-gray-500">
-                  Admin can inspect this checkpoint, but only the Creator can
-                  confirm the checklist and submit the communication into the approval workflow.
+                  Admin can inspect this checkpoint and workflow status, but cannot
+                  submit or approve the communication. Only the Creator can submit it into review.
                 </p>
               </div>
             </div>
@@ -1088,7 +1101,7 @@ export function ApprovalSubmission() {
 
               <div className="divide-y divide-gray-100 px-6 sm:px-7">
                 <SummaryRow
-                  label="Title"
+                  label="Communication name"
                   value={
                     communicationTitle
                   }
@@ -1106,10 +1119,10 @@ export function ApprovalSubmission() {
                 </SummaryRow>
 
                 <SummaryRow
-                  label="Selected variant"
+                  label="Selected option"
                   value={
                     variant
-                      ? `Variant ${variant.variant_key} · ${variant.variant_name}`
+                      ? `Option ${variant.variant_key} · ${variant.variant_name}`
                       : "—"
                   }
                 />
@@ -1416,7 +1429,7 @@ export function ApprovalSubmission() {
                 </p>
 
                 <p className="mt-2 text-xs leading-5 text-gray-500">
-                  Save the requested changes in Full Preview before resubmitting.
+                  Save the requested changes in Preview before resubmitting.
                 </p>
 
                 <button
