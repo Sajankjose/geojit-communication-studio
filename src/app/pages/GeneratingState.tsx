@@ -114,7 +114,7 @@ export function GeneratingState() {
     setTitle,
   ] =
     useState(
-      "New Communication"
+      "Untitled Communication"
     );
 
   const [
@@ -203,7 +203,20 @@ export function GeneratingState() {
     let cancelled =
       false;
 
+    let checking =
+      false;
+
     async function checkGeneration() {
+      if (
+        cancelled ||
+        checking
+      ) {
+        return;
+      }
+
+      checking =
+        true;
+
       try {
         const communication =
           await getCommunicationById(
@@ -222,7 +235,7 @@ export function GeneratingState() {
 
         setTitle(
           communication.title ||
-          "New Communication"
+          "Untitled Communication"
         );
 
         /**
@@ -391,6 +404,9 @@ export function GeneratingState() {
         setGenerationStatus(
           "failed"
         );
+      } finally {
+        checking =
+          false;
       }
     }
 
@@ -423,12 +439,10 @@ export function GeneratingState() {
     useMemo(
       () =>
         buildProgressSteps(
-          generationStatus,
-          elapsedSeconds
+          generationStatus
         ),
       [
         generationStatus,
-        elapsedSeconds,
       ]
     );
 
@@ -556,10 +570,17 @@ function GeneratingView({
     );
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div
+      className="mx-auto max-w-3xl"
+      aria-live="polite"
+      aria-busy="true"
+    >
       <header className="mb-8 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#e8f5f4]">
-          <Sparkles className="h-5 w-5 text-[#07877B]" />
+          <Sparkles
+            className="h-5 w-5 text-[#07877B]"
+            aria-hidden="true"
+          />
         </div>
 
         <p className="mt-5 text-sm font-medium text-[#07877B]">
@@ -571,8 +592,8 @@ function GeneratingView({
         </h1>
 
         <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-gray-600">
-          Communication Studio is applying the relevant rules to your
-          verified source information and preparing{" "}
+          Communication Studio is using your verified source information
+          and the applicable communication rules to prepare{" "}
           {category ===
           "regulatory"
             ? "two"
@@ -607,13 +628,16 @@ function GeneratingView({
 
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#e8f5f4]">
-                <Loader2 className="h-4 w-4 animate-spin text-[#07877B]" />
+                <Loader2
+                  className="h-4 w-4 animate-spin text-[#07877B]"
+                  aria-hidden="true"
+                />
               </div>
 
               <div>
                 <p className="text-sm font-medium text-gray-900">
                   {completedCount} of{" "}
-                  {steps.length} stages complete
+                  {steps.length} stages confirmed
                 </p>
 
                 <p className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500">
@@ -666,9 +690,9 @@ function GeneratingView({
               </p>
 
               <p className="mt-1 text-xs leading-5 text-gray-600">
-                This screen checks the real generation status automatically.
-                Once the options are safely saved, the comparison screen will
-                open on its own.
+                This screen checks the saved generation status automatically.
+                Once the options are confirmed as saved, the comparison screen
+                will open on its own.
               </p>
             </div>
           </div>
@@ -837,67 +861,26 @@ function FailureView({
 
 function buildProgressSteps(
   status:
-    GenerationStatus,
-  elapsedSeconds:
-    number
+    GenerationStatus
 ):
   GenerationProgressStep[] {
   /**
-   * These stages provide UX feedback only.
-   * Completion and navigation remain controlled
-   * exclusively by the real Supabase state.
+   * Progress is intentionally based only on known
+   * backend states. Elapsed time is displayed separately
+   * and never advances a stage.
    */
 
-  if (
-    status ===
-    "completed"
-  ) {
-    return [
-      {
-        label:
-          "Source information received",
+  const sourceReceived:
+    GenerationProgressStep = {
+      label:
+        "Source information received",
 
-        helper:
-          "The verified source information is ready for generation.",
+      helper:
+        "Your verified source information is available to the generation process.",
 
-        state:
-          "complete",
-      },
-
-      {
-        label:
-          "Communication rules applied",
-
-        helper:
-          "Brand, category and governance rules have been applied.",
-
-        state:
-          "complete",
-      },
-
-      {
-        label:
-          "Communication options generated",
-
-        helper:
-          "The structured variants have been created.",
-
-        state:
-          "complete",
-      },
-
-      {
-        label:
-          "Options saved and validated",
-
-        helper:
-          "The generated options are safely stored and ready to compare.",
-
-        state:
-          "complete",
-      },
-    ];
-  }
+      state:
+        "complete",
+    };
 
 
   if (
@@ -907,16 +890,7 @@ function buildProgressSteps(
       "queued"
   ) {
     return [
-      {
-        label:
-          "Source information received",
-
-        helper:
-          "Your saved source information is available to the generation process.",
-
-        state:
-          "complete",
-      },
+      sourceReceived,
 
       {
         label:
@@ -934,7 +908,7 @@ function buildProgressSteps(
           "Creating communication options",
 
         helper:
-          "Multiple structured variants will be generated for comparison.",
+          "The AI will prepare structured options from the verified source information.",
 
         state:
           "pending",
@@ -945,7 +919,7 @@ function buildProgressSteps(
           "Saving and validating options",
 
         helper:
-          "The final variants will be checked and stored before you continue.",
+          "Generated options will be checked and stored before you continue.",
 
         state:
           "pending",
@@ -955,79 +929,18 @@ function buildProgressSteps(
 
 
   if (
-    elapsedSeconds <
-    15
+    status ===
+    "running"
   ) {
     return [
-      {
-        label:
-          "Source information received",
-
-        helper:
-          "Your saved source information is available to the generation process.",
-
-        state:
-          "complete",
-      },
+      sourceReceived,
 
       {
         label:
-          "Applying communication rules",
+          "AI generation started",
 
         helper:
-          "Brand, category and governance rules are being applied.",
-
-        state:
-          "active",
-      },
-
-      {
-        label:
-          "Creating communication options",
-
-        helper:
-          "Multiple structured variants will be generated for comparison.",
-
-        state:
-          "pending",
-      },
-
-      {
-        label:
-          "Saving and validating options",
-
-        helper:
-          "The final variants will be checked and stored before you continue.",
-
-        state:
-          "pending",
-      },
-    ];
-  }
-
-
-  if (
-    elapsedSeconds <
-    35
-  ) {
-    return [
-      {
-        label:
-          "Source information received",
-
-        helper:
-          "Your saved source information is available to the generation process.",
-
-        state:
-          "complete",
-      },
-
-      {
-        label:
-          "Communication rules applied",
-
-        helper:
-          "Brand, category and governance rules have been applied.",
+          "The generation job is active.",
 
         state:
           "complete",
@@ -1038,7 +951,7 @@ function buildProgressSteps(
           "Creating communication options",
 
         helper:
-          "The structured variants are now being prepared.",
+          "Structured options are being prepared for comparison.",
 
         state:
           "active",
@@ -1049,47 +962,81 @@ function buildProgressSteps(
           "Saving and validating options",
 
         helper:
-          "The final variants will be checked and stored before you continue.",
+          "The options will be confirmed as saved before you continue.",
 
         state:
           "pending",
+      },
+    ];
+  }
+
+
+  if (
+    status ===
+    "completed"
+  ) {
+    return [
+      sourceReceived,
+
+      {
+        label:
+          "AI generation completed",
+
+        helper:
+          "The generation run has completed.",
+
+        state:
+          "complete",
+      },
+
+      {
+        label:
+          "Communication options generated",
+
+        helper:
+          "The structured options have been created.",
+
+        state:
+          "complete",
+      },
+
+      {
+        label:
+          "Saving and validating options",
+
+        helper:
+          "Communication Studio is confirming the saved options before opening comparison.",
+
+        state:
+          "active",
       },
     ];
   }
 
 
   return [
+    sourceReceived,
+
     {
       label:
-        "Source information received",
+        "Preparing AI generation",
 
       helper:
-        "Your saved source information is available to the generation process.",
+        "Waiting for the generation process to continue.",
 
       state:
-        "complete",
+        "active",
     },
 
     {
       label:
-        "Communication rules applied",
+        "Creating communication options",
 
       helper:
-        "Brand, category and governance rules have been applied.",
+        "Structured options will be prepared for comparison.",
 
       state:
-        "complete",
-    },
-
-    {
-      label:
-        "Communication options generated",
-
-      helper:
-        "The structured variants have been created.",
-
-      state:
-        "complete",
+        "pending",
     },
 
     {
@@ -1097,10 +1044,10 @@ function buildProgressSteps(
         "Saving and validating options",
 
       helper:
-        "The generated variants are being checked and safely stored.",
+        "Options will be confirmed as saved before you continue.",
 
       state:
-        "active",
+        "pending",
     },
   ];
 }
@@ -1123,7 +1070,7 @@ function getStatusTitle(
       return "Generating communication options";
 
     case "completed":
-      return "Finalising your options";
+      return "Confirming saved options";
 
     default:
       return "Generating communication";
