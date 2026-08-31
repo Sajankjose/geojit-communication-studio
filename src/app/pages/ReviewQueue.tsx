@@ -286,8 +286,8 @@ export function ReviewQueue() {
   const stageLabel =
     reviewerRole ===
       "corpcom_reviewer"
-      ? "Final governance review"
-      : "First governance review";
+      ? "CorpCom review stage"
+      : "Marketing review stage";
 
   const revisedCount =
     useMemo(
@@ -415,7 +415,10 @@ export function ReviewQueue() {
         <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl">
             <div className="mb-3 flex items-center gap-2">
-              <ClipboardCheck className="h-5 w-5 text-[#07877B]" />
+              <ClipboardCheck
+                className="h-5 w-5 text-[#07877B]"
+                aria-hidden="true"
+              />
 
               <p className="text-sm font-medium text-[#07877B]">
                 Review Workspace
@@ -480,9 +483,18 @@ export function ReviewQueue() {
         </section>
 
 
-        <div className="mb-7 flex flex-wrap gap-2 border-b border-gray-200">
+        <div
+          role="tablist"
+          aria-label="Review workspace sections"
+          className="mb-7 flex flex-wrap gap-2 border-b border-gray-200"
+        >
           <button
             type="button"
+            role="tab"
+            aria-selected={
+              activeTab ===
+              "pending"
+            }
             onClick={() =>
               setActiveTab(
                 "pending"
@@ -511,6 +523,11 @@ export function ReviewQueue() {
 
           <button
             type="button"
+            role="tab"
+            aria-selected={
+              activeTab ===
+              "activity"
+            }
             onClick={() =>
               setActiveTab(
                 "activity"
@@ -540,7 +557,11 @@ export function ReviewQueue() {
 
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
             {error}
           </div>
         )}
@@ -596,12 +617,15 @@ export function ReviewQueue() {
                         item.approval_action_id
                       }
                       type="button"
+                      aria-pressed={
+                        active
+                      }
                       onClick={() =>
                         selectItem(
                           item
                         )
                       }
-                      className={`group w-full rounded-2xl border bg-white p-5 text-left transition-all ${
+                      className={`group w-full rounded-2xl border bg-white p-5 text-left transition-all focus:outline-none focus:ring-4 focus:ring-[#07877B]/10 ${
                         active
                           ? "border-[#8bc9c2] shadow-sm ring-2 ring-[#07877B]/8"
                           : "border-gray-200 hover:border-[#b9d8d4] hover:shadow-sm"
@@ -881,7 +905,7 @@ function ReviewPanel({
 
             <h2 className="mt-1 text-xl leading-7 text-gray-900">
               {comm?.title ||
-                "Communication"}
+                "Untitled Communication"}
             </h2>
 
             <p className="mt-2 text-xs text-gray-500">
@@ -927,7 +951,7 @@ function ReviewPanel({
               <p className="mt-1 text-xs leading-5 text-gray-500">
                 {guided
                   ? "Review the Creator's selected channel outputs together before recording your decision."
-                  : "Open the final selected variant and review it before recording your decision."}
+                  : "Open the selected communication option and review it before recording your decision."}
               </p>
 
               <button
@@ -943,7 +967,7 @@ function ReviewPanel({
 
                 {guided
                   ? "Open Approval Package"
-                  : "Open Full Preview"}
+                  : "Open Preview"}
               </button>
             </div>
           </div>
@@ -969,6 +993,19 @@ function ReviewPanel({
           <textarea
             rows={5}
             value={comments}
+            disabled={
+              submitting
+            }
+            aria-invalid={
+              Boolean(
+                decisionError
+              )
+            }
+            aria-describedby={
+              decisionError
+                ? "review-decision-error"
+                : "review-comment-help"
+            }
             onChange={(event) => {
               setComments(
                 event.target.value
@@ -981,19 +1018,27 @@ function ReviewPanel({
               }
             }}
             placeholder="Add review comments..."
-            className={`w-full rounded-xl border bg-white px-3 py-3 text-sm outline-none transition focus:ring-4 ${
+            className={`w-full rounded-xl border bg-white px-3 py-3 text-sm outline-none transition focus:ring-4 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-500 ${
               decisionError
                 ? "border-red-300 focus:border-red-400 focus:ring-red-100"
                 : "border-gray-300 focus:border-[#07877B] focus:ring-[#07877B]/10"
             }`}
           />
 
-          <p className="mt-2 text-xs leading-5 text-gray-500">
+          <p
+            id="review-comment-help"
+            className="mt-2 text-xs leading-5 text-gray-500"
+          >
             A comment is required when requesting changes or rejecting a communication.
           </p>
 
           {decisionError && (
-            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
+            <div
+              id="review-decision-error"
+              role="alert"
+              aria-live="polite"
+              className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-5 text-red-700"
+            >
               {decisionError}
             </div>
           )}
@@ -1016,7 +1061,7 @@ function ReviewPanel({
                 ? "Saving decision..."
                 : reviewerRole ===
                     "corpcom_reviewer"
-                  ? "Final Approve"
+                  ? "Approve"
                   : "Approve & Send to CorpCom"}
             </button>
 
@@ -1133,7 +1178,7 @@ function ActivityView({
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="truncate text-sm font-medium text-gray-900">
                       {item.communication_title ||
-                        "Communication"}
+                        "Untitled Communication"}
                     </h3>
 
                     {item.category && (
