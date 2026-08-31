@@ -80,9 +80,12 @@ export function ProgressStepper({
     );
 
   return (
-    <div className="border-b border-gray-100 bg-white">
+    <nav
+      aria-label="Communication creation progress"
+      className="border-b border-gray-100 bg-white"
+    >
       <div className="mx-auto max-w-7xl px-6 sm:px-8">
-        <div className="hidden min-h-[62px] items-center md:flex">
+        <ol className="hidden min-h-[62px] items-center md:flex">
           {STEPS.map(
             (
               step,
@@ -97,11 +100,16 @@ export function ProgressStepper({
                 resolvedStep;
 
               return (
-                <div
+                <li
                   key={
                     step.number
                   }
                   className="flex min-w-0 flex-1 items-center"
+                  aria-current={
+                    active
+                      ? "step"
+                      : undefined
+                  }
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <div
@@ -114,7 +122,16 @@ export function ProgressStepper({
                       }`}
                     >
                       {complete ? (
-                        <Check className="h-3.5 w-3.5" />
+                        <>
+                          <Check
+                            className="h-3.5 w-3.5"
+                            aria-hidden="true"
+                          />
+
+                          <span className="sr-only">
+                            Completed
+                          </span>
+                        </>
                       ) : (
                         step.number
                       )}
@@ -137,7 +154,7 @@ export function ProgressStepper({
 
                       {active && (
                         <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-[#07877B]">
-                          Current
+                          Current step
                         </p>
                       )}
                     </div>
@@ -147,6 +164,7 @@ export function ProgressStepper({
                     STEPS.length -
                       1 && (
                     <div
+                      aria-hidden="true"
                       className={`mx-4 h-px flex-1 ${
                         complete
                           ? "bg-[#bfe4df]"
@@ -154,14 +172,14 @@ export function ProgressStepper({
                       }`}
                     />
                   )}
-                </div>
+                </li>
               );
             }
           )}
-        </div>
+        </ol>
 
 
-        <div className="flex min-h-[56px] items-center justify-between gap-4 md:hidden">
+        <div className="flex min-h-[58px] items-center justify-between gap-4 md:hidden">
           <div className="min-w-0">
             <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#07877B]">
               Step{" "}
@@ -169,7 +187,10 @@ export function ProgressStepper({
               {STEPS.length}
             </p>
 
-            <p className="mt-1 truncate text-sm font-medium text-gray-900">
+            <p
+              className="mt-1 truncate text-sm font-medium text-gray-900"
+              aria-current="step"
+            >
               {
                 STEPS[
                   resolvedStep -
@@ -179,7 +200,10 @@ export function ProgressStepper({
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div
+            className="flex shrink-0 items-center gap-1.5"
+            aria-label={`Step ${resolvedStep} of ${STEPS.length}`}
+          >
             {STEPS.map(
               (
                 step
@@ -197,7 +221,13 @@ export function ProgressStepper({
                     key={
                       step.number
                     }
-                    aria-label={`Step ${step.number}: ${step.shortLabel}`}
+                    aria-label={`Step ${step.number}: ${step.shortLabel}${
+                      active
+                        ? ", current"
+                        : complete
+                          ? ", completed"
+                          : ""
+                    }`}
                     className={`h-2 rounded-full transition-all ${
                       active
                         ? "w-6 bg-[#07877B]"
@@ -212,6 +242,6 @@ export function ProgressStepper({
           </div>
         </div>
       </div>
-    </div>
+    </nav>
   );
 }
