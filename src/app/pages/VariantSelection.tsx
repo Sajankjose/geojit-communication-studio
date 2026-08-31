@@ -276,7 +276,7 @@ export function VariantSelection() {
     setCommunicationTitle,
   ] =
     useState(
-      "New Communication"
+      "Untitled Communication"
     );
 
   const [
@@ -361,7 +361,7 @@ export function VariantSelection() {
 
         setCommunicationTitle(
           communication.title ||
-          "New Communication"
+          "Untitled Communication"
         );
 
         const resolvedCategory =
@@ -541,6 +541,12 @@ export function VariantSelection() {
 
 
   async function handleContinue() {
+    if (
+      saving
+    ) {
+      return;
+    }
+
     if (
       !communicationId
     ) {
@@ -746,7 +752,10 @@ export function VariantSelection() {
         <header className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <div className="mb-3 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-[#07877B]" />
+              <Sparkles
+                className="h-5 w-5 text-[#07877B]"
+                aria-hidden="true"
+              />
 
               <p className="text-sm font-medium text-[#07877B]">
                 AI-generated options
@@ -754,13 +763,13 @@ export function VariantSelection() {
             </div>
 
             <h1 className="text-3xl text-gray-900">
-              Choose the version you want to refine
+              Choose the option you want to refine
             </h1>
 
             <p className="mt-3 text-sm leading-7 text-gray-600">
               Each option uses the same source information, but changes the
               communication approach, information hierarchy and level of
-              explanation. Choose one to open in Full Preview.
+              explanation. Choose one to review and refine in preview.
             </p>
           </div>
 
@@ -784,7 +793,7 @@ export function VariantSelection() {
             <div>
               <p className="text-sm font-medium text-gray-900">
                 {selectedVariant
-                  ? `Variant ${selectedVariant.variant_key} selected`
+                  ? `Option ${selectedVariant.variant_key} selected`
                   : `${variants.length} options available`}
               </p>
 
@@ -799,7 +808,11 @@ export function VariantSelection() {
 
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700"
+          >
             {error}
           </div>
         )}
@@ -860,7 +873,16 @@ export function VariantSelection() {
                       selected={
                         selected
                       }
+                      disabled={
+                        saving
+                      }
                       onSelect={() => {
+                        if (
+                          saving
+                        ) {
+                          return;
+                        }
+
                         setSelectedVariantId(
                           variant.id
                         );
@@ -888,8 +910,8 @@ export function VariantSelection() {
                   </p>
 
                   <p className="mt-1 max-w-4xl text-sm leading-6 text-gray-600">
-                    Variants should differ in structure, emphasis and level of
-                    explanation—not in factual meaning. Full Preview is where you
+                    Options should differ in structure, emphasis and level of
+                    explanation—not in factual meaning. Preview is where you
                     can review and refine the selected version before approval.
                   </p>
                 </div>
@@ -936,7 +958,7 @@ export function VariantSelection() {
                       </>
                     ) : (
                       <>
-                        Continue to Full Preview
+                        Continue to Preview
                         <ArrowRight className="h-4 w-4" />
                       </>
                     )}
@@ -955,12 +977,16 @@ export function VariantSelection() {
 function VariantCard({
   variant,
   selected,
+  disabled,
   onSelect,
 }: {
   variant:
     StoredVariant;
 
   selected:
+    boolean;
+
+  disabled:
     boolean;
 
   onSelect:
@@ -996,6 +1022,7 @@ function VariantCard({
 
   return (
     <article
+      aria-label={`Option ${variant.variant_key}: ${title}`}
       className={`flex min-h-[640px] flex-col overflow-hidden rounded-2xl border bg-white transition-all ${
         selected
           ? "border-[#07877B] shadow-[0_0_0_3px_rgba(7,135,123,0.08)]"
@@ -1007,7 +1034,7 @@ function VariantCard({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-medium uppercase tracking-[0.14em] text-[#07877B]">
-                Variant {variant.variant_key}
+                Option {variant.variant_key}
               </span>
 
               {selected && (
@@ -1031,8 +1058,14 @@ function VariantCard({
             onClick={
               onSelect
             }
-            aria-label={`Select Variant ${variant.variant_key}`}
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors ${
+            disabled={
+              disabled
+            }
+            aria-label={`Select Option ${variant.variant_key}`}
+            aria-pressed={
+              selected
+            }
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors focus:outline-none focus:ring-4 focus:ring-[#07877B]/10 disabled:cursor-not-allowed disabled:opacity-50 ${
               selected
                 ? "border-[#07877B] bg-[#07877B]"
                 : "border-gray-300 bg-white hover:border-[#07877B]"
@@ -1177,7 +1210,13 @@ function VariantCard({
           onClick={
             onSelect
           }
-          className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
+          disabled={
+            disabled
+          }
+          aria-pressed={
+            selected
+          }
+          className={`w-full rounded-lg px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-4 focus:ring-[#07877B]/10 disabled:cursor-not-allowed disabled:opacity-50 ${
             selected
               ? "bg-[#07877B] text-white"
               : "border border-[#9bcfc9] bg-white text-[#075f58] hover:bg-[#f3fbfa]"
@@ -1185,7 +1224,7 @@ function VariantCard({
         >
           {selected
             ? "Selected"
-            : `Choose Variant ${variant.variant_key}`}
+            : `Choose Option ${variant.variant_key}`}
         </button>
       </div>
     </article>
