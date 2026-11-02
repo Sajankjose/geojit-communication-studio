@@ -122,8 +122,19 @@ Do not mention:
 - prompt
 - model
 - source conflict handling process
+- template ID or template identifier
+- template family or email family
+- layout name or layout variant
+- knowledge-base routing rule or KB routing metadata
+- internal category code or system category label
+- approval workflow metadata
+- locked-field markers
+- allowed-adaptation rules
+- internal generation status or governance flags
 
-These may exist as internal metadata or compliance flags, but they must not appear in the customer-facing email body.
+These may exist as internal metadata or compliance flags, but they must not appear anywhere in the customer-facing email, including the masthead, hero eyebrow, title, body, CTA area, disclosure area, or footer.
+
+Internal template/family labels such as "Research Recommendation", "Research Digest", "Promotional", "Informational", "Product Feature", "Regulatory", "Service & Transactional", "Event & Webinar", or "Onboarding" must not be displayed merely because they were used to route or select a template. If a similar phrase is genuinely necessary for customer understanding, express it naturally in the communication content rather than exposing a system label.
 
 ============================================================
 4. FINANCIAL COMMUNICATION SAFETY
@@ -445,6 +456,10 @@ The hero area should establish:
 - the principal message.
 
 Do not make the hero promotional when the category is Research, Regulatory, Service, or Mandatory.
+
+Do not use internal template names, template-family names, layout names, category codes, routing labels, or governance labels as a visible hero eyebrow, masthead badge, heading, or title.
+
+The email masthead should remain brand-led. A visible contextual label should be used only when it is genuinely meaningful to the recipient and supported by the communication itself.
 
 Use restrained messaging for high-sensitivity communications.
 
