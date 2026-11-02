@@ -87,9 +87,9 @@ export function renderEmailHtml(
   const body = contentData?.body;
 
   const heroEyebrow =
-    category === "research"
-      ? "GEOJIT IDEAS"
-      : hero?.eyebrow || "";
+    getCustomerFacingEyebrow(
+      hero?.eyebrow || ""
+    );
 
   /**
    * IMPORTANT:
@@ -459,11 +459,6 @@ export function renderEmailHtml(
                       alt="Geojit Financial Services"
                       style="display:block;width:150px;max-width:150px;height:auto;min-height:1px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;"
                     >
-                  </td>
-                  <td valign="middle" align="right" style="padding-left:20px;">
-                    <span style="display:inline-block;background:${BRAND.soft};border:1px solid #B9E3DE;border-radius:999px;padding:6px 11px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;font-weight:700;color:${BRAND.teal};">
-                      ${escapeHtml(getCategoryLabel(category))}
-                    </span>
                   </td>
                 </tr>
               </table>
@@ -2555,23 +2550,63 @@ function escapeAttribute(
     .replace(/`/g, "&#096;");
 }
 
-function getCategoryLabel(
-  category: string
-) {
-  switch (category) {
-    case "research":
-      return "Fundamental Research";
-    case "education":
-      return "Investor Education";
-    case "product":
-      return "Product & Sales";
-    case "service":
-      return "Service & Transactional";
-    case "regulatory":
-      return "Regulatory & Compliance";
-    case "onboarding":
-      return "Onboarding & Journey";
-    default:
-      return "Communication";
+function getCustomerFacingEyebrow(
+  value: string
+): string {
+  const clean =
+    value.trim();
+
+  if (!clean) {
+    return "";
   }
+
+  const normalized =
+    clean
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+
+  const internalLabels =
+    new Set([
+      "fundamental research",
+      "research recommendation",
+      "research digest",
+      "single research note",
+      "investor education",
+      "product & sales",
+      "product feature",
+      "service & transactional",
+      "regulatory & compliance",
+      "onboarding & journey",
+      "promotional",
+      "informational",
+      "event & webinar",
+    ]);
+
+  if (
+    internalLabels.has(
+      normalized
+    ) ||
+    normalized.startsWith(
+      "email_"
+    ) ||
+    normalized.startsWith(
+      "kb_"
+    ) ||
+    /\btemplate\b/.test(
+      normalized
+    ) ||
+    /\btemplate family\b/.test(
+      normalized
+    ) ||
+    /\blayout(?: variant)?\b/.test(
+      normalized
+    ) ||
+    /\brouting\b/.test(
+      normalized
+    )
+  ) {
+    return "";
+  }
+
+  return clean;
 }
